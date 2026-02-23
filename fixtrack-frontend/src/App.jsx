@@ -6,8 +6,6 @@ import LoginPage  from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 
 export default function App() {
-  const [page, setPage] = useState("login"); // "login" | "signup"
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
