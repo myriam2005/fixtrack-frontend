@@ -1,0 +1,26 @@
+/* src/index.css — Global reset FixTrack */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  /* Supprimer tout ce que Vite met par défaut */
+  background: none;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Supprimer les styles Vite par défaut */
+#root {
+  display: flex;
+  flex-direction: column;
+}
