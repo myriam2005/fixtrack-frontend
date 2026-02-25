@@ -59,7 +59,7 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
+      
         <Routes>
 
           {/* ── Auth ── */}
@@ -116,7 +116,7 @@ export default function App() {
           } />
 
         </Routes>
-      </BrowserRouter>
+      
     </ThemeProvider>
   );
 }
