@@ -8,6 +8,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import SidePanel from "../../components/auth/SidePanel";
 import styles from "./auth.module.css";
+import { useAuth } from "../../context/AuthContext";
 
 // ─── Comptes démo (à remplacer par appel API réel) ────────────────────────────
 const DEMO_ACCOUNTS = {
@@ -19,6 +20,8 @@ const DEMO_ACCOUNTS = {
 const DEMO_PASSWORD = "fixtrack2025";
 
 export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
+  const { login } = useAuth();
+
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -53,12 +56,12 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
       return;
     }
 
-    // Stocker l'utilisateur connecté
-    localStorage.setItem("currentUser", JSON.stringify({
+    // Stocker l'utilisateur connecté via le context (gère localStorage automatiquement)
+    login({
       name:  account.name,
       role:  account.role,
       email: email.toLowerCase(),
-    }));
+    });
 
     // Callback vers App.jsx → déclenche la redirection
     if (onLoginSuccess) onLoginSuccess(account.role);
