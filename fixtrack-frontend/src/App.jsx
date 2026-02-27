@@ -14,7 +14,8 @@ import SignUpPage from "./pages/auth/SignUpPage";
 import Layout from "./components/layout/Layout";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import CreateTicket from "./pages/employee/CreateTicket";
+import CreateTicket   from "./pages/employee/CreateTicket";
+import AssignerTicket from "./pages/manager/AssignerTicket"; // ✅ nouveau
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -87,7 +88,7 @@ export default function App() {
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
                   <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
-                  <Route path="employee/tickets/new" element={<CreateTicket />} /> {/* ✅ branché */}
+                  <Route path="employee/tickets/new" element={<CreateTicket />} />
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<PlaceholderPage title="Dashboard Technicien" />} />
@@ -95,11 +96,12 @@ export default function App() {
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}
-                  <Route path="manager/dashboard" element={<PlaceholderPage title="Dashboard Manager" />} />
-                  <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"  element={<PlaceholderPage title="Machines" />} />
-                  <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
-                  <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="manager/dashboard"         element={<PlaceholderPage title="Dashboard Manager" />} />
+                  <Route path="manager/tickets"           element={<PlaceholderPage title="Tous les Tickets" />} />
+                  <Route path="manager/tickets/assigner"  element={<AssignerTicket />} /> {/* ✅ branché */}
+                  <Route path="manager/machines"          element={<PlaceholderPage title="Machines" />} />
+                  <Route path="manager/team"              element={<PlaceholderPage title="Équipe" />} />
+                  <Route path="manager/reports"           element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
