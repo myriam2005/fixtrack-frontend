@@ -10,8 +10,6 @@ import Layout       from "./components/layout/Layout";
 
 // ── Pages réelles ──────────────────────────────────────────────────────────────
 import CreateTicket   from "./pages/employee/CreateTicket";
-import DetailTicket   from "./pages/employee/DetailTicket";   // ✅ modal
-import AssignerTicket from "./pages/manager/AssignerTicket";
 
 function PlaceholderPage({ title }) {
   return (
@@ -69,19 +67,17 @@ export default function App() {
                   <Route path="employee/dashboard"       element={<PlaceholderPage title="Dashboard Employé" />} />
                   <Route path="employee/tickets"         element={<PlaceholderPage title="Mes Tickets" />} />
                   <Route path="employee/tickets/new"     element={<CreateTicket />} />
-                  <Route path="employee/tickets/:id"     element={<DetailTicket />} /> {/* ✅ modal via URL */}
+                  
 
                   {/* Technician */}
                   <Route path="technician/dashboard"     element={<PlaceholderPage title="Dashboard Technicien" />} />
                   <Route path="technician/tickets"       element={<PlaceholderPage title="Tickets Assignés" />} />
-                  <Route path="technician/tickets/:id"   element={<DetailTicket />} />
+              
                   <Route path="technician/reports"       element={<PlaceholderPage title="Rapports" />} />
 
                   {/* Manager */}
                   <Route path="manager/dashboard"        element={<PlaceholderPage title="Dashboard Manager" />} />
                   <Route path="manager/tickets"          element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/tickets/assigner" element={<AssignerTicket />} />
-                  <Route path="manager/tickets/:id"      element={<DetailTicket />} />
                   <Route path="manager/machines"         element={<PlaceholderPage title="Machines" />} />
                   <Route path="manager/team"             element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"          element={<PlaceholderPage title="Rapports" />} />
