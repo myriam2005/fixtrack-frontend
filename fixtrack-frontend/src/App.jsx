@@ -14,8 +14,8 @@ import SignUpPage from "./pages/auth/SignUpPage";
 import Layout from "./components/layout/Layout";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import CreateTicket from "./pages/employee/CreateTicket";
-
+import CreateTicket from "./pages/employee/CreateTicket"
+import AssignedTicket from "./pages/tech/AssignedTicket"
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
   return (
@@ -91,7 +91,7 @@ export default function App() {
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<PlaceholderPage title="Dashboard Technicien" />} />
-                  <Route path="technician/tickets"   element={<PlaceholderPage title="Tickets Assignés" />} />
+                  <Route path="technician/tickets"   element={<AssignedTicket/>} />
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}

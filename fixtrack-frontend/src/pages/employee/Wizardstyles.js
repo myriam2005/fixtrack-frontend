@@ -226,7 +226,7 @@ export const CSS = `
 .wz-role {
   margin-left: auto; padding: 4px 12px; border-radius: 20px;
   font-size: 11px; font-weight: 600; text-transform: capitalize;
-  background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;
+  background: #ECFDF5; color: #047857; border: 1px solid #6EE7B7;
 }
 
 /* ── Photo upload ── */
@@ -281,12 +281,12 @@ export const CSS = `
 /* ── Status pill (page succès) ── */
 .wz-status-pill {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 14px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
-  background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  background: #ECFDF5; color: #047857; border: 1px solid #6EE7B7;
 }
 .wz-status-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #2563EB;
+  width: 5px; height: 5px; border-radius: 50%; background: #10B981; flex-shrink: 0;
 }
 
 /* ── Navigation ── */
