@@ -1,4 +1,3 @@
-// src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "./theme/index";
@@ -10,6 +9,7 @@ import Layout       from "./components/layout/Layout";
 
 // ── Pages réelles ──────────────────────────────────────────────────────────────
 import CreateTicket   from "./pages/employee/CreateTicket";
+import DetailTicket   from "./pages/employee/DetailsTickets";
 
 function PlaceholderPage({ title }) {
   return (
@@ -67,12 +67,13 @@ export default function App() {
                   <Route path="employee/dashboard"       element={<PlaceholderPage title="Dashboard Employé" />} />
                   <Route path="employee/tickets"         element={<PlaceholderPage title="Mes Tickets" />} />
                   <Route path="employee/tickets/new"     element={<CreateTicket />} />
+                  <Route path="employee/tickets/:id"     element={<DetailTicket />} />
                   
 
                   {/* Technician */}
                   <Route path="technician/dashboard"     element={<PlaceholderPage title="Dashboard Technicien" />} />
                   <Route path="technician/tickets"       element={<PlaceholderPage title="Tickets Assignés" />} />
-              
+                  <Route path="technician/tickets/:id"   element={<DetailTicket />} />
                   <Route path="technician/reports"       element={<PlaceholderPage title="Rapports" />} />
 
                   {/* Manager */}
@@ -81,7 +82,7 @@ export default function App() {
                   <Route path="manager/machines"         element={<PlaceholderPage title="Machines" />} />
                   <Route path="manager/team"             element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"          element={<PlaceholderPage title="Rapports" />} />
-
+                  <Route path="manager/tickets/:id"      element={<DetailTicket />} />n
                   {/* Admin */}
                   <Route path="admin/dashboard"          element={<PlaceholderPage title="Dashboard Admin" />} />
                   <Route path="admin/tickets"            element={<PlaceholderPage title="Tous les Tickets" />} />
