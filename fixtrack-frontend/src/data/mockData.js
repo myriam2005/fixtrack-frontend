@@ -13,7 +13,7 @@ export const users = [
     id: "u2",
     nom: "Sara Ben Ali",
     email: "sara@fst.tn",
-    password: "123456",
+    password: "Fixtrack2025",
     role: "technician",
     avatar: "SB",
     competences: ["Électrique", "HVAC"],

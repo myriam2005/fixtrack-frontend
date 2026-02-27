@@ -9,15 +9,7 @@ import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import SidePanel from "../../components/auth/SidePanel";
 import styles from "./auth.module.css";
 import { useAuth } from "../../context/AuthContext";
-
-// ─── Comptes démo (à remplacer par appel API réel) ────────────────────────────
-const DEMO_ACCOUNTS = {
-  "employee@fixtrack.app":   { role: "employee",   name: "Jean Dupont"   },
-  "tech@fixtrack.app":       { role: "technician", name: "Ahmed Belhaj"  },
-  "manager@fixtrack.app":    { role: "manager",    name: "Sara Mansour"  },
-  "admin@fixtrack.app":      { role: "admin",      name: "Admin Système" },
-};
-const DEMO_PASSWORD = "fixtrack2025";
+import { users } from "../../data/mockData";
 
 export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
   const { login } = useAuth();
@@ -39,8 +31,8 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
     return e;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // ── FIX : onClick au lieu de onSubmit pour éviter l'interception Chrome ──
+  const handleLogin = async () => {
     const fieldErrors = validate();
     if (Object.keys(fieldErrors).length) { setErrors(fieldErrors); return; }
     setErrors({});
@@ -49,23 +41,31 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
     await new Promise((r) => setTimeout(r, 1200));
     setLoading(false);
 
-    // Vérification démo — remplacer par : const res = await authService.login(email, password)
-    const account = DEMO_ACCOUNTS[email.toLowerCase()];
-    if (!account || password !== DEMO_PASSWORD) {
+    const account = users.find(
+      u => u.email.toLowerCase() === email.trim().toLowerCase()
+        && u.password === password
+    );
+
+    if (!account) {
       setApiError("Email ou mot de passe incorrect.");
       return;
     }
 
-    // Stocker l'utilisateur connecté via le context (gère localStorage automatiquement)
     login({
-      name:  account.name,
-      role:  account.role,
-      email: email.toLowerCase(),
+      id:     account.id,
+      name:   account.nom,
+      role:   account.role,
+      email:  account.email,
+      avatar: account.avatar ?? account.nom?.slice(0, 2).toUpperCase(),
     });
 
-    // Callback vers App.jsx → déclenche la redirection
     if (onLoginSuccess) onLoginSuccess(account.role);
     else window.location.href = `/${account.role}/dashboard`;
+  };
+
+  // Permet aussi d'appuyer sur Entrée
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleLogin();
   };
 
   const clearErr = (f) => setErrors((p) => { const n = { ...p }; delete n[f]; return n; });
@@ -90,20 +90,21 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
               </Alert>
             )}
 
-            {/* Hint comptes démo */}
             <div className={styles.demoHint}>
-              💡 <strong>Démo</strong> — MDP universel : <code>fixtrack2025</code><br />
+              💡 <strong>Comptes démo</strong> — MDP universel : <code>123456</code><br />
               <span style={{ fontSize: 11 }}>
-                employee@ · tech@ · manager@ · admin@ <em>(@fixtrack.app)</em>
+                jean@fst.tn · sara@fst.tn · karim@fst.tn · lina@fst.tn · admin@fst.tn
               </span>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
+            {/* ── FIX : div au lieu de form ── */}
+            <div>
               <TextField
                 fullWidth label="Adresse email" type="email"
-                placeholder="nom@fixtrack.app"
+                placeholder="prenom@fst.tn"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); clearErr("email"); }}
+                onKeyDown={handleKeyDown}
                 error={!!errors.email} helperText={errors.email}
                 sx={{ mb: 2 }}
                 InputProps={{
@@ -123,6 +124,7 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
                 fullWidth type={showPass ? "text" : "password"}
                 placeholder="••••••••" value={password}
                 onChange={(e) => { setPassword(e.target.value); clearErr("password"); }}
+                onKeyDown={handleKeyDown}
                 error={!!errors.password} helperText={errors.password}
                 sx={{ mb: 1.5 }}
                 InputProps={{
@@ -149,12 +151,15 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
                 sx={{ mb: 2.5 }}
               />
 
-              <Button type="submit" variant="contained" fullWidth size="large"
+              <Button
+                variant="contained" fullWidth size="large"
                 disabled={loading}
-                sx={{ py: 1.5, fontSize: 15, fontWeight: 600, mb: 2.5, borderRadius: 2 }}>
+                onClick={handleLogin}
+                sx={{ py: 1.5, fontSize: 15, fontWeight: 600, mb: 2.5, borderRadius: 2 }}
+              >
                 {loading ? <CircularProgress size={22} sx={{ color: "#fff" }} /> : "Se connecter →"}
               </Button>
-            </form>
+            </div>
 
             <Divider sx={{ mb: 2 }}>
               <span style={{ fontSize: 12, color: "#94a3b8", padding: "0 8px" }}>ou</span>
@@ -172,7 +177,7 @@ export default function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
       </div>
 
       <div className={styles.pageFooter}>
-        <span className={styles.pageFooterItem}>© 2024 FixTrack. All rights reserved.</span>
+        <span className={styles.pageFooterItem}>© 2025 FixTrack. All rights reserved.</span>
         {["Terms of Service", "Privacy Policy", "Support"].map((t) => (
           <span key={t} className={`${styles.pageFooterItem} ${styles.pageFooterLink}`}>{t}</span>
         ))}
