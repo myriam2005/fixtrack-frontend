@@ -12,6 +12,7 @@ import Layout from "./components/layout/Layout";
 
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
+import GestionUsers from "./pages/admin/GestionUsers";
 
 function PlaceholderPage({ title }) {
   return (
@@ -95,7 +96,7 @@ export default function App() {
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
+                  <Route path="admin/users"     element={<GestionUsers/>} />
                   <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
