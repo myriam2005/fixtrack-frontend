@@ -1,636 +1,583 @@
+// ─────────────────────────────────────────────────────────────
+//  src/pages/admin/GestionUsers.jsx
+//  Page CRUD utilisateurs — FixTrack
+//  Styles : ./gestion-users.css
+// ─────────────────────────────────────────────────────────────
 import { useState } from "react";
+import "./GestionUsers.css";
+import { users as mockUsers } from "../../data/mockData";
 
-// ─── Mock Data (local copy, simulating mockData.js import) ────────────────────
-const initialUsers = [
-  {
-    id: "u1",
-    nom: "Jean Dupont",
-    email: "jean@fst.tn",
-    password: "123456",
-    role: "employee",
-    avatar: "JD",
-    telephone: "+216 22 111 222",
-    statut: "actif",
-    dateCreation: "2025-01-10",
-  },
-  {
-    id: "u2",
-    nom: "Sara Ben Ali",
-    email: "sara@fst.tn",
-    password: "123456",
-    role: "technician",
-    avatar: "SB",
-    competences: ["Électrique", "HVAC"],
-    statut: "actif",
-    dateCreation: "2025-01-08",
-  },
-  {
-    id: "u3",
-    nom: "Karim Maaloul",
-    email: "karim@fst.tn",
-    password: "123456",
-    role: "technician",
-    avatar: "KM",
-    competences: ["Informatique", "Mécanique"],
-    statut: "actif",
-    dateCreation: "2025-01-07",
-  },
-  {
-    id: "u4",
-    nom: "Lina Trabelsi",
-    email: "lina@fst.tn",
-    password: "123456",
-    role: "manager",
-    avatar: "LT",
-    statut: "actif",
-    dateCreation: "2025-01-05",
-  },
-  {
-    id: "u5",
-    nom: "Admin FST",
-    email: "admin@fst.tn",
-    password: "123456",
-    role: "admin",
-    avatar: "AF",
-    statut: "actif",
-    dateCreation: "2025-01-01",
-  },
-];
+// ─── Import direct depuis mockData (statut + dateCreation inclus) ─
+const INITIAL_USERS = mockUsers.map(u => ({
+  id:           u.id,
+  nom:          u.nom,
+  email:        u.email,
+  role:         u.role,
+  statut:       u.statut,
+  dateCreation: u.dateCreation,
+}));
 
-// ─── Role config ──────────────────────────────────────────────────────────────
-const ROLE_CONFIG = {
-  employee:   { label: "Employé",        bg: "#3B82F6", text: "#FFFFFF" },
-  technician: { label: "Technicien",     bg: "#F59E0B", text: "#FFFFFF" },
-  manager:    { label: "Manager",        bg: "#8B5CF6", text: "#FFFFFF" },
-  admin:      { label: "Administrateur", bg: "#EF4444", text: "#FFFFFF" },
+// ─── Constantes rôles ───────────────────────────────────────
+export const ROLE_META = {
+  employee:   { label:"Employé",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
+  technician: { label:"Technicien",     color:"#D97706", bg:"#FFFBEB", border:"#FDE68A", avatar:"#D97706" },
+  manager:    { label:"Manager",        color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE", avatar:"#7C3AED" },
+  admin:      { label:"Administrateur", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE", avatar:"#1D4ED8" },
 };
 
-const ROLES = ["employee", "technician", "manager", "admin"];
+// ─── Helpers ────────────────────────────────────────────────
+const uid      = () => "u" + Date.now();
+const initials = n  => n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+const fmtDate  = d  => new Date(d).toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const generateId = () => "u" + Date.now();
+// ─── SVG icons ──────────────────────────────────────────────
+const ICONS = {
+  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  plus:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  edit:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  block:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
+  check:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  close:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  warn:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  user:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  mail:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+  lock:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  tag:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+  users2: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+};
 
-const getInitials = (name) =>
-  name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+const Ico = ({ k, size = 16, color }) => (
+  <span style={{ display:"inline-flex", width:size, height:size, color, flexShrink:0 }}>
+    {ICONS[k]}
+  </span>
+);
 
-const formatDate = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+// ─────────────────────────────────────────────────────────────
+//  COMPOSANTS UI
+// ─────────────────────────────────────────────────────────────
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function RoleBadge({ role }) {
-  const cfg = ROLE_CONFIG[role] || { label: role, bg: "#E5E7EB", text: "#111827" };
-  return (
-    <span
-      style={{
-        backgroundColor: cfg.bg,
-        color: cfg.text,
-        fontSize: 12,
-        fontWeight: 600,
-        padding: "3px 10px",
-        borderRadius: 6,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {cfg.label}
-    </span>
-  );
-}
-
-function StatusBadge({ statut }) {
-  const isActif = statut === "actif";
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        backgroundColor: isActif ? "#DCFCE7" : "#F3F4F6",
-        color: isActif ? "#15803D" : "#6B7280",
-        fontSize: 12,
-        fontWeight: 600,
-        padding: "3px 10px",
-        borderRadius: 6,
-      }}
-    >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          backgroundColor: isActif ? "#22C55E" : "#9CA3AF",
-          display: "inline-block",
-        }}
-      />
-      {isActif ? "Actif" : "Inactif"}
-    </span>
-  );
-}
-
-function Avatar({ name, size = 36 }) {
-  const initials = getInitials(name);
-  const colors = ["#2563EB", "#7C3AED", "#059669", "#DC2626", "#D97706"];
-  const color = colors[initials.charCodeAt(0) % colors.length];
+function Avatar({ name, role, size = 38 }) {
+  const color = ROLE_META[role]?.avatar || "#94A3B8";
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        backgroundColor: color,
-        color: "#FFFFFF",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.36,
-        fontWeight: 700,
-        flexShrink: 0,
-      }}
+      className="ft-avatar"
+      style={{ width:size, height:size, backgroundColor:color, fontSize:size * 0.34 }}
     >
-      {initials}
+      {initials(name)}
     </div>
   );
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-function Modal({ open, onClose, title, children }) {
+function RoleChip({ role }) {
+  const m = ROLE_META[role] || { label:role, color:"#64748B", bg:"#F1F5F9", border:"#E2E8F0" };
+  return (
+    <span className="ft-chip" style={{ background:m.bg, color:m.color, borderColor:m.border }}>
+      <span className="ft-chip__dot" style={{ background:m.color }} />
+      {m.label}
+    </span>
+  );
+}
+
+// Badge statut — simple texte coloré sans cadre
+function StatusBadge({ statut }) {
+  const on = statut === "actif";
+  return (
+    <span style={{
+      fontSize: "0.72rem",
+      fontWeight: 600,
+      color: on ? "#16A34A" : "#9CA3AF",
+      letterSpacing: "0.01em",
+    }}>
+      {on ? "Actif" : "Inactif"}
+    </span>
+  );
+}
+
+function StatTile({ label, value, sub, color, icon, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="ft-tile"
+      style={{
+        background:  active ? color : "#fff",
+        borderColor: active ? color : "#E2E8F0",
+        boxShadow:   active ? `0 4px 18px ${color}44` : "0 1px 3px rgba(0,0,0,.05)",
+      }}
+    >
+      <div className="ft-tile__top">
+        <div className="ft-tile__icon" style={{ background: active ? "rgba(255,255,255,.18)" : color + "14" }}>
+          <Ico k={icon} size={17} color={active ? "#fff" : color} />
+        </div>
+        <span className="ft-tile__value" style={{ color: active ? "#fff" : "#0F172A" }}>
+          {value}
+        </span>
+      </div>
+      <p className="ft-tile__label" style={{ color: active ? "rgba(255,255,255,.8)" : "#64748B" }}>
+        {label}
+      </p>
+      {sub && (
+        <p className="ft-tile__sub" style={{ color: active ? "rgba(255,255,255,.55)" : "#94A3B8" }}>
+          {sub}
+        </p>
+      )}
+    </button>
+  );
+}
+
+function Modal({ open, onClose, title, subtitle, children, width = 480 }) {
   if (!open) return null;
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.45)",
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        backdropFilter: "blur(2px)",
-      }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 12,
-          padding: "28px 32px",
-          width: "100%",
-          maxWidth: 480,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#6B7280",
-              fontSize: 22,
-              lineHeight: 1,
-              padding: "2px 6px",
-              borderRadius: 6,
-            }}
-          >
-            ×
+    <div className="ft-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="ft-modal" style={{ maxWidth:width }}>
+        <div className="ft-modal__stripe" />
+        <div className="ft-modal__header">
+          <div>
+            <h2 className="ft-modal__title">{title}</h2>
+            {subtitle && <p className="ft-modal__subtitle">{subtitle}</p>}
+          </div>
+          <button className="ft-modal__close" onClick={onClose}>
+            <Ico k="close" size={17} />
           </button>
         </div>
-        {children}
+        <div className="ft-modal__body">{children}</div>
       </div>
     </div>
   );
 }
 
-// ─── User Form ────────────────────────────────────────────────────────────────
-const emptyForm = { nom: "", email: "", password: "", role: "employee" };
+function Field({ label, icon, error, children }) {
+  return (
+    <div className="ft-form__field">
+      <label className="ft-form__label">
+        <Ico k={icon} size={12} color="#94A3B8" />
+        {label}
+      </label>
+      {children}
+      {error && <span className="ft-form__error">{error}</span>}
+    </div>
+  );
+}
 
-function UserForm({ initialData = emptyForm, onSubmit, onCancel, isEdit }) {
-  const [form, setForm] = useState(initialData);
-  const [errors, setErrors] = useState({});
+// ─────────────────────────────────────────────────────────────
+//  FORMULAIRE — sans champ département
+// ─────────────────────────────────────────────────────────────
+const BLANK_FORM = { nom:"", email:"", password:"", role:"employee" };
+
+function UserForm({ initial, isEdit, onSubmit, onCancel }) {
+  const [form, setForm]       = useState(initial || BLANK_FORM);
+  const [errors, setErrors]   = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const setField = key => e => setForm(prev => ({ ...prev, [key]:e.target.value }));
 
   const validate = () => {
-    const e = {};
-    if (!form.nom.trim()) e.nom = "Le nom est requis";
-    if (!form.email.trim() || !form.email.includes("@")) e.email = "Email invalide";
-    if (!isEdit && !form.password.trim()) e.password = "Le mot de passe est requis";
-    if (!form.role) e.role = "Le rôle est requis";
-    return e;
+    const err = {};
+    if (!form.nom.trim())                    err.nom      = "Nom requis";
+    if (!form.email.includes("@"))           err.email    = "Email invalide";
+    if (!isEdit && form.password.length < 6) err.password = "6 caractères minimum";
+    return err;
   };
 
   const handleSubmit = () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    onSubmit(form);
+    const err = validate();
+    if (Object.keys(err).length) { setErrors(err); return; }
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onSubmit(form); }, 550);
   };
 
-  const field = (key, label, type = "text", placeholder = "") => (
-    <div style={{ marginBottom: 16 }}>
-      <label style={styles.label}>{label}</label>
-      <input
-        type={type}
-        value={form[key]}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-        placeholder={placeholder}
-        style={{
-          ...styles.input,
-          borderColor: errors[key] ? "#EF4444" : "#E5E7EB",
-        }}
-      />
-      {errors[key] && (
-        <span style={{ fontSize: 12, color: "#EF4444", marginTop: 4, display: "block" }}>
-          {errors[key]}
-        </span>
-      )}
-    </div>
-  );
+  const cls = hasErr => `ft-input${hasErr ? " ft-input--error" : ""}`;
 
   return (
     <div>
-      {field("nom", "Nom complet", "text", "Ex: Jean Dupont")}
-      {field("email", "Email", "email", "Ex: jean@fst.tn")}
-      {field("password", isEdit ? "Nouveau mot de passe (optionnel)" : "Mot de passe", "password", "••••••••")}
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={styles.label}>Rôle</label>
-        <select
-          value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value })}
-          style={{ ...styles.input, cursor: "pointer" }}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_CONFIG[r].label}
-            </option>
-          ))}
-        </select>
+      {/* Aperçu dynamique */}
+      <div className="ft-form__preview">
+        <Avatar name={form.nom || "?"} role={form.role} size={44} />
+        <div>
+          <p className="ft-form__preview-name">
+            {form.nom || <span className="ft-form__preview-placeholder">Nom de l'utilisateur</span>}
+          </p>
+          <div style={{ marginTop:6 }}>
+            <RoleChip role={form.role} />
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-        <button onClick={onCancel} style={styles.btnSecondary}>
-          Annuler
-        </button>
-        <button onClick={handleSubmit} style={styles.btnPrimary}>
-          {isEdit ? "Enregistrer" : "Ajouter"}
+      <div className="ft-form__grid">
+        {/* Nom — pleine largeur */}
+        <div className="ft-form__full">
+          <Field label="Nom complet" icon="user" error={errors.nom}>
+            <input
+              className={cls(errors.nom)}
+              value={form.nom}
+              onChange={setField("nom")}
+              placeholder="Ex: Jean Dupont"
+            />
+          </Field>
+        </div>
+
+        {/* Email — pleine largeur */}
+        <div className="ft-form__full">
+          <Field label="Adresse email" icon="mail" error={errors.email}>
+            <input
+              type="email"
+              className={cls(errors.email)}
+              value={form.email}
+              onChange={setField("email")}
+              placeholder="jean@fst.tn"
+            />
+          </Field>
+        </div>
+
+        {/* Mot de passe + Rôle côte à côte */}
+        <Field label={isEdit ? "Nouveau mot de passe" : "Mot de passe"} icon="lock" error={errors.password}>
+          <input
+            type="password"
+            className={cls(errors.password)}
+            value={form.password}
+            onChange={setField("password")}
+            placeholder={isEdit ? "Laisser vide = inchangé" : "6+ caractères"}
+          />
+        </Field>
+
+        <Field label="Rôle" icon="tag">
+          <select
+            className="ft-input"
+            style={{ cursor:"pointer" }}
+            value={form.role}
+            onChange={setField("role")}
+          >
+            {Object.entries(ROLE_META).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="ft-form__actions">
+        <button className="ft-btn-cancel" onClick={onCancel}>Annuler</button>
+        <button className="ft-btn-submit" onClick={handleSubmit}>
+          {loading ? <span className="ft-spinner" /> : <Ico k="check" size={15} />}
+          {isEdit ? "Enregistrer les modifications" : "Créer l'utilisateur"}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Confirm Dialog ───────────────────────────────────────────────────────────
-function ConfirmDialog({ open, onClose, onConfirm, user }) {
-  if (!open || !user) return null;
-  const action = user.statut === "actif" ? "désactiver" : "réactiver";
-  const actionLabel = user.statut === "actif" ? "Désactiver" : "Réactiver";
-  const btnStyle = user.statut === "actif" ? styles.btnDanger : styles.btnSuccess;
-
+// ─────────────────────────────────────────────────────────────
+//  DIALOG CONFIRMATION
+// ─────────────────────────────────────────────────────────────
+function ConfirmDialog({ user, onConfirm, onClose }) {
+  const deactivate = user?.statut === "actif";
   return (
-    <Modal open={open} onClose={onClose} title="Confirmation requise">
-      <p style={{ color: "#374151", margin: "0 0 8px", lineHeight: 1.6 }}>
-        Êtes-vous sûr de vouloir <strong>{action}</strong> le compte de{" "}
-        <strong>{user.nom}</strong> ?
-      </p>
-      {user.statut === "actif" && (
-        <p style={{ color: "#6B7280", fontSize: 13, margin: "0 0 24px" }}>
-          L'utilisateur ne pourra plus se connecter.
-        </p>
-      )}
-      <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-        <button onClick={onClose} style={styles.btnSecondary}>
-          Annuler
-        </button>
-        <button onClick={onConfirm} style={btnStyle}>
-          {actionLabel}
+    <Modal
+      open={!!user}
+      onClose={onClose}
+      title={deactivate ? "Désactiver le compte" : "Réactiver le compte"}
+      subtitle="Confirmez cette action pour continuer."
+      width={400}
+    >
+      <div
+        className="ft-confirm-box"
+        style={{
+          background: deactivate ? "#FEF2F2" : "#F0FDF4",
+          border: `1.5px solid ${deactivate ? "#FECACA" : "#BBF7D0"}`,
+        }}
+      >
+        <Ico k="warn" size={20} color={deactivate ? "#EF4444" : "#22C55E"} />
+        <div>
+          <p className="ft-confirm-box__title" style={{ color: deactivate ? "#7F1D1D" : "#14532D" }}>
+            {deactivate ? "Accès immédiatement révoqué" : "Accès immédiatement rétabli"}
+          </p>
+          <p className="ft-confirm-box__text" style={{ color: deactivate ? "#B91C1C" : "#15803D" }}>
+            {deactivate
+              ? `${user?.nom} ne pourra plus se connecter à FixTrack.`
+              : `${user?.nom} pourra à nouveau utiliser FixTrack.`}
+          </p>
+        </div>
+      </div>
+      <div className="ft-form__actions">
+        <button className="ft-btn-cancel" onClick={onClose}>Annuler</button>
+        <button
+          className={deactivate ? "ft-btn-danger" : "ft-btn-success"}
+          onClick={onConfirm}
+        >
+          <Ico k={deactivate ? "block" : "check"} size={15} />
+          {deactivate ? "Désactiver" : "Réactiver"}
         </button>
       </div>
     </Modal>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  PAGE PRINCIPALE
+// ─────────────────────────────────────────────────────────────
 export default function GestionUsers() {
-  const [users, setUsers] = useState(initialUsers);
-  const [search, setSearch] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
 
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(null); // user object
-  const [confirmModal, setConfirmModal] = useState(null); // user object
+  const [users, setUsers]             = useState(INITIAL_USERS);
+  const [search, setSearch]           = useState("");
+  const [roleFilter, setRoleFilter]   = useState("all");
+  const [statFilter, setStatFilter]   = useState("all");
+  const [sort, setSort]               = useState({ col:"dateCreation", dir:"desc" });
+  const [addOpen, setAddOpen]         = useState(false);
+  const [editUser, setEditUser]       = useState(null);
+  const [confirmUser, setConfirmUser] = useState(null);
+  const [toast, setToast]             = useState(null);
 
-  // ── Filtered list
-  const filtered = users.filter((u) => {
-    const matchSearch =
-      u.nom.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole = filterRole === "all" || u.role === filterRole;
-    return matchSearch && matchRole;
-  });
-
-  // ── CRUD handlers
-  const handleAdd = (form) => {
-    const newUser = {
-      ...form,
-      id: generateId(),
-      avatar: getInitials(form.nom),
-      statut: "actif",
-      dateCreation: new Date().toISOString().split("T")[0],
-    };
-    setUsers([...users, newUser]);
-    setAddModal(false);
+  const notify = (msg, type = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const handleEdit = (form) => {
-    setUsers(
-      users.map((u) =>
-        u.id === editModal.id
-          ? {
-              ...u,
-              nom: form.nom,
-              email: form.email,
-              role: form.role,
-              avatar: getInitials(form.nom),
-              ...(form.password ? { password: form.password } : {}),
-            }
-          : u
-      )
-    );
-    setEditModal(null);
+  // ── Stats ──────────────────────────────────────────────────
+  const total     = users.length;
+  const employees = users.filter(u => u.role === "employee").length;
+  const techs     = users.filter(u => u.role === "technician").length;
+  const admins    = users.filter(u => u.role === "admin" || u.role === "manager").length;
+  const isAdminManagerFilter = roleFilter === "admin" || roleFilter === "manager";
+
+  // ── Filtrage + tri ─────────────────────────────────────────
+  const filtered = users
+    .filter(u => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || u.nom.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      const matchRole   = roleFilter === "all" || u.role === roleFilter;
+      const matchStatus = statFilter === "all" || u.statut === statFilter;
+      return matchSearch && matchRole && matchStatus;
+    })
+    .sort((a, b) => {
+      const va = a[sort.col] || "";
+      const vb = b[sort.col] || "";
+      return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+
+  const toggleSort   = col => setSort(s =>
+    s.col === col ? { col, dir: s.dir === "asc" ? "desc" : "asc" } : { col, dir:"asc" }
+  );
+  const resetFilters = () => { setSearch(""); setRoleFilter("all"); setStatFilter("all"); };
+  const hasFilters   = search || roleFilter !== "all" || statFilter !== "all";
+
+  // ── CRUD ──────────────────────────────────────────────────
+  const handleAdd = form => {
+    setUsers(prev => [
+      ...prev,
+      { ...form, id:uid(), statut:"actif", dateCreation:new Date().toISOString().split("T")[0] },
+    ]);
+    setAddOpen(false);
+    notify(`${form.nom} créé avec succès.`);
+  };
+
+  const handleEdit = form => {
+    setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...form } : u));
+    setEditUser(null);
+    notify(`Profil de ${form.nom} mis à jour.`);
   };
 
   const handleToggleStatus = () => {
-    setUsers(
-      users.map((u) =>
-        u.id === confirmModal.id
-          ? { ...u, statut: u.statut === "actif" ? "inactif" : "actif" }
-          : u
-      )
-    );
-    setConfirmModal(null);
+    const next = confirmUser.statut === "actif" ? "inactif" : "actif";
+    setUsers(prev => prev.map(u => u.id === confirmUser.id ? { ...u, statut:next } : u));
+    notify(`${confirmUser.nom} est maintenant ${next}.`, next === "actif" ? "ok" : "warn");
+    setConfirmUser(null);
   };
 
-  const totalActif = users.filter((u) => u.statut === "actif").length;
+  const TH = ({ col, children }) => (
+    <th
+      onClick={() => col && toggleSort(col)}
+      className={`ft-th${col ? (sort.col === col ? " ft-th--active" : "") : " ft-th--no-sort"}`}
+    >
+      {children}
+      {col && (
+        <span className="ft-th__arrow" style={{ opacity: sort.col === col ? 1 : 0.3 }}>
+          {sort.col === col ? (sort.dir === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      )}
+    </th>
+  );
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: "#111827" }}>
+    <div className="ft-page">
 
-      {/* ── Page Header ── */}
-      <div style={{ marginBottom: 28 }}>
-        <h1
-  style={{
-    margin: "0 0 6px",
-    fontSize: "clamp(22px, 4vw, 30px)",
-    fontWeight: 600,
-    color: "#0F172A",
-    fontFamily: "'DM Serif Display', serif",
-    letterSpacing: "-0.02em",
-    lineHeight: 1.2
-  }}
->
-  Gestion des utilisateurs
-</h1>
-        <p style={{ margin: 0, color: "#6B7280", fontSize: 14 }}>
-          {users.length} utilisateurs au total · {totalActif} actifs
-        </p>
-      </div>
-
-      {/* ── Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-        {ROLES.map((role) => {
-          const count = users.filter((u) => u.role === role).length;
-          const cfg = ROLE_CONFIG[role];
-          return (
-            <div key={role} style={styles.statCard}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  backgroundColor: cfg.bg + "18",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ fontSize: 20 }}>
-                  {role === "employee" ? "👤" : role === "technician" ? "🔧" : role === "manager" ? "📊" : "⚙️"}
-                </span>
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: cfg.bg, lineHeight: 1 }}>
-                {count}
-              </div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4, fontWeight: 500 }}>
-                {cfg.label}{count > 1 ? "s" : ""}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Toolbar ── */}
-      <div
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 12,
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* Search */}
-        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#9CA3AF"
-            strokeWidth="2"
-            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher par nom ou email…"
-            style={{
-              ...styles.input,
-              paddingLeft: 36,
-              margin: 0,
-              maxWidth: 320,
-            }}
-          />
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`ft-toast ft-toast--${toast.type}`}>
+          <Ico k={toast.type === "warn" ? "warn" : "check"} size={16}
+            color={toast.type === "warn" ? "#FCD34D" : "#4ADE80"} />
+          {toast.msg}
         </div>
+      )}
 
-        {/* Role filter */}
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          style={{ ...styles.input, width: "auto", margin: 0, minWidth: 150, cursor: "pointer" }}
-        >
-          <option value="all">Tous les rôles</option>
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_CONFIG[r].label}
-            </option>
-          ))}
-        </select>
-
-        {/* Add button */}
-        <button onClick={() => setAddModal(true)} style={styles.btnPrimary}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}>
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+      {/* ── Header éditorial ── */}
+      <div className="ft-header">
+        <div>
+          <div className="ft-header__overline">
+            <div className="ft-header__line" />
+            <span className="ft-header__label">Administration</span>
+          </div>
+          <h1 className="ft-header__title">Gestion des utilisateurs</h1>
+          <p className="ft-header__sub">{total} utilisateurs au total</p>
+        </div>
+        <button className="ft-btn-add" onClick={() => setAddOpen(true)}>
+          <Ico k="plus" size={15} />
           Ajouter un utilisateur
         </button>
       </div>
 
-      {/* ── Table ── */}
-      <div
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 12,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {/* ── Stat tiles ── */}
+      <div className="ft-tiles">
+        <StatTile label="Tous les utilisateurs" value={total} icon="users2" color="#1D4ED8"
+          sub={`${total} comptes créés`}
+          active={roleFilter === "all" && statFilter === "all"}
+          onClick={() => { setRoleFilter("all"); setStatFilter("all"); }} />
+        <StatTile label="Employés" value={employees} icon="user" color="#059669"
+          sub="Personnel de terrain"
+          active={roleFilter === "employee"}
+          onClick={() => setRoleFilter(r => r === "employee" ? "all" : "employee")} />
+        <StatTile label="Techniciens" value={techs} icon="tag" color="#D97706"
+          sub="Équipe maintenance"
+          active={roleFilter === "technician"}
+          onClick={() => setRoleFilter(r => r === "technician" ? "all" : "technician")} />
+        <StatTile label="Admins & Managers" value={admins} icon="lock" color="#7C3AED"
+          sub="Accès privilégiés"
+          active={isAdminManagerFilter}
+          onClick={() => setRoleFilter(r => (r === "admin" || r === "manager") ? "all" : "admin")} />
+      </div>
+
+      {/* ── Toolbar ── */}
+      <div className="ft-toolbar">
+        <div className="ft-toolbar__search">
+          <span className="ft-toolbar__search-icon"><Ico k="search" size={15} /></span>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            className="ft-input" placeholder="Rechercher nom ou email…"
+            style={{ paddingLeft:34, maxWidth:320 }} />
+        </div>
+
+        <div className="ft-toolbar__divider" />
+
+        {/* Pills rôle */}
+        <div className="ft-pills">
+          {[
+            ["all", "Tous"],
+            ...Object.entries(ROLE_META).map(([k, v]) => [k, v.label]),
+          ].map(([val, lbl]) => {
+            const isActive     = val === "all" ? roleFilter === "all"
+              : val === "admin" ? isAdminManagerFilter : roleFilter === val;
+            const activeColor  = val === "all" ? "#1D4ED8" : ROLE_META[val]?.color  || "#1D4ED8";
+            const activeBg     = val === "all" ? "#EFF6FF" : ROLE_META[val]?.bg     || "#EFF6FF";
+            const activeBorder = val === "all" ? "#BFDBFE" : ROLE_META[val]?.border || "#BFDBFE";
+            return (
+              <button key={val} onClick={() => setRoleFilter(val)} className="ft-pill"
+                style={{
+                  border:     `1.5px solid ${isActive ? activeBorder : "#E2E8F0"}`,
+                  background: isActive ? activeBg    : "transparent",
+                  color:      isActive ? activeColor : "#64748B",
+                }}>
+                {lbl}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filtre statut */}
+        <div className="ft-status-filters">
+          {[
+            { val:"all",     label:"Tous",     dot:null,      border:"#BFDBFE", bg:"#EFF6FF", color:"#1D4ED8" },
+            { val:"actif",   label:"Actifs",   dot:"#22C55E", border:"#BBF7D0", bg:"#F0FDF4", color:"#15803D" },
+            { val:"inactif", label:"Inactifs", dot:"#CBD5E1", border:"#E2E8F0", bg:"#F8FAFC", color:"#64748B" },
+          ].map(({ val, label, dot, border, bg, color }) => (
+            <button key={val} onClick={() => setStatFilter(val)} className="ft-status-btn"
+              style={{
+                border:     `1.5px solid ${statFilter === val ? border : "#E2E8F0"}`,
+                background: statFilter === val ? bg    : "#fff",
+                color:      statFilter === val ? color : "#94A3B8",
+                boxShadow:  statFilter === val ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+              }}>
+              {dot && (
+                <span
+                  className={`ft-status-btn__dot${val === "actif" && statFilter === "actif" ? " ft-status-btn__dot--pulse" : ""}`}
+                  style={{ background:dot }} />
+              )}
+              {label}
+              <span className="ft-status-btn__count"
+                style={{
+                  background: statFilter === val ? border : "#F1F5F9",
+                  color:      statFilter === val ? color  : "#94A3B8",
+                }}>
+                {val === "all" ? users.length : users.filter(u => u.statut === val).length}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Tableau ── */}
+      <div className="ft-table-card">
+        <div className="ft-table-scroll">
+          <table className="ft-table">
             <thead>
-              <tr style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                {["Utilisateur", "Email", "Rôle", "Date création", "Statut", "Actions"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: "#6B7280",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+              <tr>
+                <TH col="nom">Utilisateur</TH>
+                <TH col="email">Email</TH>
+                <TH col="role">Rôle</TH>
+                <TH col="dateCreation">Créé le</TH>
+                <TH>Actions</TH>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 48, color: "#9CA3AF" }}>
-                    Aucun utilisateur trouvé
+                  <td colSpan={5} className="ft-td">
+                    <div className="ft-empty">
+                      <div className="ft-empty__inner">
+                        <div className="ft-empty__icon">
+                          <Ico k="search" size={22} color="#CBD5E1" />
+                        </div>
+                        <p className="ft-empty__text">Aucun résultat</p>
+                        <button className="ft-empty__reset" onClick={resetFilters}>
+                          Réinitialiser les filtres
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                filtered.map((user, idx) => (
-                  <tr
-                    key={user.id}
-                    style={{
-                      borderBottom: idx < filtered.length - 1 ? "1px solid #F3F4F6" : "none",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#FAFAFA")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
-                    {/* Utilisateur */}
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <Avatar name={user.nom} />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
-                            {user.nom}
-                          </div>
+                filtered.map((u, i) => (
+                  <tr key={u.id} className="ft-row" style={{ animationDelay:`${i * 20}ms` }}>
+
+                    {/* Colonne utilisateur : badge statut AU-DESSUS du nom */}
+                    <td className="ft-td">
+                      <div className="ft-user-cell">
+                        <Avatar name={u.nom} role={u.role} />
+                        <div className="ft-user-info">
+                          <p className="ft-user-name">{u.nom}</p>
+                          <StatusBadge statut={u.statut} />
                         </div>
                       </div>
                     </td>
 
-                    {/* Email */}
-                    <td style={{ padding: "14px 16px", fontSize: 14, color: "#6B7280" }}>
-                      {user.email}
+                    <td className="ft-td">
+                      <span className="ft-email">{u.email}</span>
                     </td>
 
-                    {/* Rôle */}
-                    <td style={{ padding: "14px 16px" }}>
-                      <RoleBadge role={user.role} />
+                    <td className="ft-td">
+                      <RoleChip role={u.role} />
                     </td>
 
-                    {/* Date */}
-                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B7280", whiteSpace: "nowrap" }}>
-                      {formatDate(user.dateCreation)}
+                    <td className="ft-td">
+                      <span className="ft-date">{fmtDate(u.dateCreation)}</span>
                     </td>
 
-                    {/* Statut */}
-                    <td style={{ padding: "14px 16px" }}>
-                      <StatusBadge statut={user.statut || "actif"} />
-                    </td>
-
-                    {/* Actions */}
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          onClick={() => setEditModal(user)}
-                          style={styles.btnAction}
-                          title="Modifier"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                          Modifier
+                    <td className="ft-td">
+                      <div className="ft-actions">
+                        <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })}>
+                          <Ico k="edit" size={12} /> Modifier
                         </button>
                         <button
-                          onClick={() => setConfirmModal(user)}
-                          style={user.statut === "actif" ? styles.btnActionDanger : styles.btnActionSuccess}
-                          title={user.statut === "actif" ? "Désactiver" : "Réactiver"}
+                          className={u.statut === "actif" ? "ft-btn-deactivate" : "ft-btn-activate"}
+                          onClick={() => setConfirmUser(u)}
                         >
-                          {user.statut === "actif" ? (
-                            <>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                              </svg>
-                              Désactiver
-                            </>
-                          ) : (
-                            <>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                              Réactiver
-                            </>
-                          )}
+                          <Ico k={u.statut === "actif" ? "block" : "check"} size={12} />
+                          {u.statut === "actif" ? "Désactiver" : "Réactiver"}
                         </button>
                       </div>
                     </td>
@@ -641,171 +588,38 @@ export default function GestionUsers() {
           </table>
         </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid #F3F4F6",
-            fontSize: 13,
-            color: "#9CA3AF",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          <span>
-            Affichage de <strong style={{ color: "#374151" }}>{filtered.length}</strong> sur{" "}
-            <strong style={{ color: "#374151" }}>{users.length}</strong> utilisateurs
+        <div className="ft-table-footer">
+          <span className="ft-footer-count">
+            <b style={{ color:"#1D4ED8" }}>{filtered.length}</b>
+            {" "}résultat{filtered.length !== 1 ? "s" : ""} sur{" "}
+            <b style={{ color:"#64748B" }}>{total}</b> utilisateurs
           </span>
+          {hasFilters && (
+            <button className="ft-clear-btn" onClick={resetFilters}>
+              <Ico k="close" size={11} /> Effacer les filtres
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Modal : Ajouter ── */}
-      <Modal open={addModal} onClose={() => setAddModal(false)} title="Ajouter un utilisateur">
-        <UserForm onSubmit={handleAdd} onCancel={() => setAddModal(false)} isEdit={false} />
+      {/* ── Modals ── */}
+      <Modal open={addOpen} onClose={() => setAddOpen(false)}
+        title="Ajouter un utilisateur" subtitle="Créer un nouveau compte sur FixTrack.">
+        <UserForm isEdit={false} onSubmit={handleAdd} onCancel={() => setAddOpen(false)} />
       </Modal>
 
-      {/* ── Modal : Modifier ── */}
-      <Modal open={!!editModal} onClose={() => setEditModal(null)} title="Modifier l'utilisateur">
-        {editModal && (
-          <UserForm
-            initialData={{
-              nom: editModal.nom,
-              email: editModal.email,
-              password: "",
-              role: editModal.role,
-            }}
+      <Modal open={!!editUser} onClose={() => setEditUser(null)}
+        title="Modifier le profil"
+        subtitle={editUser ? `Modification de ${editUser.nom}` : ""}>
+        {editUser && (
+          <UserForm isEdit
+            initial={{ nom:editUser.nom, email:editUser.email, password:"", role:editUser.role }}
             onSubmit={handleEdit}
-            onCancel={() => setEditModal(null)}
-            isEdit={true}
-          />
+            onCancel={() => setEditUser(null)} />
         )}
       </Modal>
 
-      {/* ── Confirm Dialog ── */}
-      <ConfirmDialog
-        open={!!confirmModal}
-        onClose={() => setConfirmModal(null)}
-        onConfirm={handleToggleStatus}
-        user={confirmModal}
-      />
+      <ConfirmDialog user={confirmUser} onConfirm={handleToggleStatus} onClose={() => setConfirmUser(null)} />
     </div>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = {
-  statCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: "20px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-  },
-  label: {
-    display: "block",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#374151",
-    marginBottom: 6,
-  },
-  input: {
-    width: "100%",
-    padding: "9px 12px",
-    border: "1px solid #E5E7EB",
-    borderRadius: 8,
-    fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-    outline: "none",
-    fontFamily: "'Inter', sans-serif",
-    boxSizing: "border-box",
-  },
-  btnPrimary: {
-    display: "inline-flex",
-    alignItems: "center",
-    backgroundColor: "#2563EB",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: 8,
-    padding: "9px 18px",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    flex: "0 0 auto",
-  },
-  btnSecondary: {
-    flex: 1,
-    padding: "9px 16px",
-    border: "1px solid #E5E7EB",
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#374151",
-    backgroundColor: "#FFFFFF",
-    cursor: "pointer",
-  },
-  btnDanger: {
-    flex: 1,
-    padding: "9px 16px",
-    border: "none",
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#FFFFFF",
-    backgroundColor: "#EF4444",
-    cursor: "pointer",
-  },
-  btnSuccess: {
-    flex: 1,
-    padding: "9px 16px",
-    border: "none",
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#FFFFFF",
-    backgroundColor: "#22C55E",
-    cursor: "pointer",
-  },
-  btnAction: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    padding: "6px 12px",
-    border: "1px solid #E5E7EB",
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#374151",
-    backgroundColor: "#FFFFFF",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  btnActionDanger: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    padding: "6px 12px",
-    border: "1px solid #FCA5A5",
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#EF4444",
-    backgroundColor: "#FEF2F2",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  btnActionSuccess: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    padding: "6px 12px",
-    border: "1px solid #86EFAC",
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#15803D",
-    backgroundColor: "#F0FDF4",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-};
