@@ -65,7 +65,7 @@ export default function MesTickets() {
 
   
   const mesTickets = useMemo(
-    () => tickets.filter((t) => t.auteurId === "u1"),
+    () => tickets.filter((t) => t.auteurId === user.id),
     [user?.id, tickets] 
   );
 
@@ -129,19 +129,6 @@ export default function MesTickets() {
           align-items: center;
           gap: 0.75rem;
           margin-bottom: 1.75rem;
-          animation: fadeSlideDown 0.55s ease both;
-        }
-        .mt-header h1 {
-          font-size: 1.85rem;
-          font-weight: 800;
-          margin: 0;
-          background: linear-gradient(270deg, #6366f1, #8b5cf6, #52434a, #3b3223, #06b5d465, #6366f1);
-          background-size: 400% 400%;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: gradientShift 100s ease infinite;
-          letter-spacing: -0.02em;
         }
         .mt-compteur {
           font-size: 0.875rem;
@@ -364,12 +351,19 @@ export default function MesTickets() {
           .mt-table td:nth-child(6) { display: none; }
           .mt-ticket-titre { max-width: 140px; }
         }
+          .wz-step-title {
+        font-family: 'DM Serif Display', serif;
+        font-size: clamp(22px, 4vw, 30px);
+        font-weight: 800; color: #0F172A;
+        letter-spacing: -0.02em; line-height: 1.2;
+        margin: 0 0 8px;
+      }
       `}</style>
 
       <div className="mes-tickets-container">
         {/* En-tête */}
         <div className="mt-header">
-          <h1>Mes tickets</h1>
+          <h1 className="wz-step-title">Mes tickets</h1>
           <span className="mt-compteur">{mesTickets.length} ticket(s) total</span>
         </div>
 
