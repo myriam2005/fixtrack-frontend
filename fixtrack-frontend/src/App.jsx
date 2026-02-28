@@ -15,6 +15,9 @@ import Layout from "./components/layout/Layout";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import CreateTicket from "./pages/employee/CreateTicket";
+import MesTickets from "./pages/employee/MesTickets";
+
+
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -86,7 +89,7 @@ export default function App() {
 
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
-                  <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
+                  <Route path="employee/tickets"     element={<MesTickets/>} />
                   <Route path="employee/tickets/new" element={<CreateTicket />} /> {/* ✅ branché */}
 
                   {/* ── Technician ── */}
