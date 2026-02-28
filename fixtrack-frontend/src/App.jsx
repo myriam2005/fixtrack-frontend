@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "./theme/index";
 
+// Auth context
 import { useAuth } from "./context/AuthContext";
 
 import LoginPage  from "./pages/auth/LoginPage";
@@ -13,6 +14,15 @@ import Layout from "./components/layout/Layout";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
 
+// Layout
+import Layout from "./components/layout/Layout";
+
+// ── Pages réelles ─────────────────────────────────────────────────────────────
+import CreateTicket  from "./pages/employee/CreateTicket";
+import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
+
+
+// ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
   return (
     <div style={{
@@ -30,17 +40,20 @@ function PlaceholderPage({ title }) {
   );
 }
 
+// ─── Route protégée ───────────────────────────────────────────────────────────
 function PrivateRoute({ children }) {
   const { isAuth } = useAuth();
   return isAuth ? children : <Navigate to="/login" replace />;
 }
 
+// ─── Redirect selon rôle ─────────────────────────────────────────────────────
 function RoleRedirect() {
   const { user } = useAuth();
   const role = user?.role || "employee";
   return <Navigate to={`/${role}/dashboard`} replace />;
 }
 
+// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { isAuth } = useAuth();
 
