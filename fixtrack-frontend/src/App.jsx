@@ -11,7 +11,7 @@ import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
-import MesTickets   from "./pages/employee/MesTickets";
+import MesTickets   from "./pages/employee/MyTickets";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
 
@@ -19,6 +19,7 @@ import AssignedTicket from "./pages/tech/AssignedTicket";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
+import MyTickets from "./pages/employee/MyTickets";
 
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ export default function App() {
 
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<EmpDashboard />} />
-                  <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
+                  <Route path="employee/tickets"     element={<MyTickets/>}/>
                   <Route path="employee/tickets/new" element={<CreateTicket />} />
 
                   {/* ── Technician ── */}

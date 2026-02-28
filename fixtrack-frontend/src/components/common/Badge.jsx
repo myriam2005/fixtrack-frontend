@@ -1,6 +1,6 @@
 // src/components/common/Badge.jsx
 
-const TOKENS = {
+export const TOKENS = {
   // ── Statuts tickets ────────────────────────────────────────────────────────
   open:        { dot: '#3B82F6', bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' },
   assigned:    { dot: '#6366F1', bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' },
@@ -21,7 +21,7 @@ const TOKENS = {
   en_maintenance: { dot: '#F59E0B', bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
 };
 
-const LABELS = {
+export const LABELS = {
   open:           'Ouvert',
   assigned:       'Assigné',
   in_progress:    'En cours',
@@ -43,20 +43,20 @@ export default function Badge({ status }) {
 
   return (
     <span style={{
-      display:        'inline-flex',
-      alignItems:     'center',
-      gap:            '5px',
-      padding:        '3px 9px',
-      borderRadius:   '20px',
-      border:         `1px solid ${token.border}`,
-      background:     token.bg,
-      color:          token.text,
-      fontSize:       '11px',
-      fontWeight:     600,
-      letterSpacing:  '0.02em',
-      whiteSpace:     'nowrap',
-      fontFamily:     'inherit',
-      lineHeight:     1,
+      display:       'inline-flex',
+      alignItems:    'center',
+      gap:           '5px',
+      padding:       '3px 9px',
+      borderRadius:  '20px',
+      border:        `1px solid ${token.border}`,
+      background:    token.bg,
+      color:         token.text,
+      fontSize:      '11px',
+      fontWeight:    600,
+      letterSpacing: '0.02em',
+      whiteSpace:    'nowrap',
+      fontFamily:    'inherit',
+      lineHeight:    1,
     }}>
       <span style={{
         width:        '5px',
