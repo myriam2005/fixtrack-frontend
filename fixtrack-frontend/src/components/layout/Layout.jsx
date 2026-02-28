@@ -1,4 +1,9 @@
 // src/components/layout/Layout.jsx
+// ─────────────────────────────────────────────────────────────
+//  Shell principal : Sidebar + Topbar + Main
+//  La modale "Paramètres" est dans ./AccountSettingsModal.jsx
+// ─────────────────────────────────────────────────────────────
+
 import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
@@ -6,6 +11,7 @@ import {
   Badge, useTheme, useMediaQuery, Drawer, alpha,
 } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
+import AccountSettingsModal from "./AccountSettingsModal";
 
 // ── Icônes SVG ────────────────────────────────────────────────────────────────
 const Ico = {
@@ -23,6 +29,7 @@ const Ico = {
   close:     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   wrench:    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
   chevron:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  settings:  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
 };
 
 // ── Navigation par rôle ───────────────────────────────────────────────────────
@@ -76,7 +83,7 @@ const T = {
   sideW:       252,
 };
 
-// ── NavItem : affordances claires, pas de confusion actif/inactif ─────────────
+// ── NavItem ────────────────────────────────────────────────────────────────────
 function NavItem({ link, isActive }) {
   return (
     <Box
@@ -88,10 +95,8 @@ function NavItem({ link, isActive }) {
         px: 1.5, py: 0.95, mx: 1, mb: 0.25,
         borderRadius: "9px", textDecoration: "none",
         position: "relative", overflow: "hidden",
-        // Actif : fond coloré + texte foncé — impossible à confondre
         backgroundColor: isActive ? T.accentLight : "transparent",
         color: isActive ? "#1e40af" : T.textSub,
-        // Trait gauche = signal supplémentaire d'état actif
         borderLeft: isActive ? `3px solid ${T.accent}` : "3px solid transparent",
         transition: "all 0.14s ease",
         "&:hover": {
@@ -100,45 +105,28 @@ function NavItem({ link, isActive }) {
         },
       }}
     >
-      {/* Icône : bleue si actif, grise sinon */}
-      <Box sx={{
-        display: "flex", alignItems: "center", flexShrink: 0,
-        color: isActive ? T.accent : T.textMuted,
-        transition: "color 0.14s",
-      }}>
+      <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0, color: isActive ? T.accent : T.textMuted, transition: "color 0.14s" }}>
         {link.icon}
       </Box>
-
-      {/* Label toujours lisible */}
-      <Typography sx={{
-        fontSize: 13.5, flex: 1,
-        fontWeight: isActive ? 600 : 400,
-        lineHeight: 1, whiteSpace: "nowrap",
-        overflow: "hidden", textOverflow: "ellipsis",
-      }}>
+      <Typography sx={{ fontSize: 13.5, flex: 1, fontWeight: isActive ? 600 : 400, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {link.label}
       </Typography>
-
-      {/* Pastille ronde = double signal actif */}
       {isActive && (
-        <Box sx={{
-          width: 6, height: 6, borderRadius: "50%",
-          backgroundColor: T.accent, flexShrink: 0, mr: 0.5,
-        }} />
+        <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: T.accent, flexShrink: 0, mr: 0.5 }} />
       )}
     </Box>
   );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-function SidebarContent({ user, navLinks, location, onLogout }) {
+// ── SidebarContent ─────────────────────────────────────────────────────────────
+function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) {
   const role     = ROLE_META[user.role] || ROLE_META.employee;
   const initials = user.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
-      {/* Logo — identité produit toujours visible */}
+      {/* Logo */}
       <Box sx={{
         display: "flex", alignItems: "center", gap: 1.5,
         px: 2.5, height: 64, flexShrink: 0,
@@ -162,11 +150,10 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
         </Box>
       </Box>
 
-      {/* Carte profil — contexte utilisateur immédiat */}
+      {/* Carte profil — bouton ⚙️ tous les rôles */}
       <Box sx={{
         mx: 1.5, mt: 2, mb: 1.5, px: 1.5, py: 1.25,
-        borderRadius: "11px",
-        backgroundColor: T.borderLight,
+        borderRadius: "11px", backgroundColor: T.borderLight,
         border: `1px solid ${T.border}`,
         display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0,
       }}>
@@ -174,7 +161,6 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
           <Avatar sx={{ width: 36, height: 36, fontSize: 12, fontWeight: 700, backgroundColor: T.accent }}>
             {initials}
           </Avatar>
-          {/* Indicateur "en ligne" — convention universellement comprise */}
           <Box sx={{
             position: "absolute", bottom: 1, right: 1,
             width: 8, height: 8, borderRadius: "50%",
@@ -185,7 +171,6 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {user.name}
           </Typography>
-          {/* Badge rôle coloré — identification rapide du contexte */}
           <Box sx={{
             display: "inline-flex", alignItems: "center", gap: 0.5,
             px: 0.75, py: 0.2, mt: 0.4, borderRadius: "4px",
@@ -197,9 +182,31 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
             </Typography>
           </Box>
         </Box>
+
+        {/* ⚙️ Paramètres — visible pour TOUS les rôles */}
+        <Tooltip title="Paramètres du compte" placement="right">
+          <IconButton
+            onClick={onOpenSettings}
+            size="small"
+            aria-label="Paramètres du compte"
+            sx={{
+              width: 28, height: 28, flexShrink: 0,
+              color: T.textMuted, borderRadius: "7px",
+              border: "1px solid transparent",
+              transition: "all 0.15s",
+              "&:hover": {
+                color: T.accent,
+                backgroundColor: T.accentLight,
+                border: `1px solid ${alpha(T.accent, 0.25)}`,
+              },
+            }}
+          >
+            {Ico.settings}
+          </IconButton>
+        </Tooltip>
       </Box>
 
-      {/* Label de section — aide au repérage */}
+      {/* Label section */}
       <Box sx={{ px: 2.5, pb: 0.75, flexShrink: 0 }}>
         <Typography sx={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.8px" }}>
           Menu
@@ -217,7 +224,7 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
         ))}
       </Box>
 
-      {/* CTA "Nouveau ticket" — action principale remontée visuellement */}
+      {/* CTA Nouveau ticket — employee uniquement */}
       {user.role === "employee" && (
         <Box sx={{ px: 1.5, pb: 1, flexShrink: 0 }}>
           <Box
@@ -226,8 +233,7 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
             sx={{
               display: "flex", alignItems: "center", justifyContent: "center",
               gap: 0.75, py: 1.1, borderRadius: "10px", textDecoration: "none",
-              backgroundColor: T.accent, color: "#fff",
-              fontSize: 13, fontWeight: 600,
+              backgroundColor: T.accent, color: "#fff", fontSize: 13, fontWeight: 600,
               boxShadow: `0 2px 8px ${alpha(T.accent, 0.3)}`,
               transition: "all 0.15s",
               "&:hover": { backgroundColor: T.accentHover, boxShadow: `0 4px 14px ${alpha(T.accent, 0.45)}`, transform: "translateY(-1px)" },
@@ -239,18 +245,15 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
         </Box>
       )}
 
-      {/* Déconnexion — séparée visuellement, rouge au hover = destructif */}
+      {/* Déconnexion */}
       <Box sx={{ borderTop: `1px solid ${T.border}`, px: 1, py: 1.25, flexShrink: 0 }}>
         <Box
           onClick={onLogout}
-          role="button"
-          tabIndex={0}
-          aria-label="Se déconnecter"
+          role="button" tabIndex={0} aria-label="Se déconnecter"
           sx={{
             display: "flex", alignItems: "center", gap: 1.5,
             px: 1.5, py: 1, borderRadius: "9px",
-            cursor: "pointer", color: T.textMuted,
-            transition: "all 0.14s",
+            cursor: "pointer", color: T.textMuted, transition: "all 0.14s",
             "&:hover": { backgroundColor: "#FEF2F2", color: "#DC2626" },
           }}
         >
@@ -262,13 +265,15 @@ function SidebarContent({ user, navLinks, location, onLogout }) {
   );
 }
 
-// ── Layout ────────────────────────────────────────────────────────────────────
+// ── Layout principal ───────────────────────────────────────────────────────────
 export default function Layout({ children, notifCount = 0 }) {
-  const location  = useLocation();
-  const theme     = useTheme();
-  const isMobile  = useMediaQuery(theme.breakpoints.down("md"));
+  const location = useLocation();
+  const theme    = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { user: ctxUser, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const user     = ctxUser || { name: "Utilisateur", role: "employee", email: "" };
   const navLinks = NAV[user.role] || NAV.employee;
@@ -276,10 +281,18 @@ export default function Layout({ children, notifCount = 0 }) {
   const active   = allLinks.find(l => l.to === location.pathname);
   const initials = user.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
-  const handleLogout = () => { logout(); window.location.replace("/login"); };
+  const handleLogout        = () => { logout(); window.location.replace("/login"); };
+  const handleOpenSettings  = () => setSettingsOpen(true);
+  const handleCloseSettings = () => setSettingsOpen(false);
 
   const sidebarNode = (
-    <SidebarContent user={user} navLinks={navLinks} location={location} onLogout={handleLogout} />
+    <SidebarContent
+      user={user}
+      navLinks={navLinks}
+      location={location}
+      onLogout={handleLogout}
+      onOpenSettings={handleOpenSettings}
+    />
   );
 
   return (
@@ -302,10 +315,13 @@ export default function Layout({ children, notifCount = 0 }) {
       {/* Drawer mobile */}
       {isMobile && (
         <Drawer
-          variant="temporary" open={mobileOpen}
+          variant="temporary"
+          open={mobileOpen}
           onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
-          PaperProps={{ sx: { width: T.sideW, backgroundColor: T.sidebar, border: "none", boxShadow: "4px 0 24px rgba(15,23,42,0.1)" } }}
+          PaperProps={{
+            sx: { width: T.sideW, backgroundColor: T.sidebar, border: "none", boxShadow: "4px 0 24px rgba(15,23,42,0.1)" },
+          }}
         >
           <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1.5, pt: 1.5 }}>
             <IconButton onClick={() => setMobileOpen(false)} size="small" sx={{ color: T.textMuted }}>
@@ -319,12 +335,11 @@ export default function Layout({ children, notifCount = 0 }) {
       {/* Zone principale */}
       <Box sx={{ flex: 1, ml: isMobile ? 0 : `${T.sideW}px`, display: "flex", flexDirection: "column", minHeight: "100vh", minWidth: 0 }}>
 
-        {/* Topbar : titre de page + actions secondaires */}
+        {/* Topbar */}
         <Box
           component="header"
           sx={{
-            position: "sticky", top: 0, zIndex: 100,
-            height: 64,
+            position: "sticky", top: 0, zIndex: 100, height: 64,
             backgroundColor: T.topbar,
             borderBottom: `1px solid ${T.border}`,
             boxShadow: "0 1px 6px rgba(15,23,42,0.04)",
@@ -332,13 +347,12 @@ export default function Layout({ children, notifCount = 0 }) {
             px: { xs: 2, md: 3 }, gap: 2,
           }}
         >
-          {/* Hamburger mobile — label aria explicite */}
+          {/* Hamburger mobile */}
           {isMobile && (
             <Tooltip title="Menu">
               <IconButton
                 onClick={() => setMobileOpen(true)}
-                size="small"
-                aria-label="Ouvrir le menu"
+                size="small" aria-label="Ouvrir le menu"
                 sx={{
                   width: 36, height: 36, borderRadius: "8px",
                   border: `1px solid ${T.border}`, color: T.textSub,
@@ -350,7 +364,7 @@ export default function Layout({ children, notifCount = 0 }) {
             </Tooltip>
           )}
 
-          {/* Breadcrumb — "où suis-je ?" résolu en permanence */}
+          {/* Breadcrumb */}
           <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
             <Typography sx={{ fontSize: 12, color: T.textMuted, whiteSpace: "nowrap", display: { xs: "none", sm: "block" } }}>
               FixTrack
@@ -365,11 +379,10 @@ export default function Layout({ children, notifCount = 0 }) {
             )}
           </Box>
 
-          {/* Notifs — état visible même sans clic */}
+          {/* Cloche notifications */}
           <Tooltip title={notifCount > 0 ? `${notifCount} notification${notifCount > 1 ? "s" : ""}` : "Aucune notification"}>
             <IconButton
-              size="small"
-              aria-label={`${notifCount} notifications`}
+              size="small" aria-label={`${notifCount} notifications`}
               sx={{
                 width: 36, height: 36, borderRadius: "8px",
                 border: `1px solid ${notifCount > 0 ? alpha(T.accent, 0.3) : T.border}`,
@@ -381,21 +394,44 @@ export default function Layout({ children, notifCount = 0 }) {
             >
               <Badge
                 badgeContent={notifCount} max={99}
-                sx={{ "& .MuiBadge-badge": { backgroundColor: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, minWidth: 16, height: 16, border: `2px solid #fff` } }}
+                sx={{ "& .MuiBadge-badge": { backgroundColor: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, minWidth: 16, height: 16, border: "2px solid #fff" } }}
               >
                 {Ico.bell}
               </Badge>
             </IconButton>
           </Tooltip>
 
-          {/* Identité utilisateur en topbar — pas d'ambiguïté */}
-          <Box sx={{
-            display: "flex", alignItems: "center", gap: 1.25,
-            pl: 1.5, borderLeft: `1px solid ${T.border}`,
-          }}>
-            <Avatar sx={{ width: 32, height: 32, fontSize: 11, fontWeight: 700, backgroundColor: T.accent, flexShrink: 0 }}>
-              {initials}
-            </Avatar>
+          {/* ⚙️ Bouton Paramètres topbar — TOUS les rôles */}
+          <Tooltip title="Paramètres du compte">
+            <IconButton
+              onClick={handleOpenSettings}
+              size="small" aria-label="Paramètres du compte"
+              sx={{
+                width: 36, height: 36, borderRadius: "8px",
+                border: `1px solid ${T.border}`, color: T.textSub,
+                "&:hover": { borderColor: T.accent, color: T.accent, backgroundColor: T.accentLight },
+                transition: "all 0.14s",
+              }}
+            >
+              {Ico.settings}
+            </IconButton>
+          </Tooltip>
+
+          {/* Avatar — clic → Paramètres */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, pl: 1.5, borderLeft: `1px solid ${T.border}` }}>
+            <Tooltip title="Paramètres du compte">
+              <Avatar
+                onClick={handleOpenSettings}
+                sx={{
+                  width: 32, height: 32, fontSize: 11, fontWeight: 700,
+                  backgroundColor: T.accent, flexShrink: 0,
+                  cursor: "pointer", transition: "box-shadow 0.15s",
+                  "&:hover": { boxShadow: `0 0 0 3px ${alpha(T.accent, 0.25)}` },
+                }}
+              >
+                {initials}
+              </Avatar>
+            </Tooltip>
             <Box sx={{ display: { xs: "none", md: "block" } }}>
               <Typography sx={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{user.name}</Typography>
               <Typography sx={{ fontSize: 10, color: T.textMuted, lineHeight: 1.2 }}>{user.email}</Typography>
@@ -403,7 +439,7 @@ export default function Layout({ children, notifCount = 0 }) {
           </Box>
         </Box>
 
-        {/* Contenu */}
+        {/* Contenu principal */}
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3, md: 3.5 }, minWidth: 0 }}>
           {children}
         </Box>
@@ -414,6 +450,13 @@ export default function Layout({ children, notifCount = 0 }) {
           <Typography sx={{ fontSize: 11, color: T.textMuted }}>v1.0</Typography>
         </Box>
       </Box>
+
+      {/* ── Modale Paramètres — importée depuis ./AccountSettingsModal.jsx ── */}
+      <AccountSettingsModal
+        open={settingsOpen}
+        onClose={handleCloseSettings}
+        user={user}
+      />
     </Box>
   );
 }
