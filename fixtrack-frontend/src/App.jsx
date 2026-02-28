@@ -14,11 +14,9 @@ import Layout from "./components/layout/Layout";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
 
-// Layout
-import Layout from "./components/layout/Layout";
+
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import CreateTicket  from "./pages/employee/CreateTicket";
 import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
 
 
@@ -89,7 +87,7 @@ export default function App() {
                 <Routes>
 
                   {/* ── Employee ── */}
-                  <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
+                  <Route path="employee/dashboard"   element={<EmpDashboard />} />
                   <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
                   <Route path="employee/tickets/new" element={<CreateTicket />} />
 
