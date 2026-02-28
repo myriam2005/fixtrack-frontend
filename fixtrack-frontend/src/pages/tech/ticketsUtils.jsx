@@ -6,6 +6,7 @@ export const FILTERS = [
   { key: "in_progress", label: "En cours"   },
   { key: "pending",     label: "En attente" },
   { key: "resolved",    label: "Résolu"     },
+  { key: "refused",     label: "Refusé"     },
 ];
 
 export const PRIORITY_FILTERS = [
@@ -56,7 +57,6 @@ export const CSS = `
 }
 .ta-subtitle { font-size: 14px; color: #64748B; margin: 0; }
 
-/* ── Barre de recherche + filtres ── */
 .ta-toolbar {
   display: flex; align-items: center; gap: 12px;
   flex-wrap: wrap; margin-bottom: 24px;
@@ -64,13 +64,8 @@ export const CSS = `
   border-radius: 14px; padding: 12px 16px;
   box-shadow: 0 1px 4px rgba(15,23,42,0.04);
 }
-.ta-search-wrap {
-  flex: 1; min-width: 200px; position: relative; display: flex; align-items: center;
-}
-.ta-search-ico {
-  position: absolute; left: 12px; color: #94A3B8; pointer-events: none;
-  display: flex; align-items: center;
-}
+.ta-search-wrap { flex: 1; min-width: 200px; position: relative; display: flex; align-items: center; }
+.ta-search-ico  { position: absolute; left: 12px; color: #94A3B8; pointer-events: none; display: flex; align-items: center; }
 .ta-search {
   width: 100%; padding: 9px 12px 9px 36px;
   border: 1.5px solid #E2E8F0; border-radius: 10px;
@@ -80,8 +75,7 @@ export const CSS = `
 }
 .ta-search:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); background: #fff; }
 .ta-search::placeholder { color: #CBD5E1; }
-
-.ta-select-wrap { display: flex; align-items: center; gap: 6px; }
+.ta-select-wrap  { display: flex; align-items: center; gap: 6px; }
 .ta-select-label { font-size: 12px; font-weight: 600; color: #64748B; white-space: nowrap; }
 .ta-select {
   padding: 8px 28px 8px 12px; border: 1.5px solid #E2E8F0; border-radius: 10px;
@@ -92,7 +86,6 @@ export const CSS = `
   transition: border-color 0.18s;
 }
 .ta-select:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
-
 .ta-filter-icon-btn {
   display: flex; align-items: center; justify-content: center;
   width: 38px; height: 38px; border-radius: 10px;
@@ -100,23 +93,10 @@ export const CSS = `
   color: #64748B; cursor: pointer; transition: all 0.18s; flex-shrink: 0;
 }
 .ta-filter-icon-btn:hover { border-color: #BFDBFE; color: #2563EB; background: #EFF6FF; }
-.ta-filter-btn:hover { border-color: #BFDBFE; color: #1D4ED8; background: #F0F7FF; }
-.ta-filter-btn.on    { border-color: #2563EB; background: #EFF6FF; color: #2563EB; font-weight: 600; }
-.ta-filter-count {
-  font-size: 11px; font-weight: 700; background: #E2E8F0; color: #64748B;
-  padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center;
-}
-.ta-filter-btn.on .ta-filter-count { background: #DBEAFE; color: #2563EB; }
 
-/* ── Empty state ── */
 .ta-empty { text-align: center; padding: 64px 24px; }
-.ta-empty-icon {
-  width: 56px; height: 56px; border-radius: 16px; background: #F1F5F9;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px; color: #CBD5E1;
-}
+.ta-empty-icon { width: 56px; height: 56px; border-radius: 16px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #CBD5E1; }
 
-/* ── Grid ── */
 .ta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
 @media(max-width:700px) { .ta-grid { grid-template-columns: 1fr; } }
 
@@ -129,38 +109,21 @@ export const CSS = `
 }
 .ta-card:hover { box-shadow: 0 8px 32px rgba(15,23,42,0.10); transform: translateY(-2px); }
 
-/* Bandeau image de fond en haut */
-.ta-card-banner {
-  height: 72px; position: relative; overflow: hidden; flex-shrink: 0;
-  display: flex; align-items: flex-end; padding: 10px 14px;
-}
-.ta-card-banner-bg {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  filter: brightness(0.55);
-}
-.ta-card-banner-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.55) 100%);
-}
-.ta-card-banner-content {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; justify-content: space-between; width: 100%;
-}
-.ta-card-ticket-id {
-  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.85);
-  letter-spacing: 0.05em; text-transform: uppercase;
-}
+/* Refused card — visually muted */
+.ta-card.refused { opacity: 0.6; }
+.ta-card.refused:hover { transform: none; box-shadow: 0 2px 12px rgba(15,23,42,0.05); }
 
-/* Badge ACTIVE TASK */
-.ta-active-badge {
-  position: absolute; top: 10px; right: 10px; z-index: 2;
-  font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
-  background: #2563EB; color: #fff; padding: 3px 8px; border-radius: 6px;
-}
-.ta-active-badge.pending { background: #D97706; }
+.ta-card-banner { height: 72px; position: relative; overflow: hidden; flex-shrink: 0; display: flex; align-items: flex-end; padding: 10px 14px; }
+.ta-card-banner-bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(0.55); }
+.ta-card-banner-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.55) 100%); }
+.ta-card-banner-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.ta-card-ticket-id { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.05em; text-transform: uppercase; }
+
+.ta-active-badge { position: absolute; top: 10px; right: 10px; z-index: 2; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; background: #2563EB; color: #fff; padding: 3px 8px; border-radius: 6px; }
+.ta-active-badge.pending  { background: #D97706; }
 .ta-active-badge.resolved { background: #059669; }
 .ta-active-badge.assigned { background: #6366F1; }
+.ta-active-badge.refused  { background: #DC2626; }
 
 .ta-card-stripe  { height: 3px; flex-shrink: 0; }
 .stripe-critical { background: linear-gradient(90deg, #EF4444, #DC2626); }
@@ -169,40 +132,39 @@ export const CSS = `
 .stripe-low      { background: linear-gradient(90deg, #94A3B8, #6B7280); }
 
 .ta-card-body  { padding: 16px 18px 12px; flex: 1; }
-.ta-card-top   { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-.ta-card-title { font-size: 15px; font-weight: 700; color: #0F172A; line-height: 1.35; flex: 1; }
-.ta-card-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ta-card-title { font-size: 15px; font-weight: 700; color: #0F172A; line-height: 1.35; }
+.ta-card-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 10px; }
 .ta-card-cat   { font-size: 11px; font-weight: 600; color: #64748B; background: #F1F5F9; padding: 3px 10px; border-radius: 8px; text-transform: uppercase; }
 .ta-card-loc   { font-size: 12px; color: #94A3B8; display: flex; align-items: center; gap: 4px; }
 .ta-card-desc  { font-size: 13px; color: #64748B; line-height: 1.6; margin-bottom: 12px; }
 .ta-card-date  { font-size: 11px; color: #CBD5E1; font-weight: 500; }
-.ta-card-footer {
-  padding: 12px 18px; background: #F8FAFC; border-top: 1px solid #F1F5F9;
-  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-}
 
-/* Statut inline dans footer */
-.ta-card-status-row {
-  display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748B; font-weight: 500;
-}
-.ta-card-status-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-}
+.ta-card-footer { padding: 12px 18px; background: #F8FAFC; border-top: 1px solid #F1F5F9; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ta-card-status-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748B; font-weight: 500; }
+.ta-card-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-.ta-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 9px; border: none;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  font-family: inherit; transition: all 0.18s; white-space: nowrap;
+/* Refused reason banner inside card */
+.ta-refused-note {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 0 18px 12px; padding: 10px 14px;
+  background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px;
+  font-size: 12px; color: #991B1B; line-height: 1.55;
 }
+.ta-refused-note-ico { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Buttons ── */
+.ta-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; white-space: nowrap; }
 .ta-btn-accept        { background: #2563EB; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 .ta-btn-accept:hover  { background: #1D4ED8; box-shadow: 0 4px 16px rgba(37,99,235,0.35); transform: translateY(-1px); }
+.ta-btn-refuse        { background: #fff; color: #DC2626; border: 1.5px solid #FECACA; }
+.ta-btn-refuse:hover  { background: #FEF2F2; border-color: #FCA5A5; }
 .ta-btn-hold          { background: #fff; color: #D97706; border: 1.5px solid #FCD34D; }
 .ta-btn-hold:hover    { background: #FFFBEB; border-color: #F59E0B; }
 .ta-btn-resolve       { background: #059669; color: #fff; box-shadow: 0 2px 8px rgba(5,150,105,0.25); }
 .ta-btn-resolve:hover { background: #047857; box-shadow: 0 4px 16px rgba(5,150,105,0.35); transform: translateY(-1px); }
-.ta-btn-disabled      { background: #F1F5F9; color: #94A3B8; cursor: default; font-size: 12px; padding: 8px 14px; }
+.ta-btn-disabled      { background: #F1F5F9; color: #94A3B8; cursor: default; font-size: 12px; padding: 8px 14px; pointer-events: none; }
 
+/* ── Modals ── */
 .ta-modal-body   { display: flex; flex-direction: column; gap: 18px; }
 .ta-modal-label  { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 8px; }
 .ta-modal-ta {
@@ -211,13 +173,13 @@ export const CSS = `
   border: 1.5px solid #E2E8F0; border-radius: 12px; outline: none;
   transition: border-color 0.18s, box-shadow 0.18s; line-height: 1.6;
 }
-.ta-modal-ta:focus { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,0.08); }
-.ta-modal-ta.err   { border-color: #FCA5A5; }
-.ta-modal-err      { font-size: 12px; color: #DC2626; margin-top: 4px; }
-.ta-modal-info {
-  font-size: 13px; color: #64748B; background: #F8FAFC;
-  border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; line-height: 1.6;
-}
+.ta-modal-ta:focus       { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,0.08); }
+.ta-modal-ta.refuse-mode:focus { border-color: #DC2626; box-shadow: 0 0 0 4px rgba(220,38,38,0.08); }
+.ta-modal-ta.err         { border-color: #FCA5A5; }
+.ta-modal-err  { font-size: 12px; color: #DC2626; margin-top: 4px; }
+.ta-modal-info { font-size: 13px; color: #64748B; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; line-height: 1.6; }
 .ta-modal-info strong { color: #0F172A; }
+.ta-modal-warn { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+.ta-modal-warn strong { color: #7F1D1D; }
 .ta-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 `;

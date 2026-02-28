@@ -80,6 +80,20 @@ export const tickets = [
     notes: [],
   },
   {
+    id: "t44",
+    titre: "Imprimante bloquée — bourrage papier",
+    description: "llllll",
+    statut: "assigned",
+    priorite: "medium",
+    categorie: "Informatique",
+    localisation: "Bâtiment C — Bureau Scolarité",
+    auteurId: "u1",
+    auteurTel: "+216 55 000 111",
+    technicienId: "u3",
+    dateCreation: "2025-01-13",
+    notes: ["Pièce commandée, livraison prévue demain."],
+  },
+  {
     id: "t3",
     titre: "Imprimante bloquée — bourrage papier",
     description:
