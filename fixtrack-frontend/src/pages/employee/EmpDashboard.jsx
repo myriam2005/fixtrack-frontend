@@ -141,18 +141,6 @@ function TicketRow({ ticket, isLast }) {
           <StatusTracker statut={ticket.statut} />
         </Box>
         <Box sx={{ flexShrink: 0 }}><Badge status={ticket.statut} /></Box>
-        <Link to={`/tickets/${ticket.id}`} style={{ textDecoration: "none", flexShrink: 0 }}>
-          <Box sx={{
-            display: "flex", alignItems: "center", gap: "4px",
-            color: "#2563EB", fontSize: "12px", fontWeight: 600,
-            padding: "5px 11px", borderRadius: "7px",
-            border: "1px solid #DBEAFE", backgroundColor: "#F0F7FF",
-            transition: "all 0.15s",
-            "&:hover": { backgroundColor: "#2563EB", color: "#FFFFFF", borderColor: "#2563EB" },
-          }}>
-            Voir détails {Icon.arrowRight}
-          </Box>
-        </Link>
       </Box>
       {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
     </>

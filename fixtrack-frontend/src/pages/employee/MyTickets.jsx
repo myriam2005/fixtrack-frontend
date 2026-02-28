@@ -82,6 +82,7 @@ export default function MyTickets() {
     return matchSearch && matchStatut && matchPriorite && matchCategorie;
   });
 
+  const uniqueCategories = [...new Set(mesTickets.map((t) => t.categorie))];
   const hasFilters = statuts.length > 0 || priorites.length > 0 || categories.length > 0 || !!search;
   const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
 
@@ -98,11 +99,14 @@ export default function MyTickets() {
       {/* ── Header ── */}
       <div className={styles.pageHeader}>
         <div className={styles.pageTitleGroup}>
-          <span className={styles.pageEyebrow}>espace ticket</span>
-          <h1 className={styles.pageTitle}>Voir Mes Tickets</h1>
+          <span className={styles.pageEyebrow}>Mes tickets</span>
+          <h1 className={styles.pageTitle}>Gestion des tickets</h1>
           <p className={styles.pageSubtitle}>{mesTickets.length} ticket{mesTickets.length !== 1 ? "s" : ""} au total</p>
         </div>
-        
+        <button className={styles.newBtn}>
+          <IconPlus />
+          Nouveau ticket
+        </button>
       </div>
 
       {/* ── Filter panel ── */}
@@ -159,6 +163,23 @@ export default function MyTickets() {
               ))}
             </div>
           </div>
+
+          <div className={styles.filterGroup}>
+            <div className={styles.filterGroupLabel}><IconGrid /> Catégorie</div>
+            <div className={styles.filterChips}>
+              {uniqueCategories.map((c) => (
+                <button
+                  key={c}
+                  className={`${styles.chip}${categories.includes(c) ? ` ${styles.active}` : ""}`}
+                  style={{ "--chip-color": "#2563EB", "--chip-bg": "#EFF6FF" }}
+                  onClick={() => toggle(categories, setCategories, c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
         </div>
 
         {activeTags.length > 0 && (
@@ -204,6 +225,7 @@ export default function MyTickets() {
                 <th>Statut</th>
                 <th>Technicien</th>
                 <th>Date</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -234,6 +256,12 @@ export default function MyTickets() {
                       )}
                     </td>
                     <td><span className={styles.date}>{formatDate(t.dateCreation)}</span></td>
+                    <td>
+                      <button className={styles.detailBtn}>
+                        Voir détails
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -278,6 +306,10 @@ export default function MyTickets() {
                 )}
                 <span className={styles.date}>{formatDate(t.dateCreation)}</span>
               </div>
+              <button className={styles.detailBtnMobile}>
+                Voir détails
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
           );
         })}
