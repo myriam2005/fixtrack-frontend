@@ -37,11 +37,11 @@ const NAV = {
     { label: "Rapports",         to: "/technician/reports",   icon: Ico.report    },
   ],
   manager: [
-    { label: "Tableau de bord",  to: "/manager/dashboard", icon: Ico.dashboard },
-    { label: "Tous les tickets", to: "/manager/tickets",   icon: Ico.ticket    },
-    { label: "Machines",         to: "/manager/machines",  icon: Ico.machine   },
-    { label: "Équipe",           to: "/manager/team",      icon: Ico.team      },
-    { label: "Rapports",         to: "/manager/reports",   icon: Ico.report    },
+    { label: "Tableau de bord",      to: "/manager/dashboard",   icon: Ico.dashboard },
+    { label: "Tous les tickets",     to: "/manager/tickets",     icon: Ico.ticket    },
+    { label: "Valider résolutions",  to: "/manager/resolutions", icon: Ico.wrench    },
+    { label: "Équipe",               to: "/manager/team",        icon: Ico.team      },
+    { label: "Rapports",             to: "/manager/reports",     icon: Ico.report    },
   ],
   admin: [
     { label: "Tableau de bord",  to: "/admin/dashboard", icon: Ico.dashboard },

@@ -18,9 +18,9 @@ import AssignedTicket from "./pages/tech/AssignedTicket";
 
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
+import EmpDashboard  from "./pages/employee/EmpDashboard";   //  ajouté
 import MyTickets from "./pages/employee/MyTickets";
-
+import ValiderResolutions from "./pages/manager/ValiderResolutions";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -101,7 +101,7 @@ export default function App() {
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<PlaceholderPage title="Dashboard Manager" />} />
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"  element={<PlaceholderPage title="Machines" />} />
+                  <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
 
