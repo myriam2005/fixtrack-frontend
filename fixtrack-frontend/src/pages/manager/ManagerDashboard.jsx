@@ -15,17 +15,16 @@ import { useAuth } from '../../context/AuthContext';
 import { tickets, users } from '../../data/mockData';
 import AlertCard from '../../components/dashboard/AlertCard';
 import KpiCard from '../../components/dashboard/KpiCard';
+import Badge from '../../components/common/Badge';
 
 export default function ManagerDashboard() {
   const { user } = useAuth();
 
-  // ── KPIs ──────────────────────────────────────────────────────
   const ticketsOuverts    = tickets.filter(t => t.statut === 'open' || t.statut === 'assigned').length;
   const ticketsCritiques  = tickets.filter(t => t.priorite === 'critical' && !t.technicienId).length;
   const delaiMoyen        = 4.2;
   const techniciensActifs = users.filter(u => u.role === 'technician').length;
 
-  // ── Bar chart — 1 seul objet, chaque statut = sa propre clé ──
   const ticketParStatut = [
     {
       name: 'Tickets',
@@ -37,7 +36,6 @@ export default function ManagerDashboard() {
     },
   ];
 
-  // ── Line chart ────────────────────────────────────────────────
   const evolutionTickets = [
     { jour: 'Lun', tickets: 2 },
     { jour: 'Mar', tickets: 3 },
@@ -48,10 +46,8 @@ export default function ManagerDashboard() {
     { jour: 'Dim', tickets: 0 },
   ];
 
-  // ── Alertes ───────────────────────────────────────────────────
   const alertes = tickets.filter(t => t.priorite === 'critical' && !t.technicienId);
 
-  // ── Performance équipe ────────────────────────────────────────
   const techniciens = users.filter(u => u.role === 'technician');
   const performanceEquipe = techniciens.map(tech => ({
     nom:         tech.nom,
@@ -60,7 +56,6 @@ export default function ManagerDashboard() {
     competences: tech.competences?.join(', ') || 'N/A',
   }));
 
-  // ── Greeting ──────────────────────────────────────────────────
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
 
@@ -69,39 +64,45 @@ export default function ManagerDashboard() {
 
       {/* ── Welcome Banner ── */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%)',
-        borderRadius: '16px',
-        padding: '28px 32px',
+        background: '#F8FAFF',
+        border: '1px solid #E0E7FF',
+        borderRadius: '14px',
+        padding: '24px 28px',
         marginBottom: '28px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(37,99,235,0.3)',
       }}>
-        <Box sx={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
-        <Box sx={{ position: 'absolute', right: 60, bottom: -60, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, zIndex: 1 }}>
-          <Box sx={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-            📊
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '22px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
-              {greeting}, {user?.nom || user?.name || 'Manager'} 👋
-            </Typography>
-            <Typography sx={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', marginTop: '4px' }}>
-              Vue d'ensemble de vos activités de maintenance
-            </Typography>
-          </Box>
+        <Box>
+          <Typography sx={{
+            fontSize: '22px',
+            fontWeight: 800,
+            color: '#0F172A',
+            letterSpacing: '-0.5px',
+            fontFamily: "'Playfair Display', Georgia, serif",
+            lineHeight: 1.2,
+            marginBottom: '4px',
+          }}>
+            {greeting}, {user?.nom || user?.name || 'Manager'}
+          </Typography>
+          <Typography sx={{ fontSize: '13px', color: '#64748B' }}>
+            Vue d'ensemble de vos activités de maintenance
+          </Typography>
         </Box>
 
         {ticketsCritiques > 0 && (
-          <Box sx={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 1, zIndex: 1 }}>
-            <WarningAmberOutlined sx={{ color: '#FCA5A5', fontSize: 18 }} />
-            <Typography sx={{ color: '#FCA5A5', fontWeight: 700, fontSize: '14px' }}>
-              {ticketsCritiques} critique{ticketsCritiques > 1 ? 's' : ''}
+          <Box sx={{
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '10px',
+            padding: '10px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}>
+            <WarningAmberOutlined sx={{ color: '#EF4444', fontSize: 18 }} />
+            <Typography sx={{ color: '#B91C1C', fontWeight: 700, fontSize: '14px' }}>
+              {ticketsCritiques} ticket{ticketsCritiques > 1 ? 's' : ''} critique{ticketsCritiques > 1 ? 's' : ''}
             </Typography>
           </Box>
         )}
@@ -110,81 +111,80 @@ export default function ManagerDashboard() {
       {/* ── KPI Cards ── */}
       <Grid container spacing={3} sx={{ marginBottom: '28px' }}>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard icon={ConfirmationNumberOutlined} value={ticketsOuverts}   label="Tickets ouverts"        color="#2563EB" />
+          <KpiCard icon={ConfirmationNumberOutlined} value={ticketsOuverts}    label="Tickets ouverts"        color="#2563EB" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard icon={PriorityHighOutlined}       value={ticketsCritiques} label="Tickets critiques"      color="#EF4444" />
+          <KpiCard icon={PriorityHighOutlined}       value={ticketsCritiques}  label="Tickets critiques"      color="#EF4444" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard icon={TimerOutlined}              value={`${delaiMoyen}h`} label="Délai moyen résolution" color="#F59E0B" />
+          <KpiCard icon={TimerOutlined}              value={`${delaiMoyen}h`}  label="Délai moyen résolution" color="#F59E0B" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard icon={PeopleOutlined}             value={techniciensActifs} label="Techniciens actifs"    color="#22C55E" />
+          <KpiCard icon={PeopleOutlined}             value={techniciensActifs} label="Techniciens actifs"     color="#22C55E" />
         </Grid>
       </Grid>
 
-      {/* ── Charts ── */}
-      <Grid container spacing={4} sx={{ marginBottom: '28px' }}>
+      {/* ── BarChart — seul sur sa ligne ── */}
+      <Box sx={{ marginBottom: '20px' }}>
+        <Card elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
+          <CardContent sx={{ padding: '28px !important' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '24px' }}>
+              Tickets par statut
+            </Typography>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={ticketParStatut} barSize={45} barGap={12}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis hide />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '13px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
+                <Bar dataKey="Ouverts"    fill="#2563EB" radius={[6,6,0,0]} />
+                <Bar dataKey="Assignés"   fill="#3B82F6" radius={[6,6,0,0]} />
+                <Bar dataKey="En cours"   fill="#F59E0B" radius={[6,6,0,0]} />
+                <Bar dataKey="Résolus"    fill="#22C55E" radius={[6,6,0,0]} />
+                <Bar dataKey="Clôturés"   fill="#6B7280" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
 
-        {/* BarChart pleine largeur */}
-        <Grid item xs={12}>
-          <Card elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
-            <CardContent sx={{ padding: '28px !important' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', fontSize: '16px', marginBottom: '24px' }}>
-                Tickets par statut
+      {/* ── LineChart — seul sur sa ligne ── */}
+      <Box sx={{ marginBottom: '28px' }}>
+        <Card elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
+          <CardContent sx={{ padding: '28px !important' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', fontSize: '15px' }}>
+                Évolution sur 7 jours
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={ticketParStatut} barSize={60} barGap={12}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                  <XAxis hide />
-                  <YAxis stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '13px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
-                  <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
-                  <Bar dataKey="Ouverts"    fill="#2563EB" radius={[6,6,0,0]} />
-                  <Bar dataKey="Assignés"   fill="#3B82F6" radius={[6,6,0,0]} />
-                  <Bar dataKey="En cours"   fill="#F59E0B" radius={[6,6,0,0]} />
-                  <Bar dataKey="Résolus"    fill="#22C55E" radius={[6,6,0,0]} />
-                  <Bar dataKey="Clôturés"   fill="#6B7280" radius={[6,6,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* LineChart pleine largeur */}
-        <Grid item xs={12}>
-          <Card elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
-            <CardContent sx={{ padding: '28px !important' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', fontSize: '16px' }}>
-                  Évolution sur 7 jours
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TrendingUpOutlined sx={{ color: '#22C55E', fontSize: 18 }} />
-                  <Typography sx={{ color: '#22C55E', fontWeight: 600, fontSize: '13px' }}>+12%</Typography>
-                </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TrendingUpOutlined sx={{ color: '#22C55E', fontSize: 18 }} />
+                <Typography sx={{ color: '#22C55E', fontWeight: 600, fontSize: '13px' }}>+12%</Typography>
               </Box>
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={evolutionTickets}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                  <XAxis dataKey="jour" stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '13px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
-                  <Line type="monotone" dataKey="tickets" stroke="#2563EB" strokeWidth={3}
-                    dot={{ fill: '#FFFFFF', stroke: '#2563EB', strokeWidth: 3, r: 6 }}
-                    activeDot={{ r: 8, fill: '#2563EB' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Box>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={evolutionTickets}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis dataKey="jour" stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '13px' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '13px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Line
+                  type="monotone"
+                  dataKey="tickets"
+                  stroke="#2563EB"
+                  strokeWidth={3}
+                  dot={{ fill: '#FFFFFF', stroke: '#2563EB', strokeWidth: 3, r: 6 }}
+                  activeDot={{ r: 8, fill: '#2563EB' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* ── Alertes + Performance ── */}
       <Grid container spacing={3}>
 
-        {/* Alertes */}
         <Grid item xs={12} md={5}>
           <Paper elevation={0} sx={{ padding: '28px', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', height: '100%', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginBottom: '20px' }}>
@@ -203,21 +203,25 @@ export default function ManagerDashboard() {
 
             {alertes.length === 0 ? (
               <Box sx={{ textAlign: 'center', padding: '40px 20px' }}>
-                <Typography sx={{ fontSize: '32px', marginBottom: '8px' }}>✅</Typography>
                 <Typography sx={{ color: '#22C55E', fontWeight: 700, fontSize: '15px' }}>Aucune alerte critique</Typography>
                 <Typography sx={{ color: '#9CA3AF', fontSize: '13px', marginTop: '4px' }}>Tous les tickets urgents sont assignés</Typography>
               </Box>
             ) : (
               <Box sx={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {alertes.map(ticket => (
-                  <AlertCard key={ticket.id} ticket={ticket} />
+                  <Box key={ticket.id} sx={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid #FECACA', background: '#FFF5F5', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <AlertCard ticket={ticket} />
+                    <Box sx={{ display: 'flex', gap: 1, marginTop: '4px' }}>
+                      <Badge status={ticket.statut} />
+                      <Badge status={ticket.priorite} />
+                    </Box>
+                  </Box>
                 ))}
               </Box>
             )}
           </Paper>
         </Grid>
 
-        {/* Performance Équipe */}
         <Grid item xs={12} md={7}>
           <Paper elevation={0} sx={{ padding: '28px', borderRadius: '12px', border: '1px solid #E5E7EB', background: '#FFFFFF', height: '100%', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.07)' } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginBottom: '20px' }}>
@@ -275,14 +279,12 @@ export default function ManagerDashboard() {
                         </Box>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <span style={{ background: tech.enCours > 0 ? '#FEF9C3' : '#F3F4F6', color: tech.enCours > 0 ? '#B45309' : '#9CA3AF', padding: '4px 14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px' }}>
-                          {tech.enCours}
-                        </span>
+                        {tech.enCours > 0 ? <Badge status="in_progress" /> : <Badge status="closed" />}
+                        <Typography sx={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{tech.enCours}</Typography>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <span style={{ background: tech.resolus > 0 ? '#DCFCE7' : '#F3F4F6', color: tech.resolus > 0 ? '#16A34A' : '#9CA3AF', padding: '4px 14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px' }}>
-                          {tech.resolus}
-                        </span>
+                        {tech.resolus > 0 ? <Badge status="resolved" /> : <Badge status="closed" />}
+                        <Typography sx={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{tech.resolus}</Typography>
                       </td>
                     </tr>
                   ))}
@@ -295,4 +297,3 @@ export default function ManagerDashboard() {
     </Box>
   );
 }
-
