@@ -64,10 +64,9 @@ export default function ManagerDashboard() {
 
       {/* ── Welcome Banner ── */}
       <Box sx={{
-        background: '#F8FAFF',
-        border: '1px solid #E0E7FF',
+        background: 'linear-gradient(120deg, #1E3A5F 0%, #2563EB 100%)',
         borderRadius: '14px',
-        padding: '24px 28px',
+        padding: '18px 28px',
         marginBottom: '28px',
         display: 'flex',
         alignItems: 'center',
@@ -75,33 +74,31 @@ export default function ManagerDashboard() {
       }}>
         <Box>
           <Typography sx={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: '#0F172A',
-            letterSpacing: '-0.5px',
-            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#FFFFFF',
             lineHeight: 1.2,
-            marginBottom: '4px',
+            marginBottom: '2px',
           }}>
             {greeting}, {user?.nom || user?.name || 'Manager'}
           </Typography>
-          <Typography sx={{ fontSize: '13px', color: '#64748B' }}>
+          <Typography sx={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
             Vue d'ensemble de vos activités de maintenance
           </Typography>
         </Box>
 
         {ticketsCritiques > 0 && (
           <Box sx={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
+            background: 'rgba(239,68,68,0.2)',
+            border: '1px solid rgba(239,68,68,0.4)',
             borderRadius: '10px',
-            padding: '10px 18px',
+            padding: '8px 16px',
             display: 'flex',
             alignItems: 'center',
             gap: 1,
           }}>
-            <WarningAmberOutlined sx={{ color: '#EF4444', fontSize: 18 }} />
-            <Typography sx={{ color: '#B91C1C', fontWeight: 700, fontSize: '14px' }}>
+            <WarningAmberOutlined sx={{ color: '#FCA5A5', fontSize: 16 }} />
+            <Typography sx={{ color: '#FCA5A5', fontWeight: 700, fontSize: '13px' }}>
               {ticketsCritiques} ticket{ticketsCritiques > 1 ? 's' : ''} critique{ticketsCritiques > 1 ? 's' : ''}
             </Typography>
           </Box>
@@ -296,4 +293,4 @@ export default function ManagerDashboard() {
       </Grid>
     </Box>
   );
-}
+}q
