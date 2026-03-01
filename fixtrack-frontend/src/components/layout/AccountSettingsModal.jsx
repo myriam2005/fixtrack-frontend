@@ -23,7 +23,7 @@ const Ico = {
 
 // ── Métadonnées des rôles ─────────────────────────────────────────────────────
 const ROLE_META = {
-  employee:   { label: "Employé",        color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  employee:   { label: "Utilisateur",        color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
