@@ -4,19 +4,17 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge from "../../components/common/Badge";
+import {
+  DashboardHeader,
+  KpiCard,
+  DashboardIcon,
+  getGreeting,
+  formatDate,
+} from "../../components/common/DashboardShared";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
 
-const Icon = {
-  ticket: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/></svg>,
-  clock:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  check:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-  arrowRight: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
-  calendar:   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  pin:        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-  filter:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-  wave:       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>,
-};
+// ── Config locale ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
   open:        { label: "Ouvert",   color: "#3B82F6" },
@@ -40,13 +38,199 @@ const FILTER_TABS = [
   { key: "resolved",    label: "Résolus"  },
 ];
 
-const formatDate = (d) =>
-  new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+const DAILY_TIPS = [
+  "Décrivez précisément la localisation et les symptômes du problème pour accélérer l'intervention du technicien.",
+  "Un ticket bien documenté avec des photos réduit le délai de résolution de 40% en moyenne.",
+  "Pensez à vérifier le statut de vos tickets régulièrement pour rester informé de leur avancement.",
+  "Indiquez toujours votre numéro de téléphone pour permettre au technicien de vous contacter rapidement.",
+  "Classez votre ticket avec la bonne priorité : réservez « Critique » aux urgences réelles (risque de sécurité, arrêt total).",
+];
+
+// ── Icône locale (lightbulb) ───────────────────────────────────────────────────
+const lightbulbIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18h6" /><path d="M10 22h4" />
+    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+  </svg>
+);
+
+const zapIcon = (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+// ── MiniBarChart (local — spécifique EmpDashboard) ────────────────────────────
+function MiniBarChart({ data }) {
+  const [hovered, setHovered] = useState(null);
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+  const currentMonth = new Date().getMonth();
+
+  const visibleData = data.slice(Math.max(0, currentMonth - 5), currentMonth + 1);
+  const visibleStart = Math.max(0, currentMonth - 5);
+
+  return (
+    <Box sx={{ mt: "14px" }}>
+      <Box sx={{ display: "flex", alignItems: "flex-end", gap: "5px", height: 64, position: "relative" }}>
+        {[0.25, 0.5, 0.75, 1].map((level) => (
+          <Box key={level} sx={{
+            position: "absolute", left: 0, right: 0,
+            bottom: `${level * 100}%`, height: "1px",
+            backgroundColor: "#F3F4F6", pointerEvents: "none",
+          }} />
+        ))}
+        {visibleData.map((item, localIdx) => {
+          const i = visibleStart + localIdx;
+          const pct = max === 0 ? 0 : (item.value / max) * 100;
+          const isCurrent = i === currentMonth;
+          const isHovered = hovered === i;
+          const barHeight = Math.max(pct, 5);
+          return (
+            <Box
+              key={i}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", position: "relative" }}
+            >
+              {isHovered && (
+                <Box sx={{
+                  position: "absolute", bottom: "calc(100% + 6px)",
+                  left: "50%", transform: "translateX(-50%)",
+                  backgroundColor: "#111827", color: "#FFFFFF",
+                  borderRadius: "6px", padding: "4px 8px",
+                  fontSize: "11px", fontWeight: 700,
+                  whiteSpace: "nowrap", zIndex: 10, pointerEvents: "none",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  "&::after": {
+                    content: '""', position: "absolute", top: "100%",
+                    left: "50%", transform: "translateX(-50%)",
+                    border: "4px solid transparent", borderTopColor: "#111827",
+                  },
+                }}>
+                  {item.value} ticket{item.value !== 1 ? "s" : ""}
+                </Box>
+              )}
+              <Box sx={{
+                width: "100%", height: `${barHeight}%`, minHeight: 4,
+                borderRadius: "4px 4px 3px 3px",
+                background: isCurrent
+                  ? "linear-gradient(180deg, #3B82F6 0%, #2563EB 100%)"
+                  : isHovered
+                    ? "linear-gradient(180deg, #93C5FD 0%, #BFDBFE 100%)"
+                    : "#DBEAFE",
+                boxShadow: isCurrent ? "0 2px 8px rgba(37,99,235,0.35)" : "none",
+                transition: "background 0.15s, box-shadow 0.15s, transform 0.15s",
+                transform: isHovered ? "scaleY(1.04)" : "scaleY(1)",
+                transformOrigin: "bottom",
+                cursor: "default",
+              }} />
+            </Box>
+          );
+        })}
+      </Box>
+      <Box sx={{ display: "flex", gap: "5px", mt: "5px" }}>
+        {visibleData.map((_, localIdx) => {
+          const i = visibleStart + localIdx;
+          const isCurrent = i === currentMonth;
+          return (
+            <Box key={i} sx={{ flex: 1, textAlign: "center" }}>
+              <Typography sx={{
+                fontSize: "9px",
+                fontWeight: isCurrent ? 700 : 400,
+                color: isCurrent ? "#2563EB" : "#9CA3AF",
+                letterSpacing: "0.02em",
+              }}>
+                {MONTHS[i]}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+// ── DonutChart (local — spécifique EmpDashboard) ──────────────────────────────
+function DonutChart({ segments, total, size = 100 }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const strokeWidth = 11;
+  const gap = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  const validSegments = segments.filter((s) => s.value > 0);
+  const totalVal = validSegments.reduce((acc, s) => acc + s.value, 0) || 1;
+  const gapFraction = gap / 360;
+  const totalGapFraction = gapFraction * validSegments.length;
+  let cumulativeFraction = 0;
+
+  const rendered = validSegments.map((seg, i) => {
+    const fraction = (seg.value / totalVal) * (1 - totalGapFraction);
+    const dashLen = fraction * circumference;
+    const startFraction = cumulativeFraction;
+    cumulativeFraction += fraction + gapFraction;
+    const startOffset = circumference - startFraction * circumference;
+    const isHov = hoveredIdx === i;
+    return { seg, dashLen, startOffset, isHov };
+  });
+
+  return (
+    <Box sx={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#F3F4F6" strokeWidth={strokeWidth} />
+        {rendered.map(({ seg, dashLen, startOffset, isHov }, i) => (
+          <circle
+            key={i}
+            cx={cx} cy={cy} r={radius}
+            fill="none"
+            stroke={seg.color}
+            strokeWidth={isHov ? strokeWidth + 2.5 : strokeWidth}
+            strokeDasharray={`${dashLen} ${circumference - dashLen}`}
+            strokeDashoffset={startOffset}
+            strokeLinecap="round"
+            style={{
+              transition: "stroke-width 0.2s ease, opacity 0.2s ease",
+              opacity: hoveredIdx !== null && !isHov ? 0.45 : 1,
+              cursor: "pointer",
+              filter: isHov ? `drop-shadow(0 0 4px ${seg.color}88)` : "none",
+            }}
+            onMouseEnter={() => setHoveredIdx(i)}
+            onMouseLeave={() => setHoveredIdx(null)}
+          />
+        ))}
+      </svg>
+      <Box sx={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
+        pointerEvents: "none",
+      }}>
+        {hoveredIdx !== null ? (
+          <>
+            <Typography sx={{ fontSize: "17px", fontWeight: 900, color: rendered[hoveredIdx]?.seg.color, lineHeight: 1, transition: "color 0.2s" }}>
+              {rendered[hoveredIdx]?.seg.value}
+            </Typography>
+            <Typography sx={{ fontSize: "8px", color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", mt: "1px" }}>
+              tickets
+            </Typography>
+          </>
+        ) : (
+          <>
+            <Typography sx={{ fontSize: "19px", fontWeight: 900, color: "#111827", lineHeight: 1 }}>{total}</Typography>
+            <Typography sx={{ fontSize: "8px", color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", mt: "1px" }}>total</Typography>
+          </>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+// ── Sous-composants locaux ─────────────────────────────────────────────────────
 
 function StatusTracker({ statut }) {
-  const steps = [
-    { key: "open" }, { key: "in_progress" }, { key: "resolved" },
-  ];
+  const steps = [{ key: "open" }, { key: "in_progress" }, { key: "resolved" }];
   const visualStep =
     statut === "closed" || statut === "resolved"      ? 3 :
     statut === "in_progress" || statut === "assigned" ? 2 : 1;
@@ -78,38 +262,6 @@ function StatusTracker({ statut }) {
   );
 }
 
-function KpiCard({ icon, label, count, color, bgColor, description }) {
-  return (
-    <Paper elevation={0} sx={{
-      borderRadius: "14px", padding: "20px 22px",
-      border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-      position: "relative", overflow: "hidden",
-      transition: "transform 0.2s, box-shadow 0.2s",
-      "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 24px rgba(0,0,0,0.09)" },
-    }}>
-      <Box sx={{ position: "absolute", top: -28, right: -28, width: 90, height: 90, borderRadius: "50%", backgroundColor: bgColor, opacity: 0.7 }} />
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", background: `linear-gradient(90deg, ${color}, ${color}66)` }} />
-      <Box sx={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Box>
-          <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "8px" }}>
-            {label}
-          </Typography>
-          <Typography sx={{ fontSize: "36px", fontWeight: 900, color: "#111827", lineHeight: 1, letterSpacing: "-0.04em" }}>
-            {count}
-          </Typography>
-          {description && (
-            <Typography sx={{ fontSize: "11px", color: "#9CA3AF", mt: "5px" }}>{description}</Typography>
-          )}
-        </Box>
-        <Box sx={{ width: 42, height: 42, borderRadius: "11px", backgroundColor: bgColor, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
-          {icon}
-        </Box>
-      </Box>
-    </Paper>
-  );
-}
-
 function TicketRow({ ticket, isLast }) {
   return (
     <>
@@ -121,18 +273,22 @@ function TicketRow({ ticket, isLast }) {
         transition: "background 0.15s, padding-left 0.15s",
         "&:hover": { backgroundColor: "#F8FAFF", paddingLeft: "20px" },
       }}>
-        <Box sx={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, backgroundColor: PRIORITY_BORDER[ticket.priorite] || "#E5E7EB", boxShadow: `0 0 0 3px ${(PRIORITY_BORDER[ticket.priorite] || "#E5E7EB")}22` }} />
+        <Box sx={{
+          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+          backgroundColor: PRIORITY_BORDER[ticket.priorite] || "#E5E7EB",
+          boxShadow: `0 0 0 3px ${(PRIORITY_BORDER[ticket.priorite] || "#E5E7EB")}22`,
+        }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontWeight: 600, fontSize: "13.5px", color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "2px" }}>
             {ticket.titre}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: "12px", mb: "4px" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
-              {Icon.calendar}
+              {DashboardIcon.calendar}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatDate(ticket.dateCreation)}</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
-              {Icon.pin}
+              {DashboardIcon.pin}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {ticket.localisation}
               </Typography>
@@ -146,6 +302,8 @@ function TicketRow({ ticket, isLast }) {
     </>
   );
 }
+
+// ── Page principale ────────────────────────────────────────────────────────────
 
 export default function EmpDashboard() {
   const { user: authUser } = useAuth();
@@ -161,9 +319,31 @@ export default function EmpDashboard() {
     [mockUser.id]
   );
 
+  const totalCount      = myTickets.length;
   const openCount       = myTickets.filter((t) => t.statut === "open").length;
   const inProgressCount = myTickets.filter((t) => t.statut === "in_progress" || t.statut === "assigned").length;
   const resolvedCount   = myTickets.filter((t) => t.statut === "resolved" || t.statut === "closed").length;
+
+  const pctOpen       = totalCount > 0 ? Math.round((openCount / totalCount) * 100) : 0;
+  const pctInProgress = totalCount > 0 ? Math.round((inProgressCount / totalCount) * 100) : 0;
+  const pctResolved   = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
+
+  const donutSegments = [
+    { value: openCount,       color: "#3B82F6" },
+    { value: inProgressCount, color: "#F59E0B" },
+    { value: resolvedCount,   color: "#22C55E" },
+  ].filter((s) => s.value > 0);
+
+  const monthlyData = useMemo(() => {
+    const counts = Array(12).fill(0);
+    myTickets.forEach((t) => {
+      const m = new Date(t.dateCreation).getMonth();
+      counts[m] += 1;
+    });
+    return counts.map((value, i) => ({ month: i, value }));
+  }, [myTickets]);
+
+  const todayTip = DAILY_TIPS[new Date().getDate() % DAILY_TIPS.length];
 
   const filteredTickets = useMemo(() => {
     const sorted = [...myTickets].sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
@@ -174,42 +354,129 @@ export default function EmpDashboard() {
   }, [myTickets, activeFilter]);
 
   const firstName = (authUser?.name || mockUser.nom || "").split(" ")[0];
-  const hour      = new Date().getHours();
-  const greeting  = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
 
   return (
     <Box sx={{ pb: "80px" }}>
 
       {/* ── Header ── */}
-      <Box sx={{
-        borderRadius: "12px",
-        background: "linear-gradient(120deg, #1E3A5F 0%, #2563EB 100%)",
-        padding: "14px 20px", marginBottom: "20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 3px 14px rgba(37,99,235,0.20)",
-        overflow: "hidden", position: "relative",
-      }}>
-        <Box sx={{ position: "absolute", top: -20, right: 40, width: 100, height: 100, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.07)", pointerEvents: "none" }} />
-        <Box sx={{ display: "flex", alignItems: "center", gap: "12px", zIndex: 1 }}>
-          <Box sx={{ width: 34, height: 34, borderRadius: "9px", backgroundColor: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#FCD34D" }}>
-            {Icon.wave}
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-              {greeting}, {firstName} 👋
-            </Typography>
-            <Typography sx={{ fontSize: "11px", color: "rgba(255,255,255,0.55)", mt: "1px" }}>
-              Voici vos activités de maintenance
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <DashboardHeader
+        firstName={firstName}
+        greeting={getGreeting()}
+        subtitle="Voici vos activités de maintenance"
+      />
 
       {/* ── KPI Cards ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px", marginBottom: "20px" }}>
-        <KpiCard icon={Icon.ticket} label="Tickets ouverts" count={openCount}       color="#3B82F6" bgColor="#EFF6FF" description="En attente de prise en charge" />
-        <KpiCard icon={Icon.clock}  label="En cours"         count={inProgressCount} color="#F59E0B" bgColor="#FFFBEB" description="Assignés ou en traitement" />
-        <KpiCard icon={Icon.check}  label="Résolus ce mois"  count={resolvedCount}   color="#22C55E" bgColor="#F0FDF4" description="Tickets clôturés avec succès" />
+        <KpiCard
+          icon={DashboardIcon.ticket}
+          label="Tickets ouverts"
+          count={openCount}
+          color="#3B82F6"
+          bgColor="#EFF6FF"
+          description="En attente de prise en charge"
+        />
+        <KpiCard
+          icon={DashboardIcon.clock}
+          label="En cours"
+          count={inProgressCount}
+          color="#F59E0B"
+          bgColor="#FFFBEB"
+          description="Assignés ou en traitement"
+        />
+        <KpiCard
+          icon={DashboardIcon.check}
+          label="Résolus ce mois"
+          count={resolvedCount}
+          color="#22C55E"
+          bgColor="#F0FDF4"
+          description="Tickets clôturés avec succès"
+        />
+      </Box>
+
+      {/* ── Analytics Row ── */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", mb: "22px" }}>
+
+        {/* Donut — Répartition des statuts */}
+        <Paper elevation={0} sx={{ borderRadius: "16px", padding: "20px 22px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+          <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "16px" }}>
+            Répartition des statuts
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "18px" }}>
+            <DonutChart
+              segments={donutSegments.length > 0 ? donutSegments : [{ value: 1, color: "#E5E7EB" }]}
+              total={totalCount}
+              size={100}
+            />
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { label: "Ouverts",  value: openCount,       pct: pctOpen,       color: "#3B82F6" },
+                { label: "En cours", value: inProgressCount, pct: pctInProgress, color: "#F59E0B" },
+                { label: "Résolus",  value: resolvedCount,   pct: pctResolved,   color: "#22C55E" },
+              ].map((item) => (
+                <Box key={item.label}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "4px" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: item.color, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: "11px", color: "#6B7280", fontWeight: 500 }}>{item.label}</Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <Typography sx={{ fontSize: "11px", fontWeight: 700, color: item.color }}>{item.value}</Typography>
+                      <Typography sx={{ fontSize: "10px", color: "#9CA3AF" }}>·</Typography>
+                      <Typography sx={{ fontSize: "10px", color: "#9CA3AF", fontWeight: 600 }}>{item.pct}%</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ height: 4, borderRadius: "999px", backgroundColor: "#F3F4F6", overflow: "hidden" }}>
+                    <Box sx={{
+                      height: "100%", width: `${item.pct}%`,
+                      borderRadius: "999px", backgroundColor: item.color,
+                      transition: "width 0.6s cubic-bezier(0.34,1.56,0.64,1)", opacity: 0.85,
+                    }} />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* Activité mensuelle */}
+        <Paper elevation={0} sx={{ borderRadius: "16px", padding: "20px 22px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "4px" }}>
+            <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Activité mensuelle
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#EFF6FF", borderRadius: "20px", padding: "3px 10px" }}>
+              <Box sx={{ color: "#2563EB", display: "flex", alignItems: "center" }}>{zapIcon}</Box>
+              <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#2563EB" }}>{totalCount} total</Typography>
+            </Box>
+          </Box>
+          <MiniBarChart data={monthlyData} />
+        </Paper>
+
+        {/* Conseil du jour */}
+        <Paper elevation={0} sx={{
+          borderRadius: "16px", padding: "20px 22px",
+          border: "1px solid #FDE68A", backgroundColor: "#FEFCE8",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+          display: "flex", flexDirection: "column",
+        }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "9px", mb: "12px" }}>
+            <Box sx={{
+              width: 34, height: 34, borderRadius: "10px",
+              backgroundColor: "#FEF3C7",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#F59E0B", flexShrink: 0,
+            }}>
+              {lightbulbIcon}
+            </Box>
+            <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#B45309", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Conseil du jour
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: "13px", color: "#92400E", lineHeight: 1.6, flex: 1 }}>
+            {todayTip}
+          </Typography>
+        </Paper>
+
       </Box>
 
       {/* ── Tableau tickets ── */}
@@ -223,7 +490,7 @@ export default function EmpDashboard() {
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "4px", color: "#9CA3AF" }}>
-              {Icon.filter}
+              {DashboardIcon.filter}
               <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>Filtrer</Typography>
             </Box>
           </Box>
