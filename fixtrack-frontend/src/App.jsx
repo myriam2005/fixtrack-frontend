@@ -21,6 +21,7 @@ import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
 import MyTickets from "./pages/employee/my-ticket/MyTickets";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import TechnicianDashboard from "./pages/tech/TechDashboard";
 
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
@@ -95,7 +96,7 @@ export default function App() {
                   <Route path="employee/tickets/new" element={<CreateTicket />} />
 
                   {/* ── Technician ── */}
-                  <Route path="technician/dashboard" element={<TechDashboard/>} />
+                  <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
                   <Route path="technician/tickets"   element={<AssignedTicket />} />
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
