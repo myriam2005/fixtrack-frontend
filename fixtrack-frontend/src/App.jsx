@@ -11,15 +11,16 @@ import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
-import MesTickets   from "./pages/employee/my-ticket/MyTickets";
-import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
-import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
+import MesTickets   from "./pages/employee/MyTickets";
+import CreateTicket   from "./pages/employee/CreateTicket";
+import AssignedTicket from "./pages/tech/AssignedTicket";
 
 
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import EmpDashboard  from "./pages/employee/EmpDashboard";  
-import MyTickets from "./pages/employee/my-ticket/MyTickets";
+import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
+import MyTickets from "./pages/employee/MyTickets";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ export default function App() {
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Admin ── */}
-                  <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
+                  <Route path="admin/dashboard" element={<AdminDashboard />} />
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
