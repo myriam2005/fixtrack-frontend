@@ -4,68 +4,38 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge from "../../components/common/Badge";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import {
+  DashboardHeader,
+  KpiCard,
+  DashboardIcon,
+  getGreeting,
+  formatDate,
+} from "../../components/common/DashboardShared";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
 
-// ── Icônes (même structure que EmpDashboard) ─────────────────────────────────
+// ── Icônes locales (non disponibles dans DashboardShared) ─────────────────────
 const Icon = {
-  ticket: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/>
-    </svg>
-  ),
-  clock: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-    </svg>
-  ),
-  check: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-    </svg>
-  ),
-  arrowRight: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-    </svg>
-  ),
-  calendar: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  pin: (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-    </svg>
-  ),
-  filter: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-    </svg>
-  ),
-  wave: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-    </svg>
-  ),
   alert: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
       <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   ),
+  bulb: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/>
+      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+    </svg>
+  ),
+  lightning: (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  ),
 };
 
-// ── Config statuts / priorités (même que EmpDashboard) ───────────────────────
-const STATUS_CONFIG = {
-  open:        { label: "Ouvert",   color: "#3B82F6" },
-  assigned:    { label: "Assigné",  color: "#8B5CF6" },
-  in_progress: { label: "En cours", color: "#F59E0B" },
-  resolved:    { label: "Résolu",   color: "#22C55E" },
-  closed:      { label: "Clôturé",  color: "#6B7280" },
-};
-
+// ── Config priorités / statuts ────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444",
   high:     "#F59E0B",
@@ -73,7 +43,6 @@ const PRIORITY_BORDER = {
   low:      "#D1D5DB",
 };
 
-// Onglets — identiques à EmpDashboard + "Assignés"
 const FILTER_TABS = [
   { key: "all",         label: "Tous"     },
   { key: "assigned",    label: "Assignés" },
@@ -84,53 +53,135 @@ const FILTER_TABS = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatId = (id) => `FT-${id.replace(/\D/g, "").padStart(3, "0")}`;
 
-const formatDate = (d) =>
-  new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-
 const heuresDepuis = (dateStr) =>
   Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60));
 
-const estTermineAujourdhui = (ticket) => {
-  if (!["resolved", "closed"].includes(ticket.statut)) return false;
-  return new Date(ticket.dateCreation).toDateString() === new Date().toDateString();
+const estTermineAujourdhui = (t) => {
+  if (!["resolved", "closed"].includes(t.statut)) return false;
+  return new Date(t.dateCreation).toDateString() === new Date().toDateString();
 };
 
-// ── KpiCard — réutilisé identique à EmpDashboard ────────────────────────────
-function KpiCard({ icon, label, count, color, bgColor, description }) {
+// Mois des 3 derniers mois
+const getLast3Months = () => {
+  const now = new Date();
+  return [2, 1, 0].map((offset) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    return {
+      label: d.toLocaleDateString("fr-FR", { month: "short" }),
+      year:  d.getFullYear(),
+      month: d.getMonth(),
+    };
+  });
+};
+
+// Conseils rotatifs pour le technicien
+const CONSEILS = [
+  "Commencez par les tickets critiques pour maximiser votre impact.",
+  "Documentez vos interventions pour faciliter le suivi.",
+  "Vérifiez les tickets assignés depuis plus de 24h en priorité.",
+  "Une résolution rapide améliore la satisfaction des utilisateurs.",
+  "Pensez à mettre à jour le statut en temps réel pour la visibilité.",
+];
+
+// ════════════════════════════════════════════════════════════
+//  DonutChart — Répartition des statuts (canvas-free, SVG pur)
+// ════════════════════════════════════════════════════════════
+function DonutChart({ data, total }) {
+  const SIZE = 110;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R  = 42;
+  const STROKE = 14;
+  const CIRC = 2 * Math.PI * R;
+
+  let offset = 0;
+  const slices = data.map((d) => {
+    const pct   = total > 0 ? d.value / total : 0;
+    const dash  = pct * CIRC;
+    const gap   = CIRC - dash;
+    const slice = { ...d, pct, dash, gap, offset };
+    offset += dash;
+    return slice;
+  });
+
   return (
-    <Paper elevation={0} sx={{
-      borderRadius: "14px", padding: "20px 22px",
-      border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-      position: "relative", overflow: "hidden",
-      transition: "transform 0.2s, box-shadow 0.2s",
-      "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 24px rgba(0,0,0,0.09)" },
-    }}>
-      {/* Cercle décoratif */}
-      <Box sx={{ position: "absolute", top: -28, right: -28, width: 90, height: 90, borderRadius: "50%", backgroundColor: bgColor, opacity: 0.7 }} />
-      {/* Barre colorée en bas */}
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", background: `linear-gradient(90deg, ${color}, ${color}66)` }} />
-      <Box sx={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Box>
-          <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "8px" }}>
-            {label}
-          </Typography>
-          <Typography sx={{ fontSize: "36px", fontWeight: 900, color: "#111827", lineHeight: 1, letterSpacing: "-0.04em" }}>
-            {count}
-          </Typography>
-          {description && (
-            <Typography sx={{ fontSize: "11px", color: "#9CA3AF", mt: "5px" }}>{description}</Typography>
-          )}
-        </Box>
-        <Box sx={{ width: 42, height: 42, borderRadius: "11px", backgroundColor: bgColor, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
-          {icon}
-        </Box>
+    <Box sx={{ position: "relative", width: SIZE, height: SIZE, flexShrink: 0 }}>
+      <svg width={SIZE} height={SIZE} style={{ transform: "rotate(-90deg)" }}>
+        {/* Fond */}
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke="#F3F4F6" strokeWidth={STROKE}/>
+        {slices.map((s, i) => (
+          <circle
+            key={i}
+            cx={CX} cy={CY} r={R}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={STROKE}
+            strokeDasharray={`${s.dash} ${s.gap}`}
+            strokeDashoffset={-s.offset}
+            strokeLinecap="butt"
+          />
+        ))}
+      </svg>
+      {/* Centre */}
+      <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <Typography sx={{ fontSize: "20px", fontWeight: 900, color: "#111827", lineHeight: 1 }}>{total}</Typography>
+        <Typography sx={{ fontSize: "9px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</Typography>
       </Box>
-    </Paper>
+    </Box>
   );
 }
 
-// ── TicketRow — adapté pour technicien (flèche + alerte critique) ─────────────
+// ════════════════════════════════════════════════════════════
+//  MonthlyBarChart — Activité mensuelle (3 derniers mois)
+// ════════════════════════════════════════════════════════════
+function MonthlyBarChart({ myTickets, total }) {
+  const months = getLast3Months();
+  const counts = months.map(({ year, month }) =>
+    myTickets.filter((t) => {
+      const d = new Date(t.dateCreation);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length
+  );
+  const max = Math.max(...counts, 1);
+  const currentMonth = months[2].label;
+
+  return (
+    <Box sx={{ flex: 1 }}>
+      {/* Barres */}
+      <Box sx={{ display: "flex", alignItems: "flex-end", gap: "12px", height: "70px", mb: "8px" }}>
+        {months.map((m, i) => {
+          const isCurrent = m.label.toLowerCase() === currentMonth.toLowerCase();
+          const pct = counts[i] / max;
+          return (
+            <Box key={i} sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+              <Typography sx={{ fontSize: "10px", fontWeight: 700, color: isCurrent ? "#2563EB" : "#9CA3AF" }}>
+                {counts[i] > 0 ? counts[i] : ""}
+              </Typography>
+              <Box sx={{ width: "100%", height: `${Math.max(pct * 54, 4)}px`, borderRadius: "4px 4px 0 0", background: isCurrent ? "linear-gradient(180deg,#3B82F6,#2563EB)" : "#E5E7EB", transition: "height 0.4s ease" }}/>
+            </Box>
+          );
+        })}
+      </Box>
+      {/* Labels mois */}
+      <Box sx={{ display: "flex", gap: "12px" }}>
+        {months.map((m, i) => {
+          const isCurrent = i === 2;
+          return (
+            <Box key={i} sx={{ flex: 1, textAlign: "center" }}>
+              <Typography sx={{ fontSize: "11px", fontWeight: isCurrent ? 700 : 500, color: isCurrent ? "#2563EB" : "#9CA3AF", textTransform: "capitalize" }}>
+                {m.label.replace(".", "")}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+//  TicketRow
+// ════════════════════════════════════════════════════════════
 function TicketRow({ ticket, isLast, onNavigate }) {
   const isCriticalLate =
     ticket.priorite === "critical" &&
@@ -148,85 +199,55 @@ function TicketRow({ ticket, isLast, onNavigate }) {
         transition: "background 0.15s, padding-left 0.15s",
         "&:hover": { backgroundColor: isCriticalLate ? "#FFF0F0" : "#F8FAFF", paddingLeft: "20px" },
       }}>
-        {/* Point priorité */}
-        <Box sx={{
-          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-          backgroundColor: PRIORITY_BORDER[ticket.priorite] || "#E5E7EB",
-          boxShadow: `0 0 0 3px ${(PRIORITY_BORDER[ticket.priorite] || "#E5E7EB")}22`,
-        }} />
+        <Box sx={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, backgroundColor: PRIORITY_BORDER[ticket.priorite] || "#E5E7EB", boxShadow: `0 0 0 3px ${(PRIORITY_BORDER[ticket.priorite] || "#E5E7EB")}22` }} />
 
-        {/* Infos ticket */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {/* Titre */}
           <Typography sx={{ fontWeight: 600, fontSize: "13.5px", color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "2px" }}>
             {ticket.titre}
           </Typography>
-
-          {/* Meta — ID + date + lieu */}
           <Box sx={{ display: "flex", alignItems: "center", gap: "12px", mb: "4px", flexWrap: "wrap" }}>
             <Typography sx={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace", fontWeight: 600 }}>
               {formatId(ticket.id)}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
-              {Icon.calendar}
+              {DashboardIcon.calendar}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatDate(ticket.dateCreation)}</Typography>
             </Box>
             {ticket.localisation && (
               <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                {Icon.pin}
+                {DashboardIcon.pin}
                 <Typography sx={{ fontSize: "11px", color: "#9CA3AF", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {ticket.localisation}
                 </Typography>
               </Box>
             )}
           </Box>
-
-          {/* Badges statut + catégorie + alerte inline */}
           <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             <Badge status={ticket.statut} />
             <Badge status={ticket.priorite} />
             {isCriticalLate && (
-              <Box sx={{
-                display: "inline-flex", alignItems: "center", gap: "4px",
-                fontSize: "11px", fontWeight: 700, color: "#EF4444",
-                backgroundColor: "#FEF2F2", border: "1px solid #FCA5A5",
-                borderRadius: "999px", padding: "2px 8px",
-                animation: "pulseAlert 2s ease-in-out infinite",
-              }}>
-                {Icon.alert}
-                +24h — Intervention requise
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: 700, color: "#EF4444", backgroundColor: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: "999px", padding: "2px 8px" }}>
+                {Icon.alert} +24h — Intervention requise
               </Box>
             )}
           </Box>
         </Box>
 
-        {/* Flèche → page ticket assigné */}
-        <Box
-          onClick={() => onNavigate(ticket.id)}
-          sx={{
-            width: 30, height: 30, flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            borderRadius: "8px", border: "1.5px solid #E5E7EB",
-            color: "#9CA3AF", cursor: "pointer",
-            transition: "all 0.15s",
-            "&:hover": {
-              backgroundColor: "#2563EB", borderColor: "#2563EB",
-              color: "#FFFFFF", transform: "translateX(2px)",
-            },
-          }}
-        >
-          {Icon.arrowRight}
+        {/* Flèche action */}
+        <Box onClick={() => onNavigate(ticket.id)} sx={{ width: 30, height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", border: "1.5px solid #E5E7EB", color: "#9CA3AF", cursor: "pointer", transition: "all 0.15s", "&:hover": { backgroundColor: "#2563EB", borderColor: "#2563EB", color: "#FFFFFF", transform: "translateX(2px)" } }}>
+          {DashboardIcon.arrowRight}
         </Box>
       </Box>
-
       {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
     </>
   );
 }
 
-// ── Composant principal ───────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+//  COMPOSANT PRINCIPAL
+// ════════════════════════════════════════════════════════════
 export default function TechnicianDashboard() {
-  const navigate          = useNavigate();
+  const navigate           = useNavigate();
   const { user: authUser } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
 
@@ -235,51 +256,59 @@ export default function TechnicianDashboard() {
     [authUser?.email]
   );
 
-  // Tickets assignés à ce technicien
   const myTickets = useMemo(
     () => tickets.filter((t) => t.technicienId === mockUser?.id),
     [mockUser?.id]
   );
 
-  // ── Statistiques ──────────────────────────────────────
-  const aFaireCount   = myTickets.filter(t => ["open", "assigned"].includes(t.statut)).length;
+  // ── Stats ──────────────────────────────────────────────────
+  const aFaireCount   = myTickets.filter(t => ["open","assigned"].includes(t.statut)).length;
   const enCoursCount  = myTickets.filter(t => t.statut === "in_progress").length;
   const terminesCount = myTickets.filter(t => estTermineAujourdhui(t)).length;
+  const resolusCount  = myTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
 
-  // ── Tickets critiques non traités > 24h ───────────────
+  // ── Donut data ─────────────────────────────────────────────
+  const donutData = [
+    { label: "Ouverts",  value: aFaireCount,  color: "#3B82F6" },
+    { label: "En cours", value: enCoursCount,  color: "#F59E0B" },
+    { label: "Résolus",  value: resolusCount,  color: "#22C55E" },
+  ];
+  const donutTotal = myTickets.length;
+
+  // ── Alerte critique ────────────────────────────────────────
   const alertesCritiques = useMemo(() =>
     myTickets.filter(t =>
       t.priorite === "critical" &&
-      !["resolved", "closed"].includes(t.statut) &&
+      !["resolved","closed"].includes(t.statut) &&
       heuresDepuis(t.dateCreation) > 24
     ), [myTickets]
   );
 
-  // ── Tickets filtrés + triés ───────────────────────────
+  // ── Tickets filtrés ────────────────────────────────────────
   const filteredTickets = useMemo(() => {
     const sorted = [...myTickets].sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
     if (activeFilter === "assigned")    return sorted.filter(t => t.statut === "assigned");
     if (activeFilter === "in_progress") return sorted.filter(t => t.statut === "in_progress");
     if (activeFilter === "resolved")    return sorted.filter(t => ["resolved","closed"].includes(t.statut));
-    return sorted.slice(0, 5);
+    return sorted.slice(0, 3);
   }, [myTickets, activeFilter]);
 
-  // Compteurs par onglet
   const tabCounts = {
     all:         myTickets.length,
     assigned:    myTickets.filter(t => t.statut === "assigned").length,
     in_progress: enCoursCount,
-    resolved:    myTickets.filter(t => ["resolved","closed"].includes(t.statut)).length,
+    resolved:    resolusCount,
   };
 
-  // Salutation dynamique
+  // Conseil du jour (index selon jour de la semaine)
+  const conseil = CONSEILS[new Date().getDay() % CONSEILS.length];
+
   const firstName = (authUser?.name || mockUser?.nom || "").split(" ")[0];
-  const hour      = new Date().getHours();
-  const greeting  = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
+  const greeting  = getGreeting();
 
   if (!mockUser) {
     return (
-      <Box sx={{ display:"flex", justifyContent:"center", alignItems:"center", height:"60vh" }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
         <LoadingSpinner />
       </Box>
     );
@@ -289,52 +318,27 @@ export default function TechnicianDashboard() {
     <Box sx={{ pb: "80px" }}>
 
       {/* ════════════════════════════════════════════
-          BARRE DE BIENVENUE — identique à EmpDashboard
+          BARRE DE BIENVENUE — DashboardShared
           ════════════════════════════════════════════ */}
-      <Box sx={{
-        borderRadius: "12px",
-        background: "linear-gradient(120deg, #1E3A5F 0%, #2563EB 100%)",
-        padding: "14px 20px", marginBottom: "20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 3px 14px rgba(37,99,235,0.20)",
-        overflow: "hidden", position: "relative",
-      }}>
-        {/* Cercle décoratif */}
-        <Box sx={{ position: "absolute", top: -20, right: 40, width: 100, height: 100, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.07)", pointerEvents: "none" }} />
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: "12px", zIndex: 1 }}>
-          {/* Icône wave */}
-          <Box sx={{ width: 34, height: 34, borderRadius: "9px", backgroundColor: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#FCD34D" }}>
-            {Icon.wave}
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-              {greeting}, {firstName} 👋
-            </Typography>
-            <Typography sx={{ fontSize: "11px", color: "rgba(255,255,255,0.55)", mt: "1px" }}>
-              Voici vos activités de maintenance
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <DashboardHeader
+        firstName={firstName}
+        greeting={greeting}
+        subtitle="Voici vos activités de maintenance"
+      />
 
       {/* ════════════════════════════════════════════
-          ALERTE TICKETS CRITIQUES > 24H
+          ALERTE CRITIQUE > 24H
           ════════════════════════════════════════════ */}
       {alertesCritiques.length > 0 && (
         <Box sx={{
-          borderRadius: "12px",
-          backgroundColor: "#FEF2F2",
-          border: "1.5px solid #FCA5A5",
-          padding: "12px 18px",
-          marginBottom: "20px",
-          animation: "pulseAlert 2.5s ease-in-out infinite",
+          borderRadius: "12px", backgroundColor: "#FEF2F2",
+          border: "1.5px solid #FCA5A5", padding: "12px 18px", marginBottom: "20px",
           "@keyframes pulseAlert": {
             "0%,100%": { boxShadow: "0 0 0 0 rgba(239,68,68,0.25)" },
             "50%":      { boxShadow: "0 0 0 8px rgba(239,68,68,0)" },
           },
+          animation: "pulseAlert 2.5s ease-in-out infinite",
         }}>
-          {/* Titre alerte */}
           <Box sx={{ display: "flex", alignItems: "center", gap: "8px", mb: "6px" }}>
             <Box sx={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}>
               {Icon.alert}
@@ -343,13 +347,9 @@ export default function TechnicianDashboard() {
               {alertesCritiques.length} ticket{alertesCritiques.length > 1 ? "s" : ""} critique{alertesCritiques.length > 1 ? "s" : ""} non traité{alertesCritiques.length > 1 ? "s" : ""} depuis plus de 24h
             </Typography>
           </Box>
-
-          {/* Sous-titre */}
           <Typography sx={{ fontSize: "11.5px", color: "#B91C1C", mb: "8px", ml: "36px" }}>
             Intervention immédiate requise :
           </Typography>
-
-          {/* Liste des tickets en retard */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", ml: "36px" }}>
             {alertesCritiques.map(t => (
               <Box key={t.id} sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -367,16 +367,103 @@ export default function TechnicianDashboard() {
       )}
 
       {/* ════════════════════════════════════════════
-          KPI CARDS — identiques à EmpDashboard
+          KPI CARDS — KpiCard de DashboardShared
           ════════════════════════════════════════════ */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px", marginBottom: "20px" }}>
-        <KpiCard icon={Icon.ticket} label="Tickets ouverts"  count={aFaireCount}   color="#3B82F6" bgColor="#EFF6FF" description="En attente de prise en charge" />
-        <KpiCard icon={Icon.clock}  label="En cours"         count={enCoursCount}  color="#F59E0B" bgColor="#FFFBEB" description="Assignés ou en traitement" />
-        <KpiCard icon={Icon.check}  label="Résolus ce mois"  count={terminesCount} color="#22C55E" bgColor="#F0FDF4" description="Tickets clôturés avec succès" />
+        <KpiCard icon={DashboardIcon.ticket} label="Tickets ouverts"  count={aFaireCount}   color="#3B82F6" bgColor="#EFF6FF" description="En attente de prise en charge" />
+        <KpiCard icon={DashboardIcon.clock}  label="En cours"         count={enCoursCount}  color="#F59E0B" bgColor="#FFFBEB" description="Assignés ou en traitement" />
+        <KpiCard icon={DashboardIcon.check}  label="Résolus ce mois"  count={terminesCount} color="#22C55E" bgColor="#F0FDF4" description="Tickets clôturés avec succès" />
       </Box>
 
       {/* ════════════════════════════════════════════
-          TABLEAU TICKETS — même structure que EmpDashboard
+          GRAPHIQUES — 3 colonnes (comme la capture)
+          ════════════════════════════════════════════ */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "20px" }}>
+
+        {/* ── 1. Répartition des statuts (Donut) ── */}
+        <Paper elevation={0} sx={{ borderRadius: "14px", padding: "18px 20px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+          <Typography sx={{ fontSize: "10px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "14px" }}>
+            Répartition des statuts
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            {/* SVG Donut */}
+            <DonutChart data={donutData} total={donutTotal} />
+            {/* Légende */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+              {donutData.map((d) => {
+                const pct = donutTotal > 0 ? Math.round((d.value / donutTotal) * 100) : 0;
+                return (
+                  <Box key={d.label}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "3px" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: d.color, flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: "11px", color: "#374151", fontWeight: 500 }}>{d.label}</Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#111827" }}>{d.value}</Typography>
+                        <Typography sx={{ fontSize: "10px", color: "#9CA3AF" }}>· {pct}%</Typography>
+                      </Box>
+                    </Box>
+                    {/* Barre de progression */}
+                    <Box sx={{ height: "4px", backgroundColor: "#F3F4F6", borderRadius: "999px", overflow: "hidden" }}>
+                      <Box sx={{ height: "100%", width: `${pct}%`, backgroundColor: d.color, borderRadius: "999px", transition: "width 0.6s ease" }} />
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* ── 2. Activité mensuelle (Barres) ── */}
+        <Paper elevation={0} sx={{ borderRadius: "14px", padding: "18px 20px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "14px" }}>
+            <Typography sx={{ fontSize: "10px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Activité mensuelle
+            </Typography>
+            <Box sx={{ display: "inline-flex", alignItems: "center", gap: "4px", backgroundColor: "#EFF6FF", color: "#2563EB", borderRadius: "999px", padding: "3px 9px" }}>
+              <Box sx={{ color: "#2563EB", display: "flex" }}>{Icon.lightning}</Box>
+              <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#2563EB" }}>
+                {donutTotal} total
+              </Typography>
+            </Box>
+          </Box>
+          <MonthlyBarChart myTickets={myTickets} total={donutTotal} />
+        </Paper>
+
+        {/* ── 3. Conseil du jour ── */}
+        <Paper elevation={0} sx={{ borderRadius: "14px", padding: "18px 20px", border: "1px solid #FDE68A", backgroundColor: "#FFFBEB", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "8px", mb: "12px" }}>
+            <Box sx={{ width: 28, height: 28, borderRadius: "8px", backgroundColor: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", color: "#D97706", flexShrink: 0 }}>
+              {Icon.bulb}
+            </Box>
+            <Typography sx={{ fontSize: "11px", fontWeight: 800, color: "#B45309", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+              Conseil du jour
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: "13px", color: "#78350F", lineHeight: 1.6 }}>
+            {conseil}
+          </Typography>
+          {/* Séparateur */}
+          <Box sx={{ height: "1px", backgroundColor: "#FDE68A", my: "12px" }} />
+          {/* Stat rapide */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "10px", color: "#92400E", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Taux de résolution</Typography>
+              <Typography sx={{ fontSize: "18px", fontWeight: 900, color: "#78350F", lineHeight: 1.2 }}>
+                {donutTotal > 0 ? Math.round((resolusCount / donutTotal) * 100) : 0}%
+              </Typography>
+            </Box>
+            <Box sx={{ width: 44, height: 44, borderRadius: "12px", backgroundColor: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", color: "#D97706" }}>
+              {DashboardIcon.check}
+            </Box>
+          </Box>
+        </Paper>
+
+      </Box>
+
+      {/* ════════════════════════════════════════════
+          TABLEAU TICKETS
           ════════════════════════════════════════════ */}
       <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
 
@@ -390,26 +477,18 @@ export default function TechnicianDashboard() {
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "4px", color: "#9CA3AF" }}>
-              {Icon.filter}
+              {DashboardIcon.filter}
               <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>Filtrer</Typography>
             </Box>
           </Box>
 
-          {/* Onglets filtres */}
+          {/* Onglets */}
           <Box sx={{ display: "flex", gap: "4px" }}>
             {FILTER_TABS.map((tab) => {
               const isActive = activeFilter === tab.key;
               const count = tabCounts[tab.key] ?? 0;
               return (
-                <Box key={tab.key} onClick={() => setActiveFilter(tab.key)} sx={{
-                  display: "flex", alignItems: "center", gap: "5px",
-                  padding: "7px 13px", cursor: "pointer",
-                  borderRadius: "8px 8px 0 0",
-                  borderBottom: isActive ? "2px solid #2563EB" : "2px solid transparent",
-                  backgroundColor: isActive ? "#F0F7FF" : "transparent",
-                  transition: "all 0.15s",
-                  "&:hover": { backgroundColor: isActive ? "#F0F7FF" : "#F9FAFB" },
-                }}>
+                <Box key={tab.key} onClick={() => setActiveFilter(tab.key)} sx={{ display: "flex", alignItems: "center", gap: "5px", padding: "7px 13px", cursor: "pointer", borderRadius: "8px 8px 0 0", borderBottom: isActive ? "2px solid #2563EB" : "2px solid transparent", backgroundColor: isActive ? "#F0F7FF" : "transparent", transition: "all 0.15s", "&:hover": { backgroundColor: isActive ? "#F0F7FF" : "#F9FAFB" } }}>
                   <Typography sx={{ fontSize: "13px", fontWeight: isActive ? 700 : 500, color: isActive ? "#2563EB" : "#6B7280" }}>
                     {tab.label}
                   </Typography>
@@ -422,17 +501,13 @@ export default function TechnicianDashboard() {
           </Box>
         </Box>
 
-        {/* Liste des tickets */}
+        {/* Liste */}
         <Box sx={{ padding: "8px 6px 12px" }}>
           {filteredTickets.length === 0 ? (
             <Box sx={{ textAlign: "center", padding: "40px 24px" }}>
               <Box sx={{ fontSize: "34px", mb: "10px" }}>🔧</Box>
-              <Typography sx={{ fontWeight: 600, color: "#6B7280", mb: "4px", fontSize: "14px" }}>
-                Aucun ticket dans cette catégorie
-              </Typography>
-              <Typography sx={{ fontSize: "12px", color: "#9CA3AF" }}>
-                Vos tickets assignés apparaîtront ici
-              </Typography>
+              <Typography sx={{ fontWeight: 600, color: "#6B7280", mb: "4px", fontSize: "14px" }}>Aucun ticket dans cette catégorie</Typography>
+              <Typography sx={{ fontSize: "12px", color: "#9CA3AF" }}>Vos tickets assignés apparaîtront ici</Typography>
             </Box>
           ) : (
             filteredTickets.map((ticket, index) => (
@@ -446,19 +521,17 @@ export default function TechnicianDashboard() {
           )}
         </Box>
 
-        {/* Lien "Voir tous mes tickets" */}
-        {activeFilter === "all" && myTickets.length > 2 && (
-          <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 24px", textAlign: "center" }}>
-            <Box
-              onClick={() => navigate("/technician/tickets")}
-              sx={{ cursor: "pointer", display: "inline-block" }}
-            >
-              <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#2563EB", "&:hover": { textDecoration: "underline" } }}>
-                Voir tous mes tickets assignés →
-              </Typography>
+        {/* Lien Voir tout — toujours visible */}
+        <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 24px", textAlign: "center" }}>
+          <Box onClick={() => navigate("/technician/tickets")} sx={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+            <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#2563EB", "&:hover": { textDecoration: "underline" } }}>
+              Voir tous mes tickets assignés
+            </Typography>
+            <Box sx={{ color: "#2563EB", display: "flex", alignItems: "center" }}>
+              {DashboardIcon.arrowRight}
             </Box>
           </Box>
-        )}
+        </Box>
 
       </Paper>
     </Box>
