@@ -22,7 +22,7 @@ import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
 import MyTickets from "./pages/employee/my-ticket/MyTickets";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TechnicianDashboard from "./pages/tech/TechDashboard";
-
+import Tickets from "./pages/admin/tickets/AllTickets";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -108,7 +108,7 @@ export default function App() {
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
+                  <Route path="admin/tickets"   element={<Tickets/>} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
