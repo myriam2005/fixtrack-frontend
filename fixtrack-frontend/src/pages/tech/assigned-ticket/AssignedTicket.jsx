@@ -1,7 +1,7 @@
 // src/pages/tech/AssignedTicket.jsx
 import { useState } from "react";
-import { tickets } from "../../data/mockData";
-import { useAuth } from "../../context/AuthContext";
+import { tickets } from "../../../data/mockData";
+import { useAuth } from "../../../context/AuthContext";
 import { CSS, FILTERS, PRIORITY_FILTERS } from "./ticketsUtils";
 import TicketCard from "./TicketCard";
 

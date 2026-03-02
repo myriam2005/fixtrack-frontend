@@ -1,9 +1,9 @@
 // src/pages/employee/MyTickets.jsx
 import { useState } from "react";
 import styles from "./MyTickets.module.css";
-import Badge, { TOKENS, LABELS } from "../../components/common/Badge";
-import { tickets, users } from "../../data/mockData";
-import { useAuth } from "../../context/AuthContext";
+import Badge, { TOKENS, LABELS } from "../../../components/common/Badge";
+import { tickets, users } from "../../../data/mockData";
+import { useAuth } from "../../../context/AuthContext";
 
 // ─── Config (derived from Badge tokens — no duplication) ─────────────────────
 const STATUT_KEYS   = ["open", "assigned", "in_progress", "resolved", "closed"];
