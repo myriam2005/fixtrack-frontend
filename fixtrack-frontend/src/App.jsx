@@ -14,6 +14,7 @@ import Layout from "./components/layout/Layout";
 import MesTickets   from "./pages/employee/MyTickets";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
+import AllTickets  from "./pages/admin/AllTickets";
 
 
 
@@ -106,7 +107,7 @@ export default function App() {
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
-                  <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
+                  <Route path="admin/tickets"   element={<AllTickets/>} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
