@@ -20,6 +20,7 @@ import AssignedTicket from "./pages/tech/AssignedTicket";
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
 import MyTickets from "./pages/employee/MyTickets";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ export default function App() {
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Admin ── */}
-                  <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
+                  <Route path="admin/dashboard" element={<AdminDashboard />} />
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
