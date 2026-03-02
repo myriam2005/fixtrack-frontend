@@ -249,7 +249,7 @@ export default function AssignerTicket() {
               return (
                 <tr key={ticket.id} style={{ animationDelay: `${i * 40}ms` }}>
                   <td>
-                    <div className={styles.ticketId}>{ticket.id}</div>
+                    <div className={styles.ticketId} style={{ color: "#64748B", fontWeight: 600 }}>{ticket.id}</div>
                   </td>
                   <td>
                     <div className={styles.ticketTitle}>{ticket.titre}</div>
@@ -330,7 +330,7 @@ export default function AssignerTicket() {
                 <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Assignation</p>
                 <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#0F172A" }}>Choisir un technicien</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#CBD5E1" }}>{modal.id}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#64748B", fontWeight: 600 }}>{modal.id}</span>
                   <span style={{ fontSize: 13, color: "#64748B" }}>{modal.titre}</span>
                   <Badge status={modal.priorite} />
                 </div>

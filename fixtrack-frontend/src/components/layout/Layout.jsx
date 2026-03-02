@@ -37,7 +37,7 @@ const NAV = {
   ],
   manager: [
     { label: "Tableau de bord",  to: "/manager/dashboard", icon: Ico.dashboard },
-    { label: "Tous les tickets", to: "/manager/tickets",   icon: Ico.ticket    },
+    { label: "Assigner les tickets", to: "/manager/assign",   icon: Ico.ticket    },
     { label: "Équipe",           to: "/manager/team",      icon: Ico.team      },
     { label: "Rapports",         to: "/manager/reports",   icon: Ico.report    },
   ],
