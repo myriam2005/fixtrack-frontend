@@ -7,25 +7,26 @@ import theme from "./theme/index";
 import { useAuth } from "./context/AuthContext";
 
 // Auth pages
-import LoginPage from "./pages/auth/LoginPage";
+import LoginPage  from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 
-// Layout
 import Layout from "./components/layout/Layout";
+
+import MesTickets   from "./pages/employee/MyTickets";
+import CreateTicket   from "./pages/employee/CreateTicket";
+import AssignedTicket from "./pages/tech/AssignedTicket";
+
+
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import CreateTicket from "./pages/employee/CreateTicket";
-import ManagerDashboard from "./pages/manager/ManagerDashboard"; // ← TON COMPOSANT
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
   return (
     <div style={{
-      background: "#fff",
-      borderRadius: 12,
-      padding: "40px 32px",
-      border: "1px solid #E5E7EB",
-      textAlign: "center",
+      background: "#fff", borderRadius: 12, padding: "40px 32px",
+      border: "1px solid #E5E7EB", textAlign: "center",
     }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
       <h2 style={{ margin: "0 0 8px", color: "#111827", fontSize: 20, fontWeight: 700 }}>
@@ -53,10 +54,11 @@ function RoleRedirect() {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { isAuth, login } = useAuth();
+  const { isAuth } = useAuth();
 
-  const handleLoginSuccess = (role = "admin") => {
-    login({ name: "Jean Dupont", role, email: "jean@fixtrack.app" });
+  // ── FIX : on ne rappelle plus login() ici — LoginPage s'en charge déjà
+  // on redirige juste vers le bon dashboard selon le rôle reçu
+  const handleLoginSuccess = (role) => {
     window.location.href = `/${role}/dashboard`;
   };
 
@@ -88,17 +90,16 @@ export default function App() {
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
                   <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
-                  <Route path="employee/tickets/new" element={<CreateTicket />} />
+                  <Route path="employee/tickets/new" element={<CreateTicket />} /> {/* ✅ branché */}
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<PlaceholderPage title="Dashboard Technicien" />} />
-                  <Route path="technician/tickets"   element={<PlaceholderPage title="Tickets Assignés" />} />
+                  <Route path="technician/tickets"   element={<AssignedTicket />} />
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<ManagerDashboard />} /> {/* ← TON COMPOSANT */}
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
 
@@ -106,7 +107,6 @@ export default function App() {
                   <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
-                  <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
 
