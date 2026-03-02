@@ -102,7 +102,6 @@ export default function App() {
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<PlaceholderPage title="Dashboard Manager" />} />
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
 
@@ -110,7 +109,6 @@ export default function App() {
                   <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
-                  <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
 

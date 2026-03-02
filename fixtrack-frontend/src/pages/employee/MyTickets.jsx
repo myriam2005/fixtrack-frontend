@@ -82,7 +82,7 @@ export default function MyTickets() {
     return matchSearch && matchStatut && matchPriorite && matchCategorie;
   });
 
-  const uniqueCategories = [...new Set(mesTickets.map((t) => t.categorie))];
+ 
   const hasFilters = statuts.length > 0 || priorites.length > 0 || categories.length > 0 || !!search;
   const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
 
@@ -103,10 +103,7 @@ export default function MyTickets() {
           <h1 className={styles.pageTitle}>Gestion des tickets</h1>
           <p className={styles.pageSubtitle}>{mesTickets.length} ticket{mesTickets.length !== 1 ? "s" : ""} au total</p>
         </div>
-        <button className={styles.newBtn}>
-          <IconPlus />
-          Nouveau ticket
-        </button>
+     
       </div>
 
       {/* ── Filter panel ── */}
@@ -163,23 +160,6 @@ export default function MyTickets() {
               ))}
             </div>
           </div>
-
-          <div className={styles.filterGroup}>
-            <div className={styles.filterGroupLabel}><IconGrid /> Catégorie</div>
-            <div className={styles.filterChips}>
-              {uniqueCategories.map((c) => (
-                <button
-                  key={c}
-                  className={`${styles.chip}${categories.includes(c) ? ` ${styles.active}` : ""}`}
-                  style={{ "--chip-color": "#2563EB", "--chip-bg": "#EFF6FF" }}
-                  onClick={() => toggle(categories, setCategories, c)}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
         </div>
 
         {activeTags.length > 0 && (
