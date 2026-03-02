@@ -15,7 +15,7 @@ import Layout from "./components/layout/Layout";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import CreateTicket   from "./pages/employee/CreateTicket";
-import AssignerTicket from "./pages/manager/AssignerTicket";
+import AssignedTicket from "./pages/manager/AssignedTicket";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -98,7 +98,7 @@ export default function App() {
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard"       element={<PlaceholderPage title="Dashboard Manager" />} />
                   <Route path="manager/tickets"         element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/tickets/assigner" element={<AssignerTicket />} /> {/* ✅ branché */}
+                  <Route path="manager/tickets/assigner" element={<AssignedTicket />} />
                   <Route path="manager/machines"        element={<PlaceholderPage title="Machines" />} />
                   <Route path="manager/team"            element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"         element={<PlaceholderPage title="Rapports" />} />
