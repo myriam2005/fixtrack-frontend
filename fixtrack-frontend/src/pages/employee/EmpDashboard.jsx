@@ -8,9 +8,8 @@ import {
   DashboardHeader,
   KpiCard,
   DashboardIcon,
-  getGreeting,
-  formatDate,
 } from "../../components/common/DashboardShared";
+import { getGreeting, formatDate } from "../../components/common/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
 

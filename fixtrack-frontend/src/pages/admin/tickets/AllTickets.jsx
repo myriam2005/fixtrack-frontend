@@ -6,7 +6,8 @@ import { useMemo, useState } from "react";
 import { Box, Typography, Paper, Divider, TextField, Tooltip } from "@mui/material";
 import Badge from "../../../components/common/Badge";
 import { tickets, users } from "../../../data/mockData";
-import { DashboardIcon, formatDate } from "../../../components/common/DashboardShared";
+import { DashboardIcon } from "../../components/common/DashboardShared";
+import { formatDate } from "../../components/common/DashboardSharedUtils";
 import {
   EditModal, DeleteModal,
   StatusTracker, UserAvatar,
