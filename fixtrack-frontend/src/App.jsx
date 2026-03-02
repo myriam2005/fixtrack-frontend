@@ -16,10 +16,9 @@ import MesTickets   from "./pages/employee/MyTickets";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
 
-
+import MgrDashboard from "./pages/manager/ManagerDashboard";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import CreateTicket from "./pages/employee/CreateTicket";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -98,7 +97,7 @@ export default function App() {
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}
-                  <Route path="manager/dashboard" element={<ManagerDashboard />} /> {/* ← TON COMPOSANT */}
+                  <Route path="manager/dashboard" element={<MgrDashboard />} /> {/* ← TON COMPOSANT */}
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />

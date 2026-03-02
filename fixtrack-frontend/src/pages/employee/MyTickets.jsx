@@ -81,8 +81,6 @@ export default function MyTickets() {
     const matchCategorie = categories.length === 0 || categories.includes(t.categorie);
     return matchSearch && matchStatut && matchPriorite && matchCategorie;
   });
-
-  const uniqueCategories = [...new Set(mesTickets.map((t) => t.categorie))];
   const hasFilters = statuts.length > 0 || priorites.length > 0 || categories.length > 0 || !!search;
   const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
 

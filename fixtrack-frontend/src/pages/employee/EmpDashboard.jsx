@@ -165,17 +165,17 @@ function DonutChart({ segments, total, size = 100 }) {
   const totalVal = validSegments.reduce((acc, s) => acc + s.value, 0) || 1;
   const gapFraction = gap / 360;
   const totalGapFraction = gapFraction * validSegments.length;
-  let cumulativeFraction = 0;
-
-  const rendered = validSegments.map((seg, i) => {
-    const fraction = (seg.value / totalVal) * (1 - totalGapFraction);
-    const dashLen = fraction * circumference;
-    const startFraction = cumulativeFraction;
-    cumulativeFraction += fraction + gapFraction;
-    const startOffset = circumference - startFraction * circumference;
-    const isHov = hoveredIdx === i;
-    return { seg, dashLen, startOffset, isHov };
-  });
+  const rendered = validSegments.reduce((acc, seg, i) => {
+  const prev = acc.cumulative;
+  const fraction = (seg.value / totalVal) * (1 - totalGapFraction);
+  const dashLen = fraction * circumference;
+  const startOffset = circumference - prev * circumference;
+  const newCumulative = prev + fraction + gapFraction;
+  return {
+    cumulative: newCumulative,
+    items: [...acc.items, { seg, dashLen, startOffset, isHov: hoveredIdx === i }],
+  };
+}, { cumulative: 0, items: [] }).items;
 
   return (
     <Box sx={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
