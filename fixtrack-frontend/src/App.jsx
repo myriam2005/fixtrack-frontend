@@ -11,15 +11,15 @@ import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
-import MesTickets   from "./pages/employee/MyTickets";
-import CreateTicket   from "./pages/employee/CreateTicket";
-import AssignedTicket from "./pages/tech/AssignedTicket";
+
+import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
+import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
 
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
-import MyTickets from "./pages/employee/MyTickets";
+import MyTickets from "./pages/employee/my-ticket/MyTickets";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 
