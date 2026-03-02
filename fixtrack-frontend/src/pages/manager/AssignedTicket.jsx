@@ -1,16 +1,18 @@
 // src/pages/manager/AssignerTicket.jsx
 import { useState } from "react";
-import { Button as MuiButton } from "@mui/material";
+import { Button as MuiButton, Box, Divider } from "@mui/material";
 import { tickets as initialTickets, users, notifications } from "../../data/mockData";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import styles from "../employee/MyTickets.module.css";
 
-// ─── Tokens (alignés sur Badge.jsx) ──────────────────────────────────────────
+// ─── Tokens ──────────────────────────────────────────────────────────────────
 const TOKENS = {
   open:        { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
   assigned:    { dot: "#6366F1", bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE" },
   in_progress: { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A" },
+  resolved:    { dot: "#22C55E", bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0" },
+  closed:      { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
   critical:    { dot: "#EF4444", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" },
   high:        { dot: "#F97316", bg: "#FFF7ED", text: "#C2410C", border: "#FED7AA" },
   medium:      { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
@@ -21,16 +23,23 @@ const LABELS = {
   open:        "Ouvert",
   assigned:    "Assigné",
   in_progress: "En cours",
+  resolved:    "Résolu",
+  closed:      "Clôturé",
   critical:    "Critique",
   high:        "Haute",
   medium:      "Moyenne",
   low:         "Basse",
 };
 
-const STATUT_KEYS   = ["open", "assigned", "in_progress"];
-const PRIORITE_KEYS = ["critical", "high", "medium", "low"];
+const PRIORITY_LEFT_COLOR = {
+  critical: "#EF4444",
+  high:     "#F59E0B",
+  medium:   "#3B82F6",
+  low:      "#9CA3AF",
+};
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const STATUS_STEPS = ["open", "assigned", "in_progress", "resolved"];
+
 const techniciens = users.filter((u) => u.role === "technician");
 
 const AVATAR_COLORS = {
@@ -42,7 +51,6 @@ const chargeOf = (techId, ticketsList) =>
     (t) => t.technicienId === techId && ["assigned", "in_progress"].includes(t.statut)
   ).length;
 
-// ─── Modal overlay animation (minimal, not in CSS module) ────────────────────
 if (typeof document !== "undefined" && !document.getElementById("at-modal-styles")) {
   const s = document.createElement("style");
   s.id = "at-modal-styles";
@@ -56,31 +64,147 @@ if (typeof document !== "undefined" && !document.getElementById("at-modal-styles
   document.head.appendChild(s);
 }
 
+// ─── StatusDots ───────────────────────────────────────────────────────────────
+function StatusDots({ statut }) {
+  const stepIndex = STATUS_STEPS.indexOf(statut);
+  const dotColor  = TOKENS[statut]?.dot || "#9CA3AF";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{
+            width: i === stepIndex ? 10 : 8,
+            height: i === stepIndex ? 10 : 8,
+            borderRadius: "50%",
+            background: i <= stepIndex ? dotColor : "#E2E8F0",
+            flexShrink: 0,
+          }} />
+          {i < 2 && (
+            <div style={{
+              width: 20, height: 2,
+              background: i < stepIndex ? dotColor : "#E2E8F0",
+              borderRadius: 2, flexShrink: 0,
+            }} />
+          )}
+        </div>
+      ))}
+      <span style={{ fontSize: 11.5, color: dotColor, fontWeight: 600, marginLeft: 6 }}>
+        {LABELS[statut]}
+      </span>
+    </div>
+  );
+}
+
+// ─── TicketRow — hover identique à TechnicianDashboard ───────────────────────
+function TicketRow({ ticket, tech, isLast, onAssign }) {
+  const [hovered, setHovered] = useState(false);
+  const leftColor = PRIORITY_LEFT_COLOR[ticket.priorite] || "#E2E8F0";
+
+  return (
+    <>
+      <Box
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        sx={{
+          display: "flex", alignItems: "center", gap: "14px",
+          padding: "13px 18px 13px 16px",
+          borderLeft: `3px solid ${leftColor}`,
+          borderRadius: "0 10px 10px 0",
+          backgroundColor: "transparent",
+          transition: "background 0.15s, padding-left 0.15s",
+          "&:hover": { backgroundColor: "#F8FAFF", paddingLeft: "20px" },
+        }}
+      >
+        {/* Dot priorité */}
+        <Box sx={{
+          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+          backgroundColor: leftColor,
+          boxShadow: `0 0 0 3px ${leftColor}22`,
+        }} />
+
+        {/* ID */}
+        <Box sx={{ minWidth: 36, flexShrink: 0 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#94A3B8", fontWeight: 600 }}>
+            {ticket.id}
+          </span>
+        </Box>
+
+        {/* Titre + localisation + dots */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260, marginBottom: 2 }}>
+            {ticket.titre}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#94A3B8", display: "flex", alignItems: "center", gap: 3 }}>
+            📍 {ticket.localisation}
+          </div>
+          <StatusDots statut={ticket.statut} />
+        </Box>
+
+        {/* Catégorie */}
+        <Box sx={{ flexShrink: 0 }}>
+          <span className={styles.catBadge}>{ticket.categorie}</span>
+        </Box>
+
+        {/* Priorité */}
+        <Box sx={{ flexShrink: 0 }}><Badge status={ticket.priorite} /></Box>
+
+        {/* Statut */}
+        <Box sx={{ flexShrink: 0 }}><Badge status={ticket.statut} /></Box>
+
+        {/* Date */}
+        <Box sx={{ flexShrink: 0 }}>
+          <span className={styles.date}>{ticket.dateCreation}</span>
+        </Box>
+
+        {/* Technicien */}
+        <Box sx={{ flexShrink: 0, minWidth: 130 }}>
+          {tech ? (
+            <div className={styles.techWrap}>
+              <div className={styles.avatar} style={{ background: AVATAR_COLORS[tech.id] || "#6366F1" }}>
+                {tech.nom[0].toUpperCase()}
+              </div>
+              <span className={styles.techName}>{tech.nom}</span>
+            </div>
+          ) : (
+            <span className={styles.unassigned}>—</span>
+          )}
+        </Box>
+
+        {/* Actions — toujours visibles */}
+        <Box sx={{ flexShrink: 0 }}>
+          <MuiButton
+            variant="contained"
+            size="small"
+            onClick={() => onAssign(ticket)}
+            sx={{
+              borderRadius: "999px",
+              textTransform: "none",
+              fontWeight: 700,
+              fontSize: "12.5px",
+              padding: "6px 18px",
+              boxShadow: "none",
+              whiteSpace: "nowrap",
+              "&:hover": { boxShadow: "none" },
+            }}
+          >
+            {ticket.technicienId ? "Réassigner" : "Assigner"}
+          </MuiButton>
+        </Box>
+      </Box>
+
+      {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
+    </>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AssignerTicket() {
-  const [tickets, setTickets]    = useState([...initialTickets]);
-  const [search,  setSearch]     = useState("");
-  const [statuts,    setStatuts]    = useState([]);
-  const [priorites,  setPriorites]  = useState([]);
-  const [modal,      setModal]      = useState(null);
-  const [selectedTech, setSel]      = useState(null);
-  const [toast,      setToast]      = useState(null);
-
-  const toggle = (arr, setArr, key) =>
-    setArr(arr.includes(key) ? arr.filter((k) => k !== key) : [...arr, key]);
-
-  const clearAll = () => { setStatuts([]); setPriorites([]); setSearch(""); };
-
-  const activeTags = [
-    ...statuts.map((k) => ({
-      key: `s-${k}`, label: LABELS[k],
-      remove: () => setStatuts((p) => p.filter((x) => x !== k)),
-    })),
-    ...priorites.map((k) => ({
-      key: `p-${k}`, label: LABELS[k],
-      remove: () => setPriorites((p) => p.filter((x) => x !== k)),
-    })),
-  ];
+  const [tickets, setTickets]     = useState([...initialTickets]);
+  const [search,  setSearch]      = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [modal,     setModal]     = useState(null);
+  const [selectedTech, setSel]    = useState(null);
+  const [toast,     setToast]     = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -102,209 +226,148 @@ export default function AssignerTicket() {
     showToast(`Ticket assigné à ${tech.nom}`);
   };
 
+  const tabCounts = {
+    all:         tickets.length,
+    open:        tickets.filter((t) => t.statut === "open").length,
+    assigned:    tickets.filter((t) => t.statut === "assigned").length,
+    in_progress: tickets.filter((t) => t.statut === "in_progress").length,
+    resolved:    tickets.filter((t) => t.statut === "resolved").length,
+    closed:      tickets.filter((t) => t.statut === "closed").length,
+  };
+
   const visible = tickets.filter((t) => {
-    const inBase     = ["open", "assigned", "in_progress"].includes(t.statut);
-    const inStatut   = statuts.length   === 0 || statuts.includes(t.statut);
-    const inPriorite = priorites.length === 0 || priorites.includes(t.priorite);
-    const inSearch   = search === "" ||
+    const inTab = activeTab === "all" || t.statut === activeTab;
+    const inSearch = search === "" ||
       t.titre.toLowerCase().includes(search.toLowerCase()) ||
       t.categorie.toLowerCase().includes(search.toLowerCase()) ||
       t.localisation.toLowerCase().includes(search.toLowerCase()) ||
       t.id.toLowerCase().includes(search.toLowerCase());
-    return inBase && inStatut && inPriorite && inSearch;
+    return inTab && inSearch;
   });
 
-  const techOf = (ticket) =>
-    ticket.technicienId ? users.find((u) => u.id === ticket.technicienId) : null;
+  const techOf = (ticket) => ticket.technicienId ? users.find((u) => u.id === ticket.technicienId) : null;
+
+  const TABS = [
+    { key: "all",         label: "Tous" },
+    { key: "open",        label: "Ouverts" },
+    { key: "assigned",    label: "Assignés" },
+    { key: "in_progress", label: "En cours" },
+    { key: "resolved",    label: "Résolus" },
+    { key: "closed",      label: "Clôturés" },
+  ];
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
       {/* ── Page Header ── */}
       <div className={styles.pageHeader}>
         <div className={styles.pageTitleGroup}>
           <span className={styles.pageEyebrow}>Manager · Assignation</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h1 className={styles.pageTitle}>Assignation des tickets</h1>
-            <span style={{
-              display: "inline-flex", alignItems: "center",
-              padding: "3px 10px", borderRadius: 20,
-              background: "#F1F5F9", color: "#64748B",
-              fontSize: 13, fontWeight: 500,
-            }}>
-              {tickets.filter((t) => ["open","assigned","in_progress"].includes(t.statut)).length} ticket(s) total
-            </span>
+          <h1 className={styles.pageTitle}>Assignation des tickets</h1>
+        </div>
+      </div>
+
+      {/* ── Main Card ── */}
+      <div style={{
+        background: "#fff", borderRadius: 16,
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+        overflow: "hidden",
+      }}>
+
+        {/* ── Top Bar ── */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 24px 16px",
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F172A" }}>
+              Liste des tickets
+            </h2>
+            <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "#94A3B8" }}>
+              {visible.length} ticket{visible.length !== 1 ? "s" : ""} affichés · Survolez une ligne pour les actions
+            </p>
           </div>
-          <p className={styles.pageSubtitle}>
-            {tickets.filter((t) => t.statut === "assigned").length} assignés en ce moment
-          </p>
-        </div>
-      </div>
 
-      {/* ── Stat Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon="🎫" label="Tous les tickets" sub="Total créés"       value={tickets.length}                                         color="#111827" iconBg="#F0F4FF" />
-        <StatCard icon="📬" label="Ouverts"          sub="En attente"        value={tickets.filter((t) => t.statut === "open").length}       color="#1D4ED8" iconBg="#EFF6FF" />
-        <StatCard icon="🔄" label="Assignés"         sub="Pris en charge"    value={tickets.filter((t) => t.statut === "assigned").length}   color="#4338CA" iconBg="#EEF2FF" />
-        <StatCard icon="🔴" label="Critiques"        sub="Priorité critique" value={tickets.filter((t) => t.priorite === "critical").length} color="#B91C1C" iconBg="#FEF2F2" />
-      </div>
-
-      {/* ── Filter Panel ── */}
-      <div className={styles.filterPanel}>
-
-        {/* Search */}
-        <div className={styles.searchWrap}>
-          <span className={styles.searchIcon}>🔍</span>
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder="Rechercher par titre, ID, catégorie, localisation…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <button className={styles.searchClear} onClick={() => setSearch("")}>✕</button>
-          )}
+          {/* Search */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#F8FAFC", border: "1px solid #E2E8F0",
+            borderRadius: 10, padding: "8px 14px", width: 290,
+          }}>
+            <span style={{ fontSize: 14, color: "#94A3B8", flexShrink: 0 }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Rechercher un ticket, employé, lieu…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                border: "none", background: "transparent", outline: "none",
+                fontSize: 13, color: "#0F172A", width: "100%",
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8", fontSize: 13, padding: 0 }}>✕</button>
+            )}
+          </div>
         </div>
 
-        {/* Chips */}
-        <div className={styles.filterGroups}>
+        {/* ── Tabs ── */}
+        <div style={{
+          display: "flex", padding: "0 24px",
+          borderBottom: "1px solid #F1F5F9",
+          overflowX: "auto", gap: 0,
+        }}>
+          {TABS.map((tab) => {
+            const count = tabCounts[tab.key];
+            if (count === 0 && tab.key !== "all") return null;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "12px 14px",
+                  border: "none", background: "transparent", cursor: "pointer",
+                  fontSize: 13.5, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#2563EB" : "#64748B",
+                  borderBottom: isActive ? "2.5px solid #2563EB" : "2.5px solid transparent",
+                  marginBottom: -1, whiteSpace: "nowrap",
+                  transition: "color 0.15s",
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  background: isActive ? "#2563EB" : "#E2E8F0",
+                  color: isActive ? "#fff" : "#64748B",
+                  fontSize: 11, fontWeight: 700,
+                  padding: "1px 7px", borderRadius: 99,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          <div className={styles.filterGroup}>
-            <div className={styles.filterGroupLabel}>📋 Statut</div>
-            <div className={styles.filterChips}>
-              {STATUT_KEYS.map((k) => (
-                <button
-                  key={k}
-                  className={`${styles.chip}${statuts.includes(k) ? ` ${styles.active}` : ""}`}
-                  style={{ "--chip-color": TOKENS[k]?.dot, "--chip-bg": TOKENS[k]?.bg }}
-                  onClick={() => toggle(statuts, setStatuts, k)}
-                >
-                  {LABELS[k]}
-                </button>
-              ))}
+        {/* ── Rows ── */}
+        <Box sx={{ padding: "8px 6px 12px" }}>
+          {visible.length === 0 ? (
+            <div className={styles.empty}>
+              <div className={styles.emptyTitle}>Aucun ticket trouvé</div>
+              <div className={styles.emptySub}>Modifiez vos filtres pour afficher des résultats.</div>
             </div>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <div className={styles.filterGroupLabel}>⚠️ Priorité</div>
-            <div className={styles.filterChips}>
-              {PRIORITE_KEYS.map((k) => (
-                <button
-                  key={k}
-                  className={`${styles.chip}${priorites.includes(k) ? ` ${styles.active}` : ""}`}
-                  style={{ "--chip-color": TOKENS[k]?.dot, "--chip-bg": TOKENS[k]?.bg }}
-                  onClick={() => toggle(priorites, setPriorites, k)}
-                >
-                  <span
-                    className={`${styles.chipDot}${k === "critical" ? ` ${styles.pulseDot}` : ""}`}
-                    style={{ background: TOKENS[k]?.dot }}
-                  />
-                  {LABELS[k]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <span style={{ marginLeft: "auto", fontSize: 12.5, color: "#64748B", alignSelf: "center", whiteSpace: "nowrap" }}>
-            <strong style={{ color: "#0F172A" }}>{visible.length}</strong> ticket{visible.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        {/* Active tags */}
-        {activeTags.length > 0 && (
-          <div className={styles.activeSummary}>
-            <span className={styles.activeLabel}>Filtres actifs :</span>
-            {activeTags.map((t) => (
-              <span key={t.key} className={styles.activeTag}>
-                {t.label}
-                <button className={styles.activeTagRemove} onClick={t.remove}>✕</button>
-              </span>
-            ))}
-            <button className={styles.clearAll} onClick={clearAll}>Tout effacer</button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Results bar ── */}
-      <div className={styles.resultsBar}>
-        <span className={styles.resultsText}>
-          <strong>{visible.length}</strong> ticket{visible.length !== 1 ? "s" : ""} affichés
-        </span>
-      </div>
-
-      {/* ── Table ── */}
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              {["ID", "Titre", "Catégorie", "Priorité", "Statut", "Localisation", "Technicien", "Actions"].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((ticket, i) => {
-              const tech = techOf(ticket);
-              return (
-                <tr key={ticket.id} style={{ animationDelay: `${i * 40}ms` }}>
-                  <td>
-                    <div className={styles.ticketId} style={{ color: "#64748B", fontWeight: 600 }}>{ticket.id}</div>
-                  </td>
-                  <td>
-                    <div className={styles.ticketTitle}>{ticket.titre}</div>
-                    <div className={styles.ticketLoc}>📍 {ticket.localisation}</div>
-                  </td>
-                  <td>
-                    <span className={styles.catBadge}>{ticket.categorie}</span>
-                  </td>
-                  <td><Badge status={ticket.priorite} /></td>
-                  <td><Badge status={ticket.statut} /></td>
-                  <td>
-                    <span className={styles.date}>{ticket.dateCreation}</span>
-                  </td>
-                  <td>
-                    {tech ? (
-                      <div className={styles.techWrap}>
-                        <div className={styles.avatar} style={{ background: AVATAR_COLORS[tech.id] }}>
-                          {tech.nom[0].toUpperCase()}
-                        </div>
-                        <span className={styles.techName}>{tech.nom}</span>
-                      </div>
-                    ) : (
-                      <span className={styles.unassigned}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <MuiButton
-                      variant="contained"
-                      size="small"
-                      onClick={() => { setModal(ticket); setSel(ticket.technicienId); }}
-                      sx={{
-                        borderRadius: "999px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: "12.5px",
-                        padding: "5px 16px",
-                        boxShadow: "none",
-                        "&:hover": { boxShadow: "none" },
-                      }}
-                    >
-                      {ticket.technicienId ? "Réassigner" : "Assigner"}
-                    </MuiButton>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {visible.length === 0 && (
-          <div className={styles.empty}>
-            <div className={styles.emptyTitle}>Aucun ticket trouvé</div>
-            <div className={styles.emptySub}>Modifiez vos filtres pour afficher des résultats.</div>
-          </div>
-        )}
+          ) : visible.map((ticket, index) => (
+            <TicketRow
+              key={ticket.id}
+              ticket={ticket}
+              tech={techOf(ticket)}
+              isLast={index === visible.length - 1}
+              onAssign={(t) => { setModal(t); setSel(t.technicienId || null); }}
+            />
+          ))}
+        </Box>
       </div>
 
       {/* ── Modal ── */}
@@ -323,8 +386,6 @@ export default function AssignerTicket() {
             boxShadow: "0 30px 90px rgba(0,0,0,0.2)", overflow: "hidden",
             animation: "at-slideUp .22s ease", fontFamily: "'Plus Jakarta Sans', sans-serif",
           }}>
-
-            {/* Modal Header */}
             <div style={{ padding: "24px 28px 20px", borderBottom: "1.5px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Assignation</p>
@@ -338,7 +399,6 @@ export default function AssignerTicket() {
               <Button label="✕" variant="secondary" onClick={() => { setModal(null); setSel(null); }} />
             </div>
 
-            {/* Tech List */}
             <div style={{ overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 10, flexGrow: 1 }}>
               {techniciens.map((tech) => {
                 const charge = chargeOf(tech.id, tickets);
@@ -370,14 +430,11 @@ export default function AssignerTicket() {
                         <div style={{ fontWeight: 800, fontSize: 22, color: charge > 3 ? "#D97706" : "#0F172A", lineHeight: 1 }}>{charge}</div>
                         <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.4px" }}>en cours</div>
                       </div>
-                      <span
-                        title={dispo ? "Disponible" : "Surchargé"}
-                        style={{
-                          width: 13, height: 13, borderRadius: "50%", display: "inline-block",
-                          background:  dispo ? "#22C55E" : "#EF4444",
-                          boxShadow:   dispo ? "0 0 0 3px #DCFCE7" : "0 0 0 3px #FEE2E2",
-                        }}
-                      />
+                      <span style={{
+                        width: 13, height: 13, borderRadius: "50%", display: "inline-block",
+                        background: dispo ? "#22C55E" : "#EF4444",
+                        boxShadow: dispo ? "0 0 0 3px #DCFCE7" : "0 0 0 3px #FEE2E2",
+                      }} />
                     </div>
                     {isSel && (
                       <div style={{ position: "absolute", top: 10, right: 14, width: 20, height: 20, borderRadius: "50%", background: "#2563EB", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</div>
@@ -387,7 +444,6 @@ export default function AssignerTicket() {
               })}
             </div>
 
-            {/* Modal Footer */}
             <div style={{ padding: "16px 28px 24px", borderTop: "1.5px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <Button label="Annuler" variant="secondary" onClick={() => { setModal(null); setSel(null); }} />
               <Button label="Confirmer l'assignation" variant="primary" onClick={confirmer} disabled={!selectedTech} />
@@ -410,46 +466,6 @@ export default function AssignerTicket() {
           {toast}
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── StatCard ─────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, sub, value, color, iconBg }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: "#fff", borderRadius: 16,
-        boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.10)" : "0 1px 4px rgba(0,0,0,0.04)",
-        border: "1px solid #E2E8F0",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        transform: hovered ? "translateY(-3px)" : "translateY(0)",
-        transition: "all 0.2s ease",
-        cursor: "default",
-      }}
-    >
-      <div style={{ padding: "20px 22px 16px", flex: 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.7px" }}>
-            {label}
-          </span>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: hovered ? color + "22" : (iconBg || "#F0F4FF"),
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
-            transition: "background 0.2s ease",
-          }}>
-            {icon}
-          </div>
-        </div>
-        <div style={{ fontSize: 40, fontWeight: 800, color: "#0F172A", lineHeight: 1, marginBottom: 8 }}>{value}</div>
-        <div style={{ fontSize: 12, color: "#94A3B8" }}>{sub}</div>
-      </div>
-      <div style={{ height: 4, background: color || "#E2E8F0", transition: "height 0.2s ease", ...(hovered ? { height: 6 } : {}) }} />
     </div>
   );
 }
