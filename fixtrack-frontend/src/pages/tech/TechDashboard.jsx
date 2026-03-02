@@ -13,6 +13,7 @@ import {
 } from "../../components/common/DashboardShared";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
+import styles from "./../employee/MyTickets.module.css";
 
 // ── Icônes locales (non disponibles dans DashboardShared) ─────────────────────
 const Icon = {
@@ -233,10 +234,13 @@ function TicketRow({ ticket, isLast, onNavigate }) {
           </Box>
         </Box>
 
-        {/* Flèche action */}
-        <Box onClick={() => onNavigate(ticket.id)} sx={{ width: 30, height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", border: "1.5px solid #E5E7EB", color: "#9CA3AF", cursor: "pointer", transition: "all 0.15s", "&:hover": { backgroundColor: "#2563EB", borderColor: "#2563EB", color: "#FFFFFF", transform: "translateX(2px)" } }}>
-          {DashboardIcon.arrowRight}
-        </Box>
+        {/* Bouton Voir détails */}
+        <button className={styles.detailBtn} onClick={() => onNavigate(ticket.id)}>
+          Voir détails
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
       </Box>
       {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
     </>
@@ -290,7 +294,7 @@ export default function TechnicianDashboard() {
     if (activeFilter === "assigned")    return sorted.filter(t => t.statut === "assigned");
     if (activeFilter === "in_progress") return sorted.filter(t => t.statut === "in_progress");
     if (activeFilter === "resolved")    return sorted.filter(t => ["resolved","closed"].includes(t.statut));
-    return sorted.slice(0, 3);
+    return sorted.slice(0, 4);
   }, [myTickets, activeFilter]);
 
   const tabCounts = {
