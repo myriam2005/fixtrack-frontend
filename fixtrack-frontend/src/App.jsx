@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx - Version complète avec ManagerDashboard intégré
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "./theme/index";
@@ -6,6 +6,7 @@ import theme from "./theme/index";
 // Auth context
 import { useAuth } from "./context/AuthContext";
 
+// Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 
@@ -15,7 +16,7 @@ import Layout from "./components/layout/Layout";
 import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
 import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
-
+import MgrDashboard from "./pages/manager/ManagerDashboard";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   
@@ -92,9 +93,9 @@ export default function App() {
                 <Routes>
 
                   {/* ── Employee ── */}
-                  <Route path="employee/dashboard"   element={<EmpDashboard />} />
-                  <Route path="employee/tickets"     element={<MyTickets/>}/>
-                  <Route path="employee/tickets/new" element={<CreateTicket />} />
+                  <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
+                  <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
+                  <Route path="employee/tickets/new" element={<CreateTicket />} /> {/* ✅ branché */}
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
@@ -102,7 +103,7 @@ export default function App() {
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}
-                  <Route path="manager/dashboard" element={<PlaceholderPage title="Dashboard Manager" />} />
+                  <Route path="manager/dashboard" element={<MgrDashboard />} /> 
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
