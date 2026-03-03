@@ -1,8 +1,7 @@
-
 // src/App.jsx - Version complète avec ManagerDashboard intégré
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
+import DetailTicket from "./pages/employee/DetailsTickets";
 import theme from "./theme/index";
 
 // Auth context
@@ -14,19 +13,11 @@ import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
-import MesTickets   from "./pages/employee/MyTickets";
-import CreateTicket   from "./pages/employee/CreateTicket";
 
-import DetailTicket   from "./pages/employee/DetailsTickets";
-
-import AssignedTicket from "./pages/tech/AssignedTicket";
-
-
-/*import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";*/
-/*import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";*/
+import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
+import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
 import MgrDashboard from "./pages/manager/ManagerDashboard";
-
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   
@@ -104,36 +95,6 @@ export default function App() {
               <Layout notifCount={3}>
                 <Routes>
 
-                  {/* Employee */}
-                  <Route path="employee/dashboard"       element={<PlaceholderPage title="Dashboard Employé" />} />
-                  <Route path="employee/tickets"         element={<PlaceholderPage title="Mes Tickets" />} />
-                  <Route path="employee/tickets/new"     element={<CreateTicket />} />
-                  <Route path="employee/tickets/:id"     element={<DetailTicket />} />
-                  
-
-                  {/* Technician */}
-                  <Route path="technician/dashboard"     element={<PlaceholderPage title="Dashboard Technicien" />} />
-                  <Route path="technician/tickets"       element={<PlaceholderPage title="Tickets Assignés" />} />
-                  <Route path="technician/tickets/:id"   element={<DetailTicket />} />
-                  <Route path="technician/reports"       element={<PlaceholderPage title="Rapports" />} />
-
-                  {/* Manager */}
-                  <Route path="manager/dashboard"        element={<PlaceholderPage title="Dashboard Manager" />} />
-                  <Route path="manager/tickets"          element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"         element={<PlaceholderPage title="Machines" />} />
-                  <Route path="manager/team"             element={<PlaceholderPage title="Équipe" />} />
-                  <Route path="manager/reports"          element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="manager/tickets/:id"      element={<DetailTicket />} />n
-                  {/* Admin */}
-                  <Route path="admin/dashboard"          element={<PlaceholderPage title="Dashboard Admin" />} />
-                  <Route path="admin/tickets"            element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="admin/tickets/:id"        element={<DetailTicket />} />
-                  <Route path="admin/users"              element={<PlaceholderPage title="Utilisateurs" />} />
-                  <Route path="admin/machines"           element={<PlaceholderPage title="Machines" />} />
-                  <Route path="admin/reports"            element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="admin/config"             element={<PlaceholderPage title="Configuration" />} />
-=======
-
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<EmpDashboard />} />
                   <Route path="employee/tickets"     element={<MyTickets />} />
@@ -150,7 +111,6 @@ export default function App() {
                   <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
-
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<AdminDashboard />} />
@@ -174,3 +134,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
