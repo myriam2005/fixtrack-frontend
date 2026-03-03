@@ -93,9 +93,9 @@ export default function App() {
                 <Routes>
 
                   {/* ── Employee ── */}
-                  <Route path="employee/dashboard"   element={<PlaceholderPage title="Dashboard Employé" />} />
-                  <Route path="employee/tickets"     element={<PlaceholderPage title="Mes Tickets" />} />
-                  <Route path="employee/tickets/new" element={<CreateTicket />} /> {/* ✅ branché */}
+                  <Route path="employee/dashboard"   element={<EmpDashboard />} />
+                  <Route path="employee/tickets"     element={<MyTickets />} />
+                  <Route path="employee/tickets/new" element={<CreateTicket />} /> 
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
