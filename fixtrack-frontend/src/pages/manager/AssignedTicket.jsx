@@ -95,16 +95,13 @@ function StatusDots({ statut }) {
   );
 }
 
-// ─── TicketRow — hover identique à TechnicianDashboard ───────────────────────
+// ─── TicketRow ────────────────────────────────────────────────────────────────
 function TicketRow({ ticket, tech, isLast, onAssign }) {
-  const [hovered, setHovered] = useState(false);
   const leftColor = PRIORITY_LEFT_COLOR[ticket.priorite] || "#E2E8F0";
 
   return (
     <>
       <Box
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         sx={{
           display: "flex", alignItems: "center", gap: "14px",
           padding: "13px 18px 13px 16px",
@@ -124,7 +121,7 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
 
         {/* ID */}
         <Box sx={{ minWidth: 36, flexShrink: 0 }}>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#94A3B8", fontWeight: 600 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#64748B", fontWeight: 600 }}>
             {ticket.id}
           </span>
         </Box>
@@ -137,7 +134,6 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
           <div style={{ fontSize: 11.5, color: "#94A3B8", display: "flex", alignItems: "center", gap: 3 }}>
             📍 {ticket.localisation}
           </div>
-          <StatusDots statut={ticket.statut} />
         </Box>
 
         {/* Catégorie */}
@@ -148,29 +144,38 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
         {/* Priorité */}
         <Box sx={{ flexShrink: 0 }}><Badge status={ticket.priorite} /></Box>
 
-        {/* Statut */}
-        <Box sx={{ flexShrink: 0 }}><Badge status={ticket.statut} /></Box>
-
         {/* Date */}
         <Box sx={{ flexShrink: 0 }}>
           <span className={styles.date}>{ticket.dateCreation}</span>
         </Box>
 
-        {/* Technicien */}
+        {/* Technicien — avec label "Assigné à" */}
         <Box sx={{ flexShrink: 0, minWidth: 130 }}>
-          {tech ? (
-            <div className={styles.techWrap}>
-              <div className={styles.avatar} style={{ background: AVATAR_COLORS[tech.id] || "#6366F1" }}>
-                {tech.nom[0].toUpperCase()}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: "#94A3B8",
+              textTransform: "uppercase", letterSpacing: "0.6px",
+              display: "flex", alignItems: "center", gap: 3,
+            }}>
+              🔧 Assigné à
+            </span>
+            {tech ? (
+              <div className={styles.techWrap}>
+                <div
+                  className={styles.avatar}
+                  style={{ background: AVATAR_COLORS[tech.id] || "#6366F1" }}
+                >
+                  {tech.nom[0].toUpperCase()}
+                </div>
+                <span className={styles.techName}>{tech.nom}</span>
               </div>
-              <span className={styles.techName}>{tech.nom}</span>
-            </div>
-          ) : (
-            <span className={styles.unassigned}>—</span>
-          )}
+            ) : (
+              <span className={styles.unassigned}>Non assigné</span>
+            )}
+          </div>
         </Box>
 
-        {/* Actions — toujours visibles */}
+        {/* Action */}
         <Box sx={{ flexShrink: 0 }}>
           <MuiButton
             variant="contained"
@@ -236,7 +241,7 @@ export default function AssignerTicket() {
   };
 
   const visible = tickets.filter((t) => {
-    const inTab = activeTab === "all" || t.statut === activeTab;
+    const inTab    = activeTab === "all" || t.statut === activeTab;
     const inSearch = search === "" ||
       t.titre.toLowerCase().includes(search.toLowerCase()) ||
       t.categorie.toLowerCase().includes(search.toLowerCase()) ||
@@ -245,7 +250,8 @@ export default function AssignerTicket() {
     return inTab && inSearch;
   });
 
-  const techOf = (ticket) => ticket.technicienId ? users.find((u) => u.id === ticket.technicienId) : null;
+  const techOf = (ticket) =>
+    ticket.technicienId ? users.find((u) => u.id === ticket.technicienId) : null;
 
   const TABS = [
     { key: "all",         label: "Tous" },
@@ -263,7 +269,17 @@ export default function AssignerTicket() {
       <div className={styles.pageHeader}>
         <div className={styles.pageTitleGroup}>
           <span className={styles.pageEyebrow}>Manager · Assignation</span>
-          <h1 className={styles.pageTitle}>Assignation des tickets</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h1 className={styles.pageTitle}>Assignation des tickets</h1>
+            <span style={{
+              display: "inline-flex", alignItems: "center",
+              padding: "3px 10px", borderRadius: 20,
+              background: "#F1F5F9", color: "#64748B",
+              fontSize: 13, fontWeight: 500,
+            }}>
+              {tickets.length} ticket(s) total
+            </span>
+          </div>
         </div>
       </div>
 
@@ -319,7 +335,7 @@ export default function AssignerTicket() {
           overflowX: "auto", gap: 0,
         }}>
           {TABS.map((tab) => {
-            const count = tabCounts[tab.key];
+            const count    = tabCounts[tab.key];
             if (count === 0 && tab.key !== "all") return null;
             const isActive = activeTab === tab.key;
             return (
@@ -386,6 +402,8 @@ export default function AssignerTicket() {
             boxShadow: "0 30px 90px rgba(0,0,0,0.2)", overflow: "hidden",
             animation: "at-slideUp .22s ease", fontFamily: "'Plus Jakarta Sans', sans-serif",
           }}>
+
+            {/* Modal Header */}
             <div style={{ padding: "24px 28px 20px", borderBottom: "1.5px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Assignation</p>
@@ -399,6 +417,7 @@ export default function AssignerTicket() {
               <Button label="✕" variant="secondary" onClick={() => { setModal(null); setSel(null); }} />
             </div>
 
+            {/* Tech List */}
             <div style={{ overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 10, flexGrow: 1 }}>
               {techniciens.map((tech) => {
                 const charge = chargeOf(tech.id, tickets);
@@ -415,7 +434,10 @@ export default function AssignerTicket() {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div className={styles.avatar} style={{ width: 44, height: 44, fontSize: 15, background: isSel ? "#2563EB" : AVATAR_COLORS[tech.id] }}>
+                      <div
+                        className={styles.avatar}
+                        style={{ width: 44, height: 44, fontSize: 15, background: isSel ? "#2563EB" : AVATAR_COLORS[tech.id] }}
+                      >
                         {tech.nom[0].toUpperCase()}
                       </div>
                       <div>
@@ -444,6 +466,7 @@ export default function AssignerTicket() {
               })}
             </div>
 
+            {/* Modal Footer */}
             <div style={{ padding: "16px 28px 24px", borderTop: "1.5px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <Button label="Annuler" variant="secondary" onClick={() => { setModal(null); setSel(null); }} />
               <Button label="Confirmer l'assignation" variant="primary" onClick={confirmer} disabled={!selectedTech} />
