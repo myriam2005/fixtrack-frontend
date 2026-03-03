@@ -1,13 +1,13 @@
 // src/pages/admin/tickets/AllTickets.jsx
 import { useMemo, useState } from "react";
 import { Box, Typography, Paper, Divider, TextField, Tooltip } from "@mui/material";
-import Badge from "../../../components/common/Badge";
+import Badge from "../../../components/common/badge/Badge";
 import { tickets, users } from "../../../data/mockData";
-import { formatDate } from "../../../components/common/DashboardSharedUtils";
+import { formatDate } from "../../../components/common/dashboard/DashboardSharedUtils";
 import { EditModal, DeleteModal, StatusTracker, UserAvatar } from "./TicketsModal";
 import { STATUS_CONFIG, PRIORITY_BORDER } from "./TicketsModalConstants";
 // ✅ Single import for icons
-import { DashboardIcon } from "../../../components/common/DashboardIconConstants";
+import { DashboardIcon } from "../../../components/common/dashboard/DashboardIconConstants";
 
 // ── Config filtres ─────────────────────────────────────────────────────────────
 

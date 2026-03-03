@@ -5,6 +5,8 @@ import theme from "./theme/index";
 
 // Auth context
 import { useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
+
 
 // Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
@@ -72,6 +74,7 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <NotificationProvider>
       <BrowserRouter>
         <Routes>
 
@@ -115,7 +118,6 @@ export default function App() {
                   <Route path="admin/dashboard" element={<AdminDashboard />} />
                   <Route path="admin/tickets"   element={<Tickets/>} />
                   <Route path="admin/users"     element={<Users/>} />
-                  <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
                   <Route path="admin/config"    element={<Configuration/>} />
 
@@ -130,6 +132,7 @@ export default function App() {
 
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </ThemeProvider>
   );
 }
