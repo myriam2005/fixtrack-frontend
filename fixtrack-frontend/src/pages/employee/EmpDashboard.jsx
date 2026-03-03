@@ -7,12 +7,11 @@ import Badge from "../../components/common/Badge";
 import {
   DashboardHeader,
   KpiCard,
-  DashboardIcon,
 } from "../../components/common/DashboardShared";
 import { getGreeting, formatDate } from "../../components/common/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
-
+import { DashboardIcon } from "../../components/common/DashboardIconConstants";
 // ── Config locale ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {

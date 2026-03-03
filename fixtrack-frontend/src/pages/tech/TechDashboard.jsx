@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge from "../../components/common/Badge";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import { DashboardIcon, DashboardHeader, KpiCard } from "../../components/common/DashboardShared";
+import {  DashboardHeader, KpiCard } from "../../components/common/DashboardShared";
 import { getGreeting, formatDate } from "../../components/common/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
-
+import { DashboardIcon } from "../../components/common/DashboardIconConstants";
 // ── Config priorités ──────────────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444",

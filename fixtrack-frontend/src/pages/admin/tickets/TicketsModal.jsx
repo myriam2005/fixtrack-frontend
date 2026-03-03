@@ -1,7 +1,4 @@
-// src/pages/admin/TicketModals.jsx
-// ─── Composants UI isolés : modales + sous-composants visuels ─────────────────
-//  Exportés et utilisés par TousTickets.jsx
-
+// src/pages/admin/tickets/TicketsModal.jsx
 import { useState } from "react";
 import {
   Box, Typography, TextField, Select, MenuItem, Dialog, Tooltip,
@@ -14,7 +11,7 @@ import {
   fieldSx,
   selectSx,
 } from "./TicketsModalConstants";
-import { CloseIcon, AlertIcon, SaveIcon } from "../../components/common/Icons";
+import { CloseIcon, AlertIcon, SaveIcon } from "../../../components/common/Icons";
 
 // ── StatusTracker ──────────────────────────────────────────────────────────────
 
@@ -201,7 +198,6 @@ export function DeleteModal({ ticket, onClose, onConfirm }) {
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth
       PaperProps={{ sx: { borderRadius: "16px", boxShadow: "0 20px 60px rgba(0,0,0,0.18)", overflow: "hidden" } }}
     >
-      {/* Bande danger */}
       <Box sx={{ height: 4, background: "linear-gradient(90deg, #EF4444, #DC2626)", width: "100%" }} />
 
       <Box sx={{ padding: "28px 28px 0" }}>

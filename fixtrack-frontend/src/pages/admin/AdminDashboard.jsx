@@ -3,10 +3,11 @@
 
 import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
-import { DashboardHeader, DashboardIcon } from "../../components/common/DashboardShared";
+import { DashboardHeader } from "../../components/common/DashboardShared";
 import { getGreeting } from "../../components/common/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
+import { DashboardIcon } from "../../components/common/DashboardIconConstants";
 
 import {
   KpiCardSpark,

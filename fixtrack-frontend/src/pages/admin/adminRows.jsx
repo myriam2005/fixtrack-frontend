@@ -4,8 +4,7 @@
 import { useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import Badge from "../../components/common/Badge";
-import { DashboardIcon } from "../../components/common/DashboardShared";
-
+import { DashboardIcon } from "../../components/common/DashboardIconConstants";
 export const ROLE_CONFIG = {
   employee:   { label: "Employé",    color: "#3B82F6", bg: "#EFF6FF" },
   technician: { label: "Technicien", color: "#8B5CF6", bg: "#F5F3FF" },

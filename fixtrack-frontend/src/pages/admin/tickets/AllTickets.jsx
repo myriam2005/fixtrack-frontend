@@ -1,18 +1,13 @@
-// src/pages/admin/TousTickets.jsx
-// ─── Page principale — logique métier, filtres, liste ─────────────────────────
-//  Composants UI (modales, avatar, tracker) importés depuis TicketModals.jsx
-
+// src/pages/admin/tickets/AllTickets.jsx
 import { useMemo, useState } from "react";
 import { Box, Typography, Paper, Divider, TextField, Tooltip } from "@mui/material";
 import Badge from "../../../components/common/Badge";
 import { tickets, users } from "../../../data/mockData";
-import { DashboardIcon } from "../../components/common/DashboardShared";
-import { formatDate } from "../../components/common/DashboardSharedUtils";
-import {
-  EditModal, DeleteModal,
-  StatusTracker, UserAvatar,
-  STATUS_CONFIG, PRIORITY_BORDER,
-} from "./TicketsModal";
+import { formatDate } from "../../../components/common/DashboardSharedUtils";
+import { EditModal, DeleteModal, StatusTracker, UserAvatar } from "./TicketsModal";
+import { STATUS_CONFIG, PRIORITY_BORDER } from "./TicketsModalConstants";
+// ✅ Single import for icons
+import { DashboardIcon } from "../../../components/common/DashboardIconConstants";
 
 // ── Config filtres ─────────────────────────────────────────────────────────────
 
@@ -271,7 +266,7 @@ export default function Tickets() {
       <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
 
         <Box sx={{ padding: "16px 24px 0", borderBottom: "1px solid #F3F4F6" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "14px", gap: "12px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "14px", gap: "12px", flexWrap: "wrap" }}>
             <Box>
               <Typography sx={{ fontWeight: 700, fontSize: "15px", color: "#111827" }}>Liste des tickets</Typography>
               <Typography sx={{ fontSize: "12px", color: "#9CA3AF", mt: "1px" }}>
@@ -283,7 +278,7 @@ export default function Tickets() {
               value={search} onChange={e => setSearch(e.target.value)}
               InputProps={{ startAdornment: <Box sx={{ color: "#9CA3AF", display: "flex", alignItems: "center", mr: "4px" }}><SearchIcon /></Box> }}
               sx={{
-                minWidth: 280,
+                minWidth: { xs: "100%", sm: 280 },
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "10px", fontSize: "13px", backgroundColor: "#F9FAFB",
                   "& fieldset": { borderColor: "#E5E7EB" },
@@ -295,7 +290,7 @@ export default function Tickets() {
           </Box>
 
           {/* Tabs filtres */}
-          <Box sx={{ display: "flex", gap: "4px", overflowX: "auto" }}>
+          <Box sx={{ display: "flex", gap: "4px", overflowX: "auto", "&::-webkit-scrollbar": { display: "none" }, scrollbarWidth: "none" }}>
             {FILTER_TABS.map(tab => {
               const isActive = activeFilter === tab.key;
               const count = counts[tab.key] ?? 0;
