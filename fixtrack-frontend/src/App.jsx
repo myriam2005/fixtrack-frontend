@@ -15,7 +15,7 @@ import Layout from "./components/layout/Layout";
 import MesTickets   from "./pages/employee/MyTickets";
 import CreateTicket   from "./pages/employee/CreateTicket";
 import AssignedTicket from "./pages/tech/AssignedTicket";
-
+import Configuration from "./pages/admin/Configuration";
 import MgrDashboard from "./pages/manager/ManagerDashboard";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export default function App() {
                   <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
+                  <Route path="admin/config"    element={<Configuration />} />
 
                   {/* Redirect racine → dashboard du rôle */}
                   <Route path=""  element={<RoleRedirect />} />
