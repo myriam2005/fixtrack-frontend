@@ -1,8 +1,8 @@
 // src/pages/tech/TicketCard.jsx
 import { useState } from "react";
-import Badge  from "../../components/common/Badge";
-import Modal  from "../../components/common/Modal";
-import Button from "../../components/common/Button";
+import Badge  from "../../../components/common/Badge";
+import Modal  from "../../../components/common/Modal";
+import Button from "../../../components/common/Button";
 import { STRIPE_CLASS, formatDate } from "./ticketsUtils";
 
 // ── Banners par catégorie ─────────────────────────────────────────────────────

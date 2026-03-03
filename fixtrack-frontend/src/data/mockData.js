@@ -8,6 +8,8 @@ export const users = [
     role: "employee",
     avatar: "JD",
     telephone: "+216 22 111 222",
+    statut: "actif",
+    dateCreation: "2025-01-10",
   },
   {
     id: "u2",
@@ -17,6 +19,8 @@ export const users = [
     role: "technician",
     avatar: "SB",
     competences: ["Électrique", "HVAC"],
+    statut: "actif",
+    dateCreation: "2025-01-08",
   },
   {
     id: "u3",
@@ -26,6 +30,8 @@ export const users = [
     role: "technician",
     avatar: "KM",
     competences: ["Informatique", "Mécanique"],
+    statut: "actif",
+    dateCreation: "2025-01-07",
   },
   {
     id: "u4",
@@ -34,6 +40,8 @@ export const users = [
     password: "123456",
     role: "manager",
     avatar: "LT",
+    statut: "actif",
+    dateCreation: "2025-01-05",
   },
   {
     id: "u5",
@@ -42,6 +50,8 @@ export const users = [
     password: "123456",
     role: "admin",
     avatar: "AF",
+    statut: "actif",
+    dateCreation: "2025-01-01",
   },
 ];
 

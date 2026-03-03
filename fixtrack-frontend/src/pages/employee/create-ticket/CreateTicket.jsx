@@ -1,10 +1,10 @@
 // src/pages/employee/CreateTicket/CreateTicket.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { tickets } from "../../data/mockData";
+import { useAuth } from "../../../context/AuthContext";
+import { tickets } from "../../../data/mockData";
 
-import LoadingSpinner from "../../components/common/LoadingSpinner";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
 import { CSS }                                         from "./Wizardstyles";
 import { STEPS, validateStep, Icon }                   from "./Wizardconstants";
