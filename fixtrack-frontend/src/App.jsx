@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
+import DetailTicket from "./pages/employee/DetailTicket";
 import theme from "./theme/index";
 
 // Auth pages
@@ -127,3 +128,4 @@ function RoleRedirect() {
   const role = user.role || "employee";
   return <Navigate to={`/${role}/dashboard`} replace />;
 }
+<Route path="employee/tickets/:id" element={<DetailTicket />} />
