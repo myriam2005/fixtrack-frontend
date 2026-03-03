@@ -1,56 +1,35 @@
-import { Chip } from '@mui/material';
+// src/components/common/Badge.jsx
+import { TOKENS, LABELS } from './BadgeConstants';
 
 export default function Badge({ status }) {
-  const getColor = () => {
-    const colors = {
-      // Statuts tickets
-      open: { bg: '#3B82F6', text: '#FFFFFF' },
-      assigned: { bg: '#3B82F6', text: '#FFFFFF' },
-      in_progress: { bg: '#F59E0B', text: '#FFFFFF' },
-      pending: { bg: '#F59E0B', text: '#FFFFFF' },
-      resolved: { bg: '#22C55E', text: '#FFFFFF' },
-      closed: { bg: '#6B7280', text: '#FFFFFF' },
-      
-      // Priorités
-      critical: { bg: '#EF4444', text: '#FFFFFF' },
-      high: { bg: '#F59E0B', text: '#FFFFFF' },
-      medium: { bg: '#3B82F6', text: '#FFFFFF' },
-      low: { bg: '#6B7280', text: '#FFFFFF' },
-    };
-    
-    return colors[status] || { bg: '#E5E7EB', text: '#111827' };
-  };
-
-  const getLabel = () => {
-    const labels = {
-      open: 'Ouvert',
-      assigned: 'Assigné',
-      in_progress: 'En cours',
-      pending: 'En attente',
-      resolved: 'Résolu',
-      closed: 'Clôturé',
-      critical: 'Critique',
-      high: 'Haute',
-      medium: 'Moyenne',
-      low: 'Basse',
-    };
-    
-    return labels[status] || status;
-  };
-
-  const colors = getColor();
+  const token = TOKENS[status] || { dot: '#9CA3AF', bg: '#F3F4F6', text: '#6B7280', border: '#E5E7EB' };
+  const label = LABELS[status] || status;
 
   return (
-    <Chip
-      label={getLabel()}
-      sx={{
-        backgroundColor: colors.bg,
-        color: colors.text,
-        fontWeight: 600,
-        fontSize: '12px',
-        borderRadius: '8px',
-        height: '24px',
-      }}
-    />
+    <span style={{
+      display:       'inline-flex',
+      alignItems:    'center',
+      gap:           '5px',
+      padding:       '3px 9px',
+      borderRadius:  '20px',
+      border:        `1px solid ${token.border}`,
+      background:    token.bg,
+      color:         token.text,
+      fontSize:      '11px',
+      fontWeight:    600,
+      letterSpacing: '0.02em',
+      whiteSpace:    'nowrap',
+      fontFamily:    'inherit',
+      lineHeight:    1,
+    }}>
+      <span style={{
+        width:        '5px',
+        height:       '5px',
+        borderRadius: '50%',
+        background:   token.dot,
+        flexShrink:   0,
+      }} />
+      {label}
+    </span>
   );
 }
