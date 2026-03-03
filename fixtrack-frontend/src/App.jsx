@@ -24,7 +24,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import TechnicianDashboard from "./pages/tech/TechDashboard";
 import Tickets from "./pages/admin/tickets/AllTickets";
 import Users from "./pages/admin/users-management/Users.jsx"; 
-
+import Configuration from "./pages/admin/Configuration.jsx";
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
   return (
@@ -113,7 +113,7 @@ export default function App() {
                   <Route path="admin/users"     element={<Users/>} />
                   <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
+                  <Route path="admin/config"    element={<Configuration/>} />
 
                   {/* Redirect racine → dashboard du rôle */}
                   <Route path=""  element={<RoleRedirect />} />
