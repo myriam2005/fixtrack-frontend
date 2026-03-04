@@ -1,5 +1,5 @@
 // src/components/common/Badge.jsx
-import { TOKENS, LABELS } from './BadgeConstants';
+import { TOKENS, LABELS } from '../badge/BadgeConstants';
 
 export default function Badge({ status }) {
   const token = TOKENS[status] || { dot: '#9CA3AF', bg: '#F3F4F6', text: '#6B7280', border: '#E5E7EB' };
