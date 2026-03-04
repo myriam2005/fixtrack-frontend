@@ -8,7 +8,6 @@ import { useAuth } from "./context/AuthContext";
 
 // Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
-import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
@@ -80,13 +79,11 @@ export default function App() {
             isAuth
               ? <Navigate to="/" replace />
               : <LoginPage
-                  onSwitchToSignup={() => window.location.href = "/signup"}
+                 
                   onLoginSuccess={handleLoginSuccess}
                 />
           } />
-          <Route path="/signup" element={
-            <SignUpPage onSwitchToLogin={() => window.location.href = "/login"} />
-          } />
+        
 
           {/* ── Pages protégées avec Layout ── */}
           <Route path="/*" element={
