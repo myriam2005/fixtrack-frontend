@@ -3,15 +3,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
-import Badge from "../../components/common/Badge";
+import Badge from "../../components/common/badge/Badge";
 import {
   DashboardHeader,
   KpiCard,
-} from "../../components/common/DashboardShared";
-import { getGreeting, formatDate } from "../../components/common/DashboardSharedUtils";
+} from "../../components/common/dashboard/DashboardShared";
+import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
-import { DashboardIcon } from "../../components/common/DashboardIconConstants";
+import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
 // ── Config locale ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {

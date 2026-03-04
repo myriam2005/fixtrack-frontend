@@ -2,13 +2,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
-import Badge from "../../components/common/Badge";
+import Badge from "../../components/common/badge/Badge";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import {  DashboardHeader, KpiCard } from "../../components/common/DashboardShared";
-import { getGreeting, formatDate } from "../../components/common/DashboardSharedUtils";
+import {  DashboardHeader, KpiCard } from "../../components/common/dashboard/DashboardShared";
+import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
-import { DashboardIcon } from "../../components/common/DashboardIconConstants";
+import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
 // ── Config priorités ──────────────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444",
