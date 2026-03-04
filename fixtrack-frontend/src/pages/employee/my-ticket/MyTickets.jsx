@@ -5,22 +5,16 @@ import Badge from "../../../components/common/badge/Badge";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
 import { tickets, users } from "../../../data/mockData";
 import { useAuth } from "../../../context/AuthContext";
+import DetailTicket from "../DetailsTickets"; // ✅ import du modal
 
-// ─── Config (derived from Badge tokens — no duplication) ─────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 const STATUT_KEYS   = ["open", "assigned", "in_progress", "resolved", "closed"];
 const PRIORITE_KEYS = ["critical", "high", "medium", "low"];
-
-
 
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-const IconPlus = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
 const IconSearch = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -42,15 +36,14 @@ const IconAlert = () => (
     <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
-const IconGrid = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-  </svg>
-);
 const IconEmpty = () => (
   <svg className={styles.emptyIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+const ArrowIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
   </svg>
 );
 
@@ -64,10 +57,11 @@ export default function MyTickets() {
 
   const mesTickets = user ? tickets.filter((t) => t.auteurId === user.id) : [];
 
-  const [search,     setSearch]     = useState("");
-  const [statuts,    setStatuts]    = useState([]);
-  const [priorites,  setPriorites]  = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [search,      setSearch]      = useState("");
+  const [statuts,     setStatuts]     = useState([]);
+  const [priorites,   setPriorites]   = useState([]);
+  const [categories,  setCategories]  = useState([]);
+  const [selectedId,  setSelectedId]  = useState(null); // ✅ ID du ticket sélectionné
 
   const q = search.toLowerCase();
   const filtered = mesTickets.filter((t) => {
@@ -83,19 +77,26 @@ export default function MyTickets() {
     return matchSearch && matchStatut && matchPriorite && matchCategorie;
   });
 
- 
   const hasFilters = statuts.length > 0 || priorites.length > 0 || categories.length > 0 || !!search;
   const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
 
   const activeTags = [
     ...statuts.map((s)    => ({ key: `s-${s}`, label: LABELS[s],   remove: () => toggle(statuts,    setStatuts,    s) })),
-    ...priorites.map((p)  => ({ key: `p-${p}`, label: LABELS[p], remove: () => toggle(priorites,  setPriorites,  p) })),
-    ...categories.map((c) => ({ key: `c-${c}`, label: c,                         remove: () => toggle(categories, setCategories, c) })),
+    ...priorites.map((p)  => ({ key: `p-${p}`, label: LABELS[p],   remove: () => toggle(priorites,  setPriorites,  p) })),
+    ...categories.map((c) => ({ key: `c-${c}`, label: c,           remove: () => toggle(categories, setCategories, c) })),
     ...(search ? [{ key: "q", label: `"${search}"`, remove: () => setSearch("") }] : []),
   ];
 
   return (
     <div className={styles.root}>
+
+      {/* ── Modal DetailTicket ── */}
+      {selectedId && (
+        <DetailTicket
+          ticketId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className={styles.pageHeader}>
@@ -104,7 +105,6 @@ export default function MyTickets() {
           <h1 className={styles.pageTitle}>Gestion des tickets</h1>
           <p className={styles.pageSubtitle}>{mesTickets.length} ticket{mesTickets.length !== 1 ? "s" : ""} au total</p>
         </div>
-     
       </div>
 
       {/* ── Filter panel ── */}
@@ -125,19 +125,18 @@ export default function MyTickets() {
         </div>
 
         <div className={styles.filterGroups}>
-
           <div className={styles.filterGroup}>
             <div className={styles.filterGroupLabel}><IconClock /> Statut</div>
             <div className={styles.filterChips}>
               {STATUT_KEYS.map((k) => (
-                  <button
-                    key={k}
-                    className={`${styles.chip}${statuts.includes(k) ? ` ${styles.active}` : ""}`}
-                    style={{ "--chip-color": TOKENS[k]?.dot ?? "#2563EB", "--chip-bg": TOKENS[k]?.bg ?? "#EFF6FF" }}
-                    onClick={() => toggle(statuts, setStatuts, k)}
-                  >
-                    {LABELS[k]}
-                  </button>
+                <button
+                  key={k}
+                  className={`${styles.chip}${statuts.includes(k) ? ` ${styles.active}` : ""}`}
+                  style={{ "--chip-color": TOKENS[k]?.dot ?? "#2563EB", "--chip-bg": TOKENS[k]?.bg ?? "#EFF6FF" }}
+                  onClick={() => toggle(statuts, setStatuts, k)}
+                >
+                  {LABELS[k]}
+                </button>
               ))}
             </div>
           </div>
@@ -175,7 +174,6 @@ export default function MyTickets() {
             <button className={styles.clearAll} onClick={clearAll}>Tout effacer</button>
           </div>
         )}
-
       </div>
 
       {/* ── Results bar ── */}
@@ -238,9 +236,12 @@ export default function MyTickets() {
                     </td>
                     <td><span className={styles.date}>{formatDate(t.dateCreation)}</span></td>
                     <td>
-                      <button className={styles.detailBtn}>
-                        Voir détails
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      {/* ✅ onClick ouvre le modal */}
+                      <button
+                        className={styles.detailBtn}
+                        onClick={() => setSelectedId(t.id)}
+                      >
+                        Voir détails <ArrowIcon />
                       </button>
                     </td>
                   </tr>
@@ -287,9 +288,12 @@ export default function MyTickets() {
                 )}
                 <span className={styles.date}>{formatDate(t.dateCreation)}</span>
               </div>
-              <button className={styles.detailBtnMobile}>
-                Voir détails
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              {/* ✅ Mobile aussi */}
+              <button
+                className={styles.detailBtnMobile}
+                onClick={() => setSelectedId(t.id)}
+              >
+                Voir détails <ArrowIcon />
               </button>
             </div>
           );
