@@ -1,0 +1,379 @@
+/* src/pages/auth/auth.module.css */
+
+/* ══════════════════════════════════════════════
+   PAGE — occupe tout l'écran, centre la carte
+══════════════════════════════════════════════ */
+.authPage {
+  /* Couvre exactement le viewport */
+  width: 100vw;
+  min-height: 100vh;
+
+  /* Centre la carte au milieu exact */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+
+  /* Fond dégradé sombre */
+  background: linear-gradient(135deg, #0d1f35 0%, #1a3255 45%, #1e3d68 100%);
+
+  /* Padding pour mobile */
+  padding: 24px 16px;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Lumières d'ambiance page */
+.authPage::before {
+  content: "";
+  position: fixed;
+  top: -30vh; right: -20vw;
+  width: 60vw; height: 60vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(37,99,235,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+.authPage::after {
+  content: "";
+  position: fixed;
+  bottom: -25vh; left: -20vw;
+  width: 55vw; height: 55vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════
+   CARD — Une seule carte avec fond bleu
+══════════════════════════════════════════════ */
+.authCard {
+  /* Largeur totale */
+  width: min(920px, 100%);
+  min-height: 520px;
+
+  border-radius: 20px;
+  overflow: hidden;
+
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.08),
+    0 20px 60px rgba(0,0,0,0.45),
+    0 6px 20px rgba(0,0,0,0.25);
+
+  /* Animation d'entrée */
+  animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ══════════════════════════════════════════════
+   FOND BLEU — occupe toute la carte
+══════════════════════════════════════════════ */
+.blueBackground {
+  background: linear-gradient(135deg, #1565D8 0%, #0D47A1 100%);
+  width: 100%;
+  min-height: 520px;
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cercles décoratifs dans le fond bleu */
+.blueCircle1 {
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.blueCircle2 {
+  position: absolute;
+  bottom: -80px;
+  right: -80px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.blueCircle3 {
+  position: absolute;
+  top: 50%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════
+   SECTION WELCOME (côté gauche)
+══════════════════════════════════════════════ */
+.welcomeSection {
+  flex: 0 0 auto;
+  max-width: 320px;
+  position: relative;
+  z-index: 2;
+}
+
+.welcomeTitle {
+  font-size: 42px;
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: 2px;
+  line-height: 1.1;
+}
+
+.welcomeSubtitle {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 20px;
+  letter-spacing: 0.5px;
+}
+
+.welcomeDescription {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+/* ══════════════════════════════════════════════
+   CARTE BLANCHE — formulaire de connexion
+══════════════════════════════════════════════ */
+.whiteFormCard {
+  flex: 1;
+  max-width: 440px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 2;
+}
+
+/* ══════════════════════════════════════════════
+   EN-TÊTE FORMULAIRE
+══════════════════════════════════════════════ */
+.formHeader { 
+  margin-bottom: 24px; 
+  text-align: left; 
+}
+
+.formTitle {
+  font-size: 28px; 
+  font-weight: 800;
+  color: #0f172a; 
+  margin: 0 0 6px;
+  letter-spacing: -0.5px; 
+  line-height: 1.2;
+}
+
+.formSub { 
+  font-size: 14px; 
+  color: #64748b; 
+  margin: 0; 
+  line-height: 1.5; 
+}
+
+/* ══════════════════════════════════════════════
+   LABELS & LIENS
+══════════════════════════════════════════════ */
+.fieldLabel {
+  display: block; 
+  font-size: 13px; 
+  font-weight: 600;
+  color: #0f172a; 
+  margin-bottom: 6px;
+}
+
+.fieldLabelRow {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 6px;
+}
+
+.forgotLink {
+  font-size: 13px; 
+  font-weight: 500; 
+  color: #2563EB;
+  text-decoration: none; 
+  cursor: pointer; 
+  transition: color 0.15s;
+  background: none; 
+  border: none; 
+  padding: 0;
+}
+.forgotLink:hover { 
+  color: #1D4ED8; 
+  text-decoration: underline; 
+}
+
+/* ══════════════════════════════════════════════
+   DÉMO HINT
+══════════════════════════════════════════════ */
+.demoHint {
+  background: #eff6ff; 
+  border: 1px solid #bfdbfe;
+  border-radius: 10px; 
+  padding: 9px 14px; 
+  margin-bottom: 18px;
+  font-size: 12px; 
+  color: #1d4ed8; 
+  text-align: center; 
+  line-height: 1.55;
+}
+
+/* ══════════════════════════════════════════════
+   FOOTER TEXTE
+══════════════════════════════════════════════ */
+.authFooter {
+  font-size: 13px; 
+  color: #64748b; 
+  text-align: center; 
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════
+   SUCCESS
+══════════════════════════════════════════════ */
+.successState { 
+  text-align: center; 
+  padding: 10px 0; 
+}
+
+.successIcon {
+  width: 66px; 
+  height: 66px; 
+  border-radius: 50%;
+  background: #f0fdf4; 
+  border: 2px solid #22c55e;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 28px; 
+  margin: 0 auto 16px;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════
+   FOOTER BAS DE PAGE
+══════════════════════════════════════════════ */
+.pageFooter {
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  gap: 18px; 
+  flex-wrap: wrap;
+  position: relative; 
+  z-index: 1;
+}
+
+.pageFooterItem { 
+  font-size: 11px; 
+  color: rgba(255,255,255,0.26); 
+  white-space: nowrap; 
+}
+
+.pageFooterLink { 
+  cursor: pointer; 
+  transition: color 0.15s; 
+}
+.pageFooterLink:hover { 
+  color: rgba(255,255,255,0.58); 
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 920px) {
+  .blueBackground {
+    flex-direction: column;
+    padding: 36px 24px;
+    gap: 32px;
+  }
+
+  .welcomeSection {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .welcomeTitle {
+    font-size: 36px;
+  }
+
+  .whiteFormCard {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .authCard {
+    width: 100%;
+  }
+
+  .blueBackground {
+    padding: 24px 20px;
+    min-height: auto;
+  }
+
+  .welcomeSection {
+    display: none;
+  }
+
+  .whiteFormCard {
+    padding: 32px 24px;
+  }
+
+  .formTitle {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .authPage {
+    padding: 16px 12px;
+  }
+
+  .authCard {
+    border-radius: 14px;
+  }
+
+  .blueBackground {
+    padding: 20px 16px;
+  }
+
+  .whiteFormCard {
+    padding: 24px 20px;
+  }
+
+  .formTitle {
+    font-size: 22px;
+  }
+}
