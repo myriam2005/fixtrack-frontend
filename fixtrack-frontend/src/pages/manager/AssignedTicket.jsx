@@ -62,7 +62,7 @@ const COL = {
   priorite:  { width: 100, flexShrink: 0 },
   date:      { width: 90,  flexShrink: 0 },
   technicien:{ width: 150, flexShrink: 0 },
-  action:    { width: 120, flexShrink: 0, display: "flex", justifyContent: "flex-end" },
+  action:    { width: 130, flexShrink: 0, display: "flex", justifyContent: "center" },
 };
 
 // ─── Header colonnes ──────────────────────────────────────────────────────────
@@ -160,24 +160,30 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
         </Box>
 
         {/* Action */}
-        <Box sx={COL.action}>
-          <MuiButton
-            variant="contained"
-            size="small"
+        <Box sx={{ ...COL.action, justifyContent: "center" }}>
+          <button
             onClick={() => onAssign(ticket)}
-            sx={{
+            style={{
+              display: "block",
+              width: "116px",
+              padding: "7px 0",
               borderRadius: "999px",
-              textTransform: "none",
+              border: "none",
+              background: "#1976d2",
+              color: "#fff",
               fontWeight: 700,
-              fontSize: "12.5px",
-              padding: "6px 18px",
-              boxShadow: "none",
+              fontSize: "13px",
+              cursor: "pointer",
               whiteSpace: "nowrap",
-              "&:hover": { boxShadow: "none" },
+              textAlign: "center",
+              fontFamily: "inherit",
+              transition: "background 0.15s",
             }}
+            onMouseEnter={e => e.currentTarget.style.background = "#1565c0"}
+            onMouseLeave={e => e.currentTarget.style.background = "#1976d2"}
           >
             {ticket.technicienId ? "Réassigner" : "Assigner"}
-          </MuiButton>
+          </button>
         </Box>
 
       </Box>
