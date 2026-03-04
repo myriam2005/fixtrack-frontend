@@ -1,27 +1,35 @@
-// src/App.jsx
+// src/App.jsx - Version complète avec ManagerDashboard intégré
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
+import DetailTicket from "./pages/employee/DetailTicket";
 import theme from "./theme/index";
 
 // Auth context
 import { useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
+
+// Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
-import MesTickets   from "./pages/employee/MyTickets";
-import CreateTicket   from "./pages/employee/CreateTicket";
-import AssignedTicket from "./pages/tech/AssignedTicket";
-import AssignerTicket from "./pages/manager/AssignedTicket";
 
+import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
+import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
+import MgrDashboard from "./pages/manager/ManagerDashboard";
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import EmpDashboard  from "./pages/employee/EmpDashboard";   // ✅ ajouté
-import MyTickets from "./pages/employee/MyTickets";
-
+import EmpDashboard  from "./pages/employee/EmpDashboard";   
+import MyTickets from "./pages/employee/my-ticket/MyTickets";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import TechnicianDashboard from "./pages/tech/TechDashboard";
+import Tickets from "./pages/admin/tickets/AllTickets";
+import Users from "./pages/admin/users-management/Users.jsx"; 
+import Configuration from "./pages/admin/Configuration.jsx";
+import ValiderResolutions from "./pages/manager/ValiderResolutions.jsx";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -67,6 +75,7 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <NotificationProvider>
       <BrowserRouter>
         <Routes>
 
@@ -91,29 +100,27 @@ export default function App() {
 
                   {/* ── Employee ── */}
                   <Route path="employee/dashboard"   element={<EmpDashboard />} />
-                  <Route path="employee/tickets"     element={<MyTickets/>}/>
-                  <Route path="employee/tickets/new" element={<CreateTicket />} />
+                  <Route path="employee/tickets"     element={<MyTickets />} />
+                  <Route path="employee/tickets/new" element={<CreateTicket />} /> 
 
                   {/* ── Technician ── */}
-                  <Route path="technician/dashboard" element={<PlaceholderPage title="Dashboard Technicien" />} />
+                  <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
                   <Route path="technician/tickets"   element={<AssignedTicket />} />
                   <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
 
                   {/* ── Manager ── */}
-                  <Route path="manager/dashboard" element={<PlaceholderPage title="Dashboard Manager" />} />
+                  <Route path="manager/dashboard" element={<MgrDashboard />} /> 
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="manager/machines"  element={<PlaceholderPage title="Machines" />} />
+                  <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
                   <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="manager/assign" element={<AssignerTicket />} />
 
                   {/* ── Admin ── */}
-                  <Route path="admin/dashboard" element={<PlaceholderPage title="Dashboard Admin" />} />
-                  <Route path="admin/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
-                  <Route path="admin/users"     element={<PlaceholderPage title="Utilisateurs" />} />
-                  <Route path="admin/machines"  element={<PlaceholderPage title="Machines" />} />
+                  <Route path="admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="admin/tickets"   element={<Tickets/>} />
+                  <Route path="admin/users"     element={<Users/>} />
                   <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
-                  <Route path="admin/config"    element={<PlaceholderPage title="Configuration" />} />
+                  <Route path="admin/config"    element={<Configuration/>} />
 
                   {/* Redirect racine → dashboard du rôle */}
                   <Route path=""  element={<RoleRedirect />} />
@@ -126,6 +133,8 @@ export default function App() {
 
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </ThemeProvider>
   );
+
 }
