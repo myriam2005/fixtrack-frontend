@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { users } from "../../data/mockData";
-import styles from "./auth.module.css";
 
 const ROLE_META = {
   employee:   { label: "Employé",    color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },

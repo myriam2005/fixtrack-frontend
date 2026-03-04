@@ -1,4 +1,5 @@
-// src/components/common/notification/NotificationBell.styles.js
+// src/components/notifications/NotificationBell.styles.js
+// ─── Toutes les constantes visuelles et styles sx ─────────────────────────────
 
 // ── Mapping couleur par event/type ────────────────────────────────────────────
 const COLOR_MAP = {
@@ -101,6 +102,8 @@ export const footerSx = {
   borderTop: "1px solid #F1F5F9",
   display: "flex", justifyContent: "space-between", alignItems: "center",
 };
+
+// ── Styles item ───────────────────────────────────────────────────────────────
 
 export const itemWrapperSx = {
   display: "flex", alignItems: "flex-start", gap: 0,
