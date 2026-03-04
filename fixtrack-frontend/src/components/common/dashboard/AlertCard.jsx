@@ -1,5 +1,5 @@
 import { Card, CardContent, Box, Typography } from '@mui/material';
-import Badge from '../common/Badge';
+import Badge from '../common/badge/Badge';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 export default function AlertCard({ ticket }) {

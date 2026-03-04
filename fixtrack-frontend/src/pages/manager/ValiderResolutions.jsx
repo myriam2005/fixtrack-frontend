@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Box, Typography, Paper, Divider, TextField } from "@mui/material";
-import Badge from "../../components/common/Badge";
+import Badge from "../../components/common/badge/Badge";
 import StarRating from "../../components/common/StarRating";
 import Modal from "../../components/common/Modal";
 import Button from "../../components/common/Button";

@@ -1,8 +1,8 @@
 // src/pages/employee/MyTickets.jsx
 import { useState } from "react";
 import styles from "./MyTickets.module.css";
-import Badge from "../../../components/common/Badge";
-import { TOKENS, LABELS } from "../../../components/common/BadgeConstants";
+import Badge from "../../../components/common/badge/Badge";
+import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
 import { tickets, users } from "../../../data/mockData";
 import { useAuth } from "../../../context/AuthContext";
 import DetailTicket from "../DetailsTickets"; // ✅ import du modal

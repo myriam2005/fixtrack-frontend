@@ -1,5 +1,5 @@
 // src/pages/employee/CreateTicket/WizardSteps.jsx
-import Badge from "../../../components/common/Badge";
+import Badge from "../../../components/common/badge/Badge";
 import {
   Icon, CATEGORIES, LOC_SUGGESTIONS, URGENCES, STEPS,
 } from "./Wizardconstants";
