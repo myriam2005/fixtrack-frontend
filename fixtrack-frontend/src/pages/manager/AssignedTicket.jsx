@@ -6,39 +6,28 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import styles from "../employee/MyTickets.module.css";
 
-// ─── Tokens ──────────────────────────────────────────────────────────────────
+// ─── Tokens ───────────────────────────────────────────────────────────────────
 const TOKENS = {
-  open:        { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
-  assigned:    { dot: "#6366F1", bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE" },
-  in_progress: { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A" },
-  resolved:    { dot: "#22C55E", bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0" },
-  closed:      { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
-  critical:    { dot: "#EF4444", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" },
-  high:        { dot: "#F97316", bg: "#FFF7ED", text: "#C2410C", border: "#FED7AA" },
-  medium:      { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
-  low:         { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
+  open:        { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8" },
+  assigned:    { dot: "#6366F1", bg: "#EEF2FF", text: "#4338CA" },
+  in_progress: { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309" },
+  resolved:    { dot: "#22C55E", bg: "#F0FDF4", text: "#15803D" },
+  closed:      { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280" },
+  critical:    { dot: "#EF4444", bg: "#FEF2F2", text: "#B91C1C" },
+  high:        { dot: "#F97316", bg: "#FFF7ED", text: "#C2410C" },
+  medium:      { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8" },
+  low:         { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280" },
 };
 
 const LABELS = {
-  open:        "Ouvert",
-  assigned:    "Assigné",
-  in_progress: "En cours",
-  resolved:    "Résolu",
-  closed:      "Clôturé",
-  critical:    "Critique",
-  high:        "Haute",
-  medium:      "Moyenne",
-  low:         "Basse",
+  open: "Ouvert", assigned: "Assigné", in_progress: "En cours",
+  resolved: "Résolu", closed: "Clôturé",
+  critical: "Critique", high: "Haute", medium: "Moyenne", low: "Basse",
 };
 
 const PRIORITY_LEFT_COLOR = {
-  critical: "#EF4444",
-  high:     "#F59E0B",
-  medium:   "#3B82F6",
-  low:      "#9CA3AF",
+  critical: "#EF4444", high: "#F59E0B", medium: "#3B82F6", low: "#9CA3AF",
 };
-
-const STATUS_STEPS = ["open", "assigned", "in_progress", "resolved"];
 
 const techniciens = users.filter((u) => u.role === "technician");
 
@@ -64,34 +53,40 @@ if (typeof document !== "undefined" && !document.getElementById("at-modal-styles
   document.head.appendChild(s);
 }
 
-// ─── StatusDots ───────────────────────────────────────────────────────────────
-function StatusDots({ statut }) {
-  const stepIndex = STATUS_STEPS.indexOf(statut);
-  const dotColor  = TOKENS[statut]?.dot || "#9CA3AF";
+// ─── Largeurs fixes des colonnes ──────────────────────────────────────────────
+const COL = {
+  dot:       { width: 7,   flexShrink: 0 },
+  id:        { width: 44,  flexShrink: 0 },
+  titre:     { flex: 1,    minWidth: 0 },
+  categorie: { width: 110, flexShrink: 0 },
+  priorite:  { width: 100, flexShrink: 0 },
+  date:      { width: 90,  flexShrink: 0 },
+  technicien:{ width: 150, flexShrink: 0 },
+  action:    { width: 120, flexShrink: 0, display: "flex", justifyContent: "flex-end" },
+};
+
+// ─── Header colonnes ──────────────────────────────────────────────────────────
+function TableHeader() {
+  const th = {
+    fontSize: 11, fontWeight: 700, color: "#94A3B8",
+    textTransform: "uppercase", letterSpacing: "0.6px",
+  };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
-      {[0, 1, 2].map((i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{
-            width: i === stepIndex ? 10 : 8,
-            height: i === stepIndex ? 10 : 8,
-            borderRadius: "50%",
-            background: i <= stepIndex ? dotColor : "#E2E8F0",
-            flexShrink: 0,
-          }} />
-          {i < 2 && (
-            <div style={{
-              width: 20, height: 2,
-              background: i < stepIndex ? dotColor : "#E2E8F0",
-              borderRadius: 2, flexShrink: 0,
-            }} />
-          )}
-        </div>
-      ))}
-      <span style={{ fontSize: 11.5, color: dotColor, fontWeight: 600, marginLeft: 6 }}>
-        {LABELS[statut]}
-      </span>
-    </div>
+    <Box sx={{
+      display: "flex", alignItems: "center", gap: "14px",
+      padding: "10px 18px 10px 16px",
+      borderBottom: "1px solid #F1F5F9",
+      background: "#FAFBFC",
+    }}>
+      <Box sx={COL.dot} />
+      <Box sx={{ ...COL.id,        ...th }}>ID</Box>
+      <Box sx={{ ...COL.titre,     ...th }}>Ticket</Box>
+      <Box sx={{ ...COL.categorie, ...th }}>Catégorie</Box>
+      <Box sx={{ ...COL.priorite,  ...th }}>Priorité</Box>
+      <Box sx={{ ...COL.date,      ...th }}>Date</Box>
+      <Box sx={{ ...COL.technicien,...th }}>Assigné à</Box>
+      <Box sx={{ ...COL.action,    ...th }}>Action</Box>
+    </Box>
   );
 }
 
@@ -101,34 +96,33 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex", alignItems: "center", gap: "14px",
-          padding: "13px 18px 13px 16px",
-          borderLeft: `3px solid ${leftColor}`,
-          borderRadius: "0 10px 10px 0",
-          backgroundColor: "transparent",
-          transition: "background 0.15s, padding-left 0.15s",
-          "&:hover": { backgroundColor: "#F8FAFF", paddingLeft: "20px" },
-        }}
-      >
-        {/* Dot priorité */}
+      <Box sx={{
+        display: "flex", alignItems: "center", gap: "14px",
+        padding: "13px 18px 13px 16px",
+        borderLeft: `3px solid ${leftColor}`,
+        borderRadius: "0 10px 10px 0",
+        transition: "background 0.15s, padding-left 0.15s",
+        "&:hover": { backgroundColor: "#F8FAFF", paddingLeft: "20px" },
+      }}>
+
+        {/* ● dot priorité */}
         <Box sx={{
-          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+          ...COL.dot,
+          height: 7, borderRadius: "50%",
           backgroundColor: leftColor,
           boxShadow: `0 0 0 3px ${leftColor}22`,
         }} />
 
         {/* ID */}
-        <Box sx={{ minWidth: 36, flexShrink: 0 }}>
+        <Box sx={COL.id}>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#64748B", fontWeight: 600 }}>
             {ticket.id}
           </span>
         </Box>
 
-        {/* Titre + localisation + dots */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260, marginBottom: 2 }}>
+        {/* Titre + localisation */}
+        <Box sx={COL.titre}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>
             {ticket.titre}
           </div>
           <div style={{ fontSize: 11.5, color: "#94A3B8", display: "flex", alignItems: "center", gap: 3 }}>
@@ -137,46 +131,36 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
         </Box>
 
         {/* Catégorie */}
-        <Box sx={{ flexShrink: 0 }}>
+        <Box sx={COL.categorie}>
           <span className={styles.catBadge}>{ticket.categorie}</span>
         </Box>
 
         {/* Priorité */}
-        <Box sx={{ flexShrink: 0 }}><Badge status={ticket.priorite} /></Box>
+        <Box sx={COL.priorite}>
+          <Badge status={ticket.priorite} />
+        </Box>
 
         {/* Date */}
-        <Box sx={{ flexShrink: 0 }}>
+        <Box sx={COL.date}>
           <span className={styles.date}>{ticket.dateCreation}</span>
         </Box>
 
-        {/* Technicien — avec label "Assigné à" */}
-        <Box sx={{ flexShrink: 0, minWidth: 130 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700, color: "#94A3B8",
-              textTransform: "uppercase", letterSpacing: "0.6px",
-              display: "flex", alignItems: "center", gap: 3,
-            }}>
-              🔧 Assigné à
-            </span>
-            {tech ? (
-              <div className={styles.techWrap}>
-                <div
-                  className={styles.avatar}
-                  style={{ background: AVATAR_COLORS[tech.id] || "#6366F1" }}
-                >
-                  {tech.nom[0].toUpperCase()}
-                </div>
-                <span className={styles.techName}>{tech.nom}</span>
+        {/* Technicien */}
+        <Box sx={COL.technicien}>
+          {tech ? (
+            <div className={styles.techWrap}>
+              <div className={styles.avatar} style={{ background: AVATAR_COLORS[tech.id] || "#6366F1" }}>
+                {tech.nom[0].toUpperCase()}
               </div>
-            ) : (
-              <span className={styles.unassigned}>Non assigné</span>
-            )}
-          </div>
+              <span className={styles.techName}>{tech.nom}</span>
+            </div>
+          ) : (
+            <span className={styles.unassigned}>Non assigné</span>
+          )}
         </Box>
 
         {/* Action */}
-        <Box sx={{ flexShrink: 0 }}>
+        <Box sx={COL.action}>
           <MuiButton
             variant="contained"
             size="small"
@@ -195,8 +179,8 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
             {ticket.technicienId ? "Réassigner" : "Assigner"}
           </MuiButton>
         </Box>
-      </Box>
 
+      </Box>
       {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
     </>
   );
@@ -204,12 +188,12 @@ function TicketRow({ ticket, tech, isLast, onAssign }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AssignerTicket() {
-  const [tickets, setTickets]     = useState([...initialTickets]);
-  const [search,  setSearch]      = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [modal,     setModal]     = useState(null);
-  const [selectedTech, setSel]    = useState(null);
-  const [toast,     setToast]     = useState(null);
+  const [tickets,      setTickets]  = useState([...initialTickets]);
+  const [search,       setSearch]   = useState("");
+  const [activeTab,    setActiveTab]= useState("all");
+  const [modal,        setModal]    = useState(null);
+  const [selectedTech, setSel]      = useState(null);
+  const [toast,        setToast]    = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -291,7 +275,7 @@ export default function AssignerTicket() {
         overflow: "hidden",
       }}>
 
-        {/* ── Top Bar ── */}
+        {/* Top Bar */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "20px 24px 16px",
@@ -301,7 +285,7 @@ export default function AssignerTicket() {
               Liste des tickets
             </h2>
             <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "#94A3B8" }}>
-              {visible.length} ticket{visible.length !== 1 ? "s" : ""} affichés · Survolez une ligne pour les actions
+              {visible.length} ticket{visible.length !== 1 ? "s" : ""} affichés
             </p>
           </div>
 
@@ -314,13 +298,10 @@ export default function AssignerTicket() {
             <span style={{ fontSize: 14, color: "#94A3B8", flexShrink: 0 }}>🔍</span>
             <input
               type="text"
-              placeholder="Rechercher un ticket, employé, lieu…"
+              placeholder="Rechercher un ticket…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                border: "none", background: "transparent", outline: "none",
-                fontSize: 13, color: "#0F172A", width: "100%",
-              }}
+              style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#0F172A", width: "100%" }}
             />
             {search && (
               <button onClick={() => setSearch("")} style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8", fontSize: 13, padding: 0 }}>✕</button>
@@ -328,12 +309,8 @@ export default function AssignerTicket() {
           </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <div style={{
-          display: "flex", padding: "0 24px",
-          borderBottom: "1px solid #F1F5F9",
-          overflowX: "auto", gap: 0,
-        }}>
+        {/* Tabs */}
+        <div style={{ display: "flex", padding: "0 24px", borderBottom: "1px solid #F1F5F9", overflowX: "auto", gap: 0 }}>
           {TABS.map((tab) => {
             const count    = tabCounts[tab.key];
             if (count === 0 && tab.key !== "all") return null;
@@ -344,13 +321,12 @@ export default function AssignerTicket() {
                 onClick={() => setActiveTab(tab.key)}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  padding: "12px 14px",
-                  border: "none", background: "transparent", cursor: "pointer",
-                  fontSize: 13.5, fontWeight: isActive ? 700 : 500,
+                  padding: "12px 14px", border: "none", background: "transparent",
+                  cursor: "pointer", fontSize: 13.5,
+                  fontWeight: isActive ? 700 : 500,
                   color: isActive ? "#2563EB" : "#64748B",
                   borderBottom: isActive ? "2.5px solid #2563EB" : "2.5px solid transparent",
-                  marginBottom: -1, whiteSpace: "nowrap",
-                  transition: "color 0.15s",
+                  marginBottom: -1, whiteSpace: "nowrap", transition: "color 0.15s",
                 }}
               >
                 {tab.label}
@@ -367,8 +343,11 @@ export default function AssignerTicket() {
           })}
         </div>
 
+        {/* ── Header colonnes ── */}
+        <TableHeader />
+
         {/* ── Rows ── */}
-        <Box sx={{ padding: "8px 6px 12px" }}>
+        <Box sx={{ padding: "4px 6px 12px" }}>
           {visible.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyTitle}>Aucun ticket trouvé</div>
@@ -400,7 +379,7 @@ export default function AssignerTicket() {
             background: "#fff", borderRadius: 20, width: 560, maxWidth: "95vw",
             maxHeight: "88vh", display: "flex", flexDirection: "column",
             boxShadow: "0 30px 90px rgba(0,0,0,0.2)", overflow: "hidden",
-            animation: "at-slideUp .22s ease", fontFamily: "'Plus Jakarta Sans', sans-serif",
+            animation: "at-slideUp .22s ease",
           }}>
 
             {/* Modal Header */}
@@ -428,23 +407,15 @@ export default function AssignerTicket() {
                     key={tech.id}
                     className="at-tc"
                     onClick={() => setSel(tech.id)}
-                    style={{
-                      border: `2px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-                      background: isSel ? "#EFF6FF" : "#F8FAFC",
-                    }}
+                    style={{ border: `2px solid ${isSel ? "#2563EB" : "#E2E8F0"}`, background: isSel ? "#EFF6FF" : "#F8FAFC" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div
-                        className={styles.avatar}
-                        style={{ width: 44, height: 44, fontSize: 15, background: isSel ? "#2563EB" : AVATAR_COLORS[tech.id] }}
-                      >
+                      <div className={styles.avatar} style={{ width: 44, height: 44, fontSize: 15, background: isSel ? "#2563EB" : AVATAR_COLORS[tech.id] }}>
                         {tech.nom[0].toUpperCase()}
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{tech.nom}</div>
-                        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-                          {tech.competences?.join(", ") ?? "Maintenance"}
-                        </div>
+                        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{tech.competences?.join(", ") ?? "Maintenance"}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -452,11 +423,7 @@ export default function AssignerTicket() {
                         <div style={{ fontWeight: 800, fontSize: 22, color: charge > 3 ? "#D97706" : "#0F172A", lineHeight: 1 }}>{charge}</div>
                         <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.4px" }}>en cours</div>
                       </div>
-                      <span style={{
-                        width: 13, height: 13, borderRadius: "50%", display: "inline-block",
-                        background: dispo ? "#22C55E" : "#EF4444",
-                        boxShadow: dispo ? "0 0 0 3px #DCFCE7" : "0 0 0 3px #FEE2E2",
-                      }} />
+                      <span style={{ width: 13, height: 13, borderRadius: "50%", display: "inline-block", background: dispo ? "#22C55E" : "#EF4444", boxShadow: dispo ? "0 0 0 3px #DCFCE7" : "0 0 0 3px #FEE2E2" }} />
                     </div>
                     {isSel && (
                       <div style={{ position: "absolute", top: 10, right: 14, width: 20, height: 20, borderRadius: "50%", background: "#2563EB", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</div>
@@ -483,7 +450,6 @@ export default function AssignerTicket() {
           fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 10,
           zIndex: 2000, boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
           animation: "at-toast .25s ease", whiteSpace: "nowrap",
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
         }}>
           <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#22C55E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900 }}>✓</span>
           {toast}
