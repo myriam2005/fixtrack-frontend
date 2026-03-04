@@ -181,7 +181,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
               {/* Headline */}
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 24, lineHeight: 1.25, letterSpacing: "-0.4px", marginBottom: 10 }}>
-                Bienvenue sur<br />
+                Bienvenue <br />
                 <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400, fontSize: 15 }}> Plateforme intelligente de gestion des maintenances industrielles — tickets, techniciens & reporting.</span>
               </div>
 

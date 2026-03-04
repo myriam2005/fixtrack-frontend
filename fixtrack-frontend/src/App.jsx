@@ -28,6 +28,7 @@ import Tickets from "./pages/admin/tickets/AllTickets";
 import Users from "./pages/admin/users-management/Users.jsx"; 
 import Configuration from "./pages/admin/Configuration.jsx";
 import ValiderResolutions from "./pages/manager/ValiderResolutions.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -102,20 +103,20 @@ export default function App() {
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
                   <Route path="technician/tickets"   element={<AssignedTicket />} />
-                  <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="technician/reports"   element={<ReportsPage/>} />
 
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<MgrDashboard />} /> 
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
-                  <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="manager/reports"   element={<ReportsPage/>} />
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<AdminDashboard />} />
                   <Route path="admin/tickets"   element={<Tickets/>} />
                   <Route path="admin/users"     element={<Users/>} />
-                  <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="admin/reports"   element={<ReportsPage/>} />
                   <Route path="admin/config"    element={<Configuration/>} />
 
                   {/* Redirect racine → dashboard du rôle */}
