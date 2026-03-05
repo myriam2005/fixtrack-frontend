@@ -25,14 +25,13 @@ const Icon = {
 };
 
 // ── Constantes ──────────────────────────────────────────────────────────────────
-const PIE_COLORS    = ["#2563EB","#F59E0B","#22C55E","#8B5CF6","#EF4444","#06B6D4","#EC4899","#10B981"];
 const MEDALS        = ["🥇","🥈","🥉"];
 const PODIUM_BG     = [
-  "linear-gradient(135deg,#FEF3C7,#FDE68A)",
-  "linear-gradient(135deg,#F3F4F6,#E5E7EB)",
-  "linear-gradient(135deg,#FFF7ED,#FED7AA)",
+  "linear-gradient(135deg,#EFF6FF,#DBEAFE)",
+  "linear-gradient(135deg,#F0F4FF,#E0EAFF)",
+  "linear-gradient(135deg,#F5F8FF,#E8EFFE)",
 ];
-const PODIUM_BORDER = ["#FDE68A","#D1D5DB","#FDBA74"];
+const PODIUM_BORDER = ["#BFDBFE","#D1D5DB","#C7D7FE"];
 
 const SPECIALITES = ["Électricité","Plomberie","CVC / Climatisation","Informatique","Sécurité","Ascenseurs","Général"];
 
@@ -43,19 +42,19 @@ const STATUT_TECH = {
 };
 
 const CONSEILS = [
-  { icon:"⚡", color:"#D97706", bg:"#FFFBEB", border:"#FDE68A",
+  { icon:"⚡", color:"#2563EB", bg:"#EFF6FF", border:"#BFDBFE",
     title:"Conseil du jour",
     text:"Assignez en priorité les tickets critiques aux techniciens avec le meilleur taux de résolution pour réduire les délais d'intervention." },
-  { icon:"🎯", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE",
+  { icon:"🎯", color:"#1E40AF", bg:"#EFF6FF", border:"#BFDBFE",
     title:"Objectif recommandé",
     text:"Visez un taux de résolution global supérieur à 80% pour maintenir la satisfaction des équipes et des clients." },
-  { icon:"📊", color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE",
+  { icon:"📊", color:"#2563EB", bg:"#EFF6FF", border:"#BFDBFE",
     title:"Point d'analyse",
     text:"Les techniciens avec plus de 5 tickets en cours montrent souvent une baisse de performance — envisagez un rééquilibrage de charge." },
-  { icon:"💡", color:"#059669", bg:"#F0FDF4", border:"#BBF7D0",
+  { icon:"💡", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE",
     title:"Bonne pratique",
     text:"Un suivi individuel hebdomadaire améliore le score moyen de l'équipe de 12% selon les données de performance historiques." },
-  { icon:"🔍", color:"#DC2626", bg:"#FEF2F2", border:"#FECACA",
+  { icon:"🔍", color:"#2563EB", bg:"#EFF6FF", border:"#BFDBFE",
     title:"Attention requise",
     text:"Vérifiez les tickets en retard depuis plus de 48h — ils impactent directement la satisfaction et le score global de l'équipe." },
 ];
@@ -98,9 +97,14 @@ const sortByRate = (a, b) => {
   return b.resolusTotal - a.resolusTotal;
 };
 
-const scoreColor = (s) => s >= 75 ? "#22C55E" : s >= 45 ? "#F59E0B" : "#EF4444";
-const scoreBg    = (s) => s >= 75 ? "#F0FDF4" : s >= 45 ? "#FFFBEB" : "#FEF2F2";
-const scoreLabel = (s) => s >= 75 ? "Excellent" : s >= 45 ? "Moyen" : "Faible";
+const scoreInfo = (s) => s >= 75
+  ? { color:"#1D4ED8", bg:"#EFF6FF", label:"Excellent" }
+  : s >= 45
+  ? { color:"#2563EB", bg:"#DBEAFE", label:"Moyen" }
+  : { color:"#6B7280", bg:"#F3F4F6", label:"Faible" };
+const scoreColor = (s) => scoreInfo(s).color;
+const scoreBg    = (s) => scoreInfo(s).bg;
+const scoreLabel = (s) => scoreInfo(s).label;
 
 // ── StarRating ──────────────────────────────────────────────────────────────────
 function StarRating({ note }) {
@@ -118,14 +122,14 @@ function StarRating({ note }) {
 
 // ── Palette couleurs vibrantes pour PieChart ───────────────────────────────────
 const CHART_COLORS = [
-  { base:"#6366F1", light:"#EEF2FF" },
-  { base:"#F59E0B", light:"#FFFBEB" },
-  { base:"#10B981", light:"#ECFDF5" },
-  { base:"#EC4899", light:"#FDF2F8" },
+  { base:"#1E40AF", light:"#EFF6FF" },
+  { base:"#2563EB", light:"#DBEAFE" },
   { base:"#3B82F6", light:"#EFF6FF" },
-  { base:"#F97316", light:"#FFF7ED" },
-  { base:"#8B5CF6", light:"#F5F3FF" },
-  { base:"#14B8A6", light:"#F0FDFA" },
+  { base:"#60A5FA", light:"#EFF6FF" },
+  { base:"#1D4ED8", light:"#DBEAFE" },
+  { base:"#4F87F7", light:"#EFF6FF" },
+  { base:"#93C5FD", light:"#EFF6FF" },
+  { base:"#BFDBFE", light:"#EFF6FF" },
 ];
 
 // ── PurePieChart — titre, couleurs vibrantes, hover moderne ───────────────────
@@ -187,7 +191,7 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
             position:"absolute", inset:"-12px", borderRadius:"50%", pointerEvents:"none",
             background: hovSlice
               ? `radial-gradient(circle, ${hovSlice.color}22 0%, transparent 70%)`
-              : "radial-gradient(circle, #6366F122 0%, transparent 70%)",
+              : "radial-gradient(circle, #2563EB18 0%, transparent 70%)",
             transition:"background 0.4s ease",
           }}/>
 
@@ -400,8 +404,8 @@ function ConseilDuJour({ techStats, totalTickets, critiquesAlert }) {
         <Box sx={{ display:"flex", gap:"20px", alignItems:"center", flexShrink:0 }}>
           {[
             { label:"Taux moyen",       value:`${avgTaux}%`,  icon:Icon.target,   color:"#2563EB" },
-            { label:"Tickets critiques",value:critiquesAlert, icon:Icon.zap,      color: critiquesAlert > 0 ? "#EF4444" : "#22C55E" },
-            { label:"Total tickets",    value:totalTickets,   icon:Icon.activity, color:"#8B5CF6" },
+            { label:"Tickets critiques",value:critiquesAlert, icon:Icon.zap,      color: critiquesAlert > 0 ? "#DC2626" : "#2563EB" },
+            { label:"Total tickets",    value:totalTickets,   icon:Icon.activity, color:"#2563EB" },
           ].map(s => (
             <Box key={s.label} sx={{ textAlign:"center" }}>
               <Box sx={{ display:"flex", justifyContent:"center", color:s.color, mb:"3px" }}>{s.icon}</Box>
@@ -455,7 +459,8 @@ export default function TeamPerformance() {
   );
 
   const globalRanking = useMemo(() => [...techStats].sort(sortByRate), [techStats]);
-  const top3 = useMemo(() => globalRanking.slice(0, 3), [globalRanking]);
+  const top3       = useMemo(() => globalRanking.slice(0, 3), [globalRanking]);
+  const top5Scores = useMemo(() => [...techStats].sort((a,b) => b.score - a.score).slice(0, 5), [techStats]);
 
   const sorted = useMemo(() => {
     const q = search.toLowerCase();
@@ -470,24 +475,29 @@ export default function TeamPerformance() {
       });
   }, [techStats, search, sortBy]);
 
-  const totalTickets   = tickets.length;
-  const totalResolus   = tickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
-  const totalEnCours   = tickets.filter(t => t.statut === "in_progress").length;
-  const tauxGlobal     = totalTickets > 0 ? Math.round((totalResolus/totalTickets)*100) : 0;
-  const critiquesAlert = tickets.filter(t =>
-    t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation) > 24
-  ).length;
+  const { totalTickets, totalResolus, totalEnCours, critiquesAlert } = useMemo(() => {
+    let resolus = 0, enCours = 0, critiques = 0;
+    for (const t of tickets) {
+      const isResolu = ["resolved","closed"].includes(t.statut);
+      if (isResolu) resolus++;
+      else if (t.statut === "in_progress") enCours++;
+      if (t.priorite === "critical" && !isResolu && heuresDepuis(t.dateCreation) > 24) critiques++;
+    }
+    return { totalTickets: tickets.length, totalResolus: resolus, totalEnCours: enCours, critiquesAlert: critiques };
+  }, []);
+  const tauxGlobal = totalTickets > 0 ? Math.round((totalResolus/totalTickets)*100) : 0;
 
   const pieData = useMemo(() =>
     techStats.filter(t => t.totalTickets > 0).map((t, i) => ({
       name:  t.nom || `Tech ${i+1}`,
       value: t.totalTickets,
       pct:   totalTickets > 0 ? Math.round((t.totalTickets/totalTickets)*100) : 0,
-      color: PIE_COLORS[i % PIE_COLORS.length],
+      color: CHART_COLORS[i % CHART_COLORS.length].base,
     })),
     [techStats, totalTickets]
   );
 
+  const rankMap    = useMemo(() => new Map(globalRanking.map((t, i) => [t.id, i])), [globalRanking]);
   const maxResolus = Math.max(...techStats.map(t => t.resolusMonth), 1);
 
   return (
@@ -496,9 +506,9 @@ export default function TeamPerformance() {
       {/* ══ KPI CARDS ════════════════════════════════════════ */}
       <Box sx={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", mb:"20px" }}>
         <KpiCard icon={Icon.user}   label="Techniciens"     count={techniciens.length} color="#2563EB" bgColor="#EFF6FF" description="Dans l'équipe" />
-        <KpiCard icon={Icon.ticket} label="Tickets total"   count={totalTickets}       color="#8B5CF6" bgColor="#F5F3FF" description="Tous statuts" />
-        <KpiCard icon={Icon.check}  label="Taux résolution" count={`${tauxGlobal}%`}  color="#22C55E" bgColor="#F0FDF4" description={`${totalResolus} résolus`} />
-        <KpiCard icon={Icon.clock}  label="En cours"        count={totalEnCours}       color="#F59E0B" bgColor="#FFFBEB" description="En traitement" />
+        <KpiCard icon={Icon.ticket} label="Tickets total"   count={totalTickets}       color="#2563EB" bgColor="#EFF6FF" description="Tous statuts" />
+        <KpiCard icon={Icon.check}  label="Taux résolution" count={`${tauxGlobal}%`}  color="#16A34A" bgColor="#F0FDF4" description={`${totalResolus} résolus`} />
+        <KpiCard icon={Icon.clock}  label="En cours"        count={totalEnCours}       color="#D97706" bgColor="#FFF7ED" description="En traitement" />
       </Box>
 
       {/* ══ CONSEIL DU JOUR ══════════════════════════════════ */}
@@ -512,7 +522,7 @@ export default function TeamPerformance() {
           </Typography>
           <Box sx={{ flex:1, height:"1px", backgroundColor:"#F3F4F6" }}/>
           <Box sx={{ display:"flex", alignItems:"center", gap:"6px", backgroundColor:"#EFF6FF", border:"1px solid #BFDBFE", borderRadius:"999px", padding:"4px 10px" }}>
-            <Box sx={{ color:"#FCD34D", display:"flex" }}>{Icon.medal}</Box>
+            <Box sx={{ color:"#3B82F6", display:"flex" }}>{Icon.medal}</Box>
             <Typography sx={{ fontSize:"11px", fontWeight:700, color:"#2563EB" }}>
               {techniciens.length} technicien{techniciens.length > 1 ? "s" : ""}
             </Typography>
@@ -567,8 +577,8 @@ export default function TeamPerformance() {
       <Box sx={{ display:"grid", gridTemplateColumns:"1.2fr 0.8fr", gap:"14px", mb:"20px" }}>
 
         {/* PieChart avec titre, couleurs vibrantes, hover moderne */}
-        <Paper elevation={0} sx={{fontWeight: 500, fontSize: "15px", color: "#111827" , borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"20px 24px" }}>
-          <PurePieChart 
+        <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"20px 24px" }}>
+          <PurePieChart
             data={pieData}
             total={totalTickets}
             title="Répartition des tickets"
@@ -583,10 +593,10 @@ export default function TeamPerformance() {
                 <Typography sx={{ fontSize:"10px", fontWeight:800, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.08em" }}>Score performance</Typography>
                 <Typography sx={{ fontSize:"11px", color:"#6B7280" }}>Classement équipe</Typography>
               </Box>
-              <Box sx={{ color:"#22C55E", display:"flex" }}>{Icon.trend}</Box>
+              <Box sx={{ color:"#2563EB", display:"flex" }}>{Icon.trend}</Box>
             </Box>
             <Box sx={{ display:"flex", flexDirection:"column", gap:"9px" }}>
-              {[...techStats].sort((a,b) => b.score - a.score).slice(0,5).map((tech,i) => (
+              {top5Scores.map((tech,i) => (
                 <Box key={tech.id}>
                   <Box sx={{ display:"flex", alignItems:"center", justifyContent:"space-between", mb:"3px" }}>
                     <Box sx={{ display:"flex", alignItems:"center", gap:"6px" }}>
@@ -685,7 +695,7 @@ export default function TeamPerformance() {
                   </td>
                 </tr>
               ) : sorted.map((tech, i) => {
-                const globalRank = globalRanking.findIndex(t => t.id === tech.id);
+                const globalRank = rankMap.get(tech.id) ?? sorted.length;
                 const statutCfg  = STATUT_TECH[tech.statutKey] || STATUT_TECH.actif;
                 return (
                   <tr key={tech.id} style={{ animationDelay:`${i * 0.04}s` }}>
@@ -731,7 +741,7 @@ export default function TeamPerformance() {
                         </Typography>
                         <Box sx={{ flex:1, minWidth:"50px" }}>
                           <Box sx={{ height:"4px", backgroundColor:"#F3F4F6", borderRadius:"999px", overflow:"hidden" }}>
-                            <Box sx={{ height:"100%", width:`${(tech.resolusMonth/maxResolus)*100}%`, backgroundColor:"#22C55E", borderRadius:"999px", transition:"width 0.6s ease" }}/>
+                            <Box sx={{ height:"100%", width:`${(tech.resolusMonth/maxResolus)*100}%`, backgroundColor:"#3B82F6", borderRadius:"999px", transition:"width 0.6s ease" }}/>
                           </Box>
                         </Box>
                       </Box>
@@ -742,7 +752,7 @@ export default function TeamPerformance() {
                     <td>
                       <Box sx={{ display:"flex", alignItems:"center", gap:"4px" }}>
                         <Box sx={{ color:"#9CA3AF", display:"flex" }}>{Icon.clock}</Box>
-                        <Typography sx={{ fontSize:"12px", fontWeight:600, color: tech.delaiMoyen !== null && tech.delaiMoyen < 48 ? "#22C55E" : tech.delaiMoyen !== null ? "#F59E0B" : "#9CA3AF" }}>
+                        <Typography sx={{ fontSize:"12px", fontWeight:600, color: tech.delaiMoyen !== null && tech.delaiMoyen < 48 ? "#2563EB" : tech.delaiMoyen !== null ? "#D97706" : "#9CA3AF" }}>
                           {formatDelai(tech.delaiMoyen)}
                         </Typography>
                       </Box>
