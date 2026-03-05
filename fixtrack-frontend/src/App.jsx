@@ -1,7 +1,7 @@
 // src/App.jsx - Version complète avec ManagerDashboard intégré
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
-import DetailTicket from "./pages/employee/DetailTicket";
+/*import DetailTicket from "./pages/employee/DetailTicket";*/
 import theme from "./theme/index";
 
 // Auth context
@@ -11,13 +11,13 @@ import { NotificationProvider } from "./context/NotificationContext";
 
 // Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
-import SignUpPage from "./pages/auth/SignUpPage";
 
 import Layout from "./components/layout/Layout";
 
 
 import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
 import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
+import AssignTickets from "./pages/manager/AssignTickets"; 
 
 import MgrDashboard from "./pages/manager/ManagerDashboard";
 
@@ -30,6 +30,7 @@ import Tickets from "./pages/admin/tickets/AllTickets";
 import Users from "./pages/admin/users-management/Users.jsx"; 
 import Configuration from "./pages/admin/Configuration.jsx";
 import ValiderResolutions from "./pages/manager/ValiderResolutions.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -84,13 +85,11 @@ export default function App() {
             isAuth
               ? <Navigate to="/" replace />
               : <LoginPage
-                  onSwitchToSignup={() => window.location.href = "/signup"}
+                 
                   onLoginSuccess={handleLoginSuccess}
                 />
           } />
-          <Route path="/signup" element={
-            <SignUpPage onSwitchToLogin={() => window.location.href = "/login"} />
-          } />
+        
 
           {/* ── Pages protégées avec Layout ── */}
           <Route path="/*" element={
@@ -106,20 +105,21 @@ export default function App() {
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<TechnicianDashboard/>} />
                   <Route path="technician/tickets"   element={<AssignedTicket />} />
-                  <Route path="technician/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="technician/reports"   element={<ReportsPage/>} />
 
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<MgrDashboard />} /> 
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
-                  <Route path="manager/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="manager/reports"   element={<ReportsPage/>} />
+                  <Route path="manager/assign-ticket" element={<AssignTickets />} />
 
                   {/* ── Admin ── */}
                   <Route path="admin/dashboard" element={<AdminDashboard />} />
                   <Route path="admin/tickets"   element={<Tickets/>} />
                   <Route path="admin/users"     element={<Users/>} />
-                  <Route path="admin/reports"   element={<PlaceholderPage title="Rapports" />} />
+                  <Route path="admin/reports"   element={<ReportsPage/>} />
                   <Route path="admin/config"    element={<Configuration/>} />
 
                   {/* Redirect racine → dashboard du rôle */}
