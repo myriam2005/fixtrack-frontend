@@ -1,6 +1,7 @@
 // src/App.jsx - Version complète avec ManagerDashboard intégré
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
+import DetailTicket from "./pages/employee/DetailsTickets";
 import theme from "./theme/index";
 
 // Auth context
@@ -134,3 +135,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
