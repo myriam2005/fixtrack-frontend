@@ -5,8 +5,7 @@ import Badge from "../../../components/common/badge/Badge";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
 import { tickets, users } from "../../../data/mockData";
 import { useAuth } from "../../../context/AuthContext";
-
-// ─── Config (derived from Badge tokens — no duplication) ─────────────────────
+import DetailTicket from "../ticketDetails";
 const STATUT_KEYS   = ["open", "assigned", "in_progress", "resolved", "closed"];
 const PRIORITE_KEYS = ["critical", "high", "medium", "low"];
 
@@ -238,10 +237,11 @@ export default function MyTickets() {
                     </td>
                     <td><span className={styles.date}>{formatDate(t.dateCreation)}</span></td>
                     <td>
-                      <button className={styles.detailBtn}>
+                      <button className={styles.detailBtn}  onClick={() => setSelectedId(t.id)}>
                         Voir détails
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                       </button>
+  
                     </td>
                   </tr>
                 );
