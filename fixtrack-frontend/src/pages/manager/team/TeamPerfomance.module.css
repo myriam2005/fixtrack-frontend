@@ -1,0 +1,22 @@
+/* src/pages/manager/TeamPerformance.module.css */
+
+.searchWrap { position: relative; flex: 1; max-width: 260px; }
+.searchIcon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9CA3AF; pointer-events: none; display: flex; align-items: center; }
+.searchInput { width: 100%; padding: 7px 12px 7px 32px; border: 1.5px solid #E5E7EB; border-radius: 8px; font-size: 13px; color: #374151; background: #fff; outline: none; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; box-sizing: border-box; }
+.searchInput:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+.pill { padding: 5px 12px; border-radius: 999px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 12px; font-weight: 500; color: #6B7280; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+.pill:hover { border-color: #2563EB; color: #2563EB; }
+.pill.active { background: #2563EB; border-color: #2563EB; color: #fff; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table thead th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; color: #9CA3AF; letter-spacing: 0.07em; text-transform: uppercase; border-bottom: 1px solid #E5E7EB; background: #FAFBFF; white-space: nowrap; }
+.table tbody tr { border-bottom: 1px solid #F3F4F6; transition: background 0.12s; animation: rowIn 0.3s ease both; }
+.table tbody tr:last-child { border-bottom: none; }
+.table tbody tr:hover { background: #F7F8FF; }
+.table td { padding: 12px 14px; vertical-align: middle; }
+
+@keyframes rowIn { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform: translateX(0); } }
+
+.empty { text-align: center; padding: 3rem 1rem; color: #9CA3AF; }
+.empty p { margin: 0.5rem 0 0; font-size: 13px; }
