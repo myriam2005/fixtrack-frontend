@@ -5,7 +5,7 @@ import Badge from "../../../components/common/badge/Badge";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
 import { tickets, users } from "../../../data/mockData";
 import { useAuth } from "../../../context/AuthContext";
-import DetailTicket from "../DetailsTickets"; // ✅ import du modal
+import DetailTicket from "../../ticketDetails"; // ✅ import du modal
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const STATUT_KEYS   = ["open", "assigned", "in_progress", "resolved", "closed"];

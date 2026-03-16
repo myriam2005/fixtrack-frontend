@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { tickets, users } from "../../data/mockData";
+import { tickets, users } from "../data/mockData";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PRIORITY = {

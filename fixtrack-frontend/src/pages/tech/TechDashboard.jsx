@@ -9,7 +9,7 @@ import { getGreeting, formatDate } from "../../components/common/dashboard/Dashb
 import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
-// ── Config priorités ──────────────────────────────────────────────────────────
+import DetailTicket from "../ticketDetails"// ── Config priorités ──────────────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444",
   high:     "#F59E0B",
@@ -195,7 +195,7 @@ export default function TechnicianDashboard() {
   const navigate           = useNavigate();
   const { user: authUser } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
-
+const [selectedTicketId, setSelectedTicketId] = useState(null);
   const mockUser = useMemo(
     () => users.find((u) => u.email === authUser?.email) ?? users.find((u) => u.role === "technician") ?? users[1],
     [authUser?.email]
@@ -451,7 +451,7 @@ export default function TechnicianDashboard() {
                 key={ticket.id}
                 ticket={ticket}
                 isLast={index === filteredTickets.length - 1}
-                onNavigate={(id) => navigate(`/technician/ticket/${id}`)}
+              onNavigate={(id) => setSelectedTicketId(id)}
               />
             ))
           )}
@@ -478,6 +478,12 @@ export default function TechnicianDashboard() {
         )}
 
       </Paper>
+      {selectedTicketId && (
+  <DetailTicket
+    ticketId={selectedTicketId}
+    onClose={() => setSelectedTicketId(null)}
+  />
+)}
     </Box>
   );
 }
