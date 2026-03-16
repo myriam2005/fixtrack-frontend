@@ -51,6 +51,25 @@ const clockUrgentIcon = (
   </svg>
 );
 
+// Inject smooth animations once
+if (typeof document !== "undefined" && !document.getElementById("mgr-dash-styles")) {
+  const s = document.createElement("style");
+  s.id = "mgr-dash-styles";
+  s.textContent = `
+    @keyframes mgr-fadeSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes mgr-barGrow   { from{width:0} to{width:var(--bar-w)} }
+    .mgr-ticket-row { transition: background 0.15s, padding-left 0.15s, transform 0.15s !important; }
+    .mgr-ticket-row:hover { background: #F8FAFF !important; padding-left: 20px !important; }
+    .mgr-urgent-item { transition: all 0.18s cubic-bezier(.22,1,.36,1) !important; }
+    .mgr-urgent-item:hover { transform: translateX(3px) !important; }
+    .mgr-tech-card { transition: all 0.18s cubic-bezier(.22,1,.36,1) !important; }
+    .mgr-tech-card:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important; }
+    .mgr-cat-row { transition: all 0.18s !important; }
+    .mgr-kpi-card { animation: mgr-fadeSlide 0.4s ease both; }
+  `;
+  document.head.appendChild(s);
+}
+
 const NOW = Date.now();
 
 // ── Feature 1 : Tickets non assignés en urgence ────────────────────────────────
@@ -73,24 +92,23 @@ function UnassignedUrgentPanel({ unassignedTickets, techniciens }) {
 
   return (
     <Box sx={{ mt: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-      {unassignedTickets.map((ticket) => {
+      {unassignedTickets.map((ticket, i) => {
         const cfg     = PRIORITY_CONFIG[ticket.priorite] || PRIORITY_CONFIG.medium;
         const daysAgo = getDaysAgo(ticket.dateCreation);
         const isUrgent = daysAgo >= 1 && ticket.priorite === "critical";
 
         return (
-          <Box key={ticket.id} sx={{
-            borderRadius: "12px",
-            border: `1.5px solid ${cfg.color}33`,
-            backgroundColor: isUrgent ? `${cfg.color}08` : "#FAFAFA",
-            padding: "10px 14px",
-            transition: "all 0.18s",
-            "&:hover": {
-              backgroundColor: `${cfg.color}10`,
-              border: `1.5px solid ${cfg.color}55`,
-              transform: "translateX(3px)",
-            },
-          }}>
+          <Box
+            key={ticket.id}
+            className="mgr-urgent-item"
+            sx={{
+              borderRadius: "12px",
+              border: `1.5px solid ${cfg.color}33`,
+              backgroundColor: isUrgent ? `${cfg.color}08` : "#FAFAFA",
+              padding: { xs: "10px 12px", sm: "10px 14px" },
+              animation: `mgr-fadeSlide 0.35s ease ${i * 0.06}s both`,
+            }}
+          >
             <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{
@@ -99,7 +117,7 @@ function UnassignedUrgentPanel({ unassignedTickets, techniciens }) {
                 }}>
                   {ticket.titre}
                 </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "#9CA3AF" }}>
                     {DashboardIcon.pin}
                     <Typography sx={{ fontSize: "10px", color: "#9CA3AF", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -131,7 +149,7 @@ function UnassignedUrgentPanel({ unassignedTickets, techniciens }) {
       <Box sx={{
         mt: "4px", borderRadius: "10px", padding: "10px 14px",
         backgroundColor: "#F0F7FF", border: "1px dashed #BFDBFE",
-        display: "flex", alignItems: "center", gap: "8px",
+        display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap",
       }}>
         <Box sx={{ color: "#2563EB", display: "flex" }}>{DashboardIcon.users}</Box>
         <Typography sx={{ fontSize: "11px", color: "#2563EB", fontWeight: 600 }}>
@@ -139,7 +157,11 @@ function UnassignedUrgentPanel({ unassignedTickets, techniciens }) {
         </Typography>
         <Box sx={{ ml: "auto" }}>
           <Link to="/manager/tickets" style={{ textDecoration: "none" }}>
-            <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#2563EB" }}>Assigner →</Typography>
+            <Typography sx={{
+              fontSize: "11px", fontWeight: 700, color: "#2563EB",
+              transition: "opacity 0.15s",
+              "&:hover": { opacity: 0.7 },
+            }}>Assigner →</Typography>
           </Link>
         </Box>
       </Box>
@@ -182,20 +204,33 @@ function TechComparisonPanel({ techniciens, allTickets }) {
 
   return (
     <Box sx={{ mt: "14px" }}>
-      <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(data.length, 3)}, 1fr)`, gap: "10px" }}>
-        {data.map((tech) => {
+      <Box sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "repeat(2, 1fr)",
+          sm: `repeat(${Math.min(data.length, 3)}, 1fr)`,
+        },
+        gap: "10px",
+      }}>
+        {data.map((tech, i) => {
           const isSel  = selected === tech.id;
           const cfg    = chargeColor[tech.chargeLevel];
           const barPct = (tech.actifs / maxActifs) * 100;
 
           return (
-            <Box key={tech.id} onClick={() => setSelected(isSel ? null : tech.id)} sx={{
-              borderRadius: "14px",
-              border: `1.5px solid ${isSel ? cfg.bar + "80" : "#F3F4F6"}`,
-              backgroundColor: isSel ? `${cfg.bar}08` : "#FAFAFA",
-              padding: "12px", cursor: "pointer", transition: "all 0.18s",
-              "&:hover": { backgroundColor: `${cfg.bar}08`, border: `1.5px solid ${cfg.bar}40` },
-            }}>
+            <Box
+              key={tech.id}
+              className="mgr-tech-card"
+              onClick={() => setSelected(isSel ? null : tech.id)}
+              sx={{
+                borderRadius: "14px",
+                border: `1.5px solid ${isSel ? cfg.bar + "80" : "#F3F4F6"}`,
+                backgroundColor: isSel ? `${cfg.bar}08` : "#FAFAFA",
+                padding: { xs: "10px", sm: "12px" },
+                cursor: "pointer",
+                animation: `mgr-fadeSlide 0.4s ease ${i * 0.07}s both`,
+              }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", gap: "8px", mb: "10px" }}>
                 <Avatar sx={{
                   width: 28, height: 28, fontSize: "11px", fontWeight: 700,
@@ -204,8 +239,8 @@ function TechComparisonPanel({ techniciens, allTickets }) {
                 }}>
                   {tech.nom[0]}
                 </Avatar>
-                <Box>
-                  <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#111827", lineHeight: 1 }}>{tech.nom}</Typography>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#111827", lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tech.nom}</Typography>
                   <Box sx={{ backgroundColor: cfg.badge, borderRadius: "4px", padding: "1px 5px", mt: "2px", display: "inline-block" }}>
                     <Typography sx={{ fontSize: "9px", fontWeight: 700, color: cfg.text }}>{cfg.label}</Typography>
                   </Box>
@@ -221,7 +256,8 @@ function TechComparisonPanel({ techniciens, allTickets }) {
                   <Box sx={{
                     width: `${barPct}%`, height: "100%",
                     background: `linear-gradient(90deg, ${cfg.bar}, ${cfg.bar}BB)`,
-                    borderRadius: "999px", transition: "width 0.6s cubic-bezier(0.34,1.56,0.64,1)",
+                    borderRadius: "999px",
+                    transition: "width 0.6s cubic-bezier(0.34,1.56,0.64,1)",
                   }} />
                 </Box>
               </Box>
@@ -234,7 +270,7 @@ function TechComparisonPanel({ techniciens, allTickets }) {
               </Box>
 
               {isSel && tech.competences.length > 0 && (
-                <Box sx={{ mt: "8px", pt: "8px", borderTop: "1px solid #F3F4F6" }}>
+                <Box sx={{ mt: "8px", pt: "8px", borderTop: "1px solid #F3F4F6", animation: "mgr-fadeSlide 0.2s ease both" }}>
                   <Typography sx={{ fontSize: "9px", color: "#9CA3AF", mb: "4px", textTransform: "uppercase", fontWeight: 600 }}>Compétences</Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                     {tech.competences.map((c) => (
@@ -250,7 +286,7 @@ function TechComparisonPanel({ techniciens, allTickets }) {
         })}
       </Box>
 
-      <Box sx={{ display: "flex", gap: "12px", mt: "10px", justifyContent: "center" }}>
+      <Box sx={{ display: "flex", gap: "12px", mt: "10px", justifyContent: "center", flexWrap: "wrap" }}>
         {Object.entries(chargeColor).map(([key, cfg]) => (
           <Box key={key} sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <Box sx={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: cfg.bar }} />
@@ -283,7 +319,7 @@ function CategoryHeatmap({ allTickets }) {
 
   return (
     <Box sx={{ mt: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-      {data.map((item) => {
+      {data.map((item, i) => {
         const isHov    = hovered === item.cat;
         const color    = CATEGORY_COLORS[item.cat] || "#6B7280";
         const openPct  = item.total > 0 ? Math.round((item.open     / item.total) * 100) : 0;
@@ -291,19 +327,22 @@ function CategoryHeatmap({ allTickets }) {
         const intensity = item.total / maxTotal;
 
         return (
-          <Box key={item.cat}
+          <Box
+            key={item.cat}
+            className="mgr-cat-row"
             onMouseEnter={() => setHovered(item.cat)}
             onMouseLeave={() => setHovered(null)}
             sx={{
-              borderRadius: "10px", padding: "8px 12px",
+              borderRadius: "10px", padding: { xs: "8px 10px", sm: "8px 12px" },
               backgroundColor: isHov ? `${color}12` : "#F9FAFB",
               border: `1px solid ${isHov ? color + "40" : "#F3F4F6"}`,
-              transition: "all 0.18s", cursor: "default",
+              cursor: "default",
+              animation: `mgr-fadeSlide 0.35s ease ${i * 0.05}s both`,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "5px" }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "5px", flexWrap: "wrap", gap: "4px" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "2px", backgroundColor: color, opacity: 0.4 + intensity * 0.6 }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: "2px", backgroundColor: color, opacity: 0.4 + intensity * 0.6, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: "12px", fontWeight: isHov ? 700 : 500, color: isHov ? "#111827" : "#374151", transition: "all 0.15s" }}>
                   {item.cat}
                 </Typography>
@@ -321,8 +360,8 @@ function CategoryHeatmap({ allTickets }) {
               </Box>
             </Box>
             <Box sx={{ height: 4, borderRadius: "999px", backgroundColor: "#E5E7EB", overflow: "hidden", display: "flex" }}>
-              <Box sx={{ width: `${openPct}%`,  height: "100%", backgroundColor: "#EF4444", opacity: 0.7, transition: "width 0.5s" }} />
-              <Box sx={{ width: `${resPct}%`, height: "100%", backgroundColor: color, opacity: 0.8, transition: "width 0.5s" }} />
+              <Box sx={{ width: `${openPct}%`,  height: "100%", backgroundColor: "#EF4444", opacity: 0.7, transition: "width 0.5s cubic-bezier(.22,1,.36,1)" }} />
+              <Box sx={{ width: `${resPct}%`, height: "100%", backgroundColor: color, opacity: 0.8, transition: "width 0.5s cubic-bezier(.22,1,.36,1)" }} />
             </Box>
           </Box>
         );
@@ -332,37 +371,44 @@ function CategoryHeatmap({ allTickets }) {
 }
 
 // ── Ligne ticket récent ────────────────────────────────────────────────────────
-function RecentTicketRow({ ticket, techniciens, isLast }) {
+function RecentTicketRow({ ticket, techniciens, isLast, index }) {
   const tech     = techniciens.find((u) => u.id === ticket.technicienId);
   const techName = tech ? (tech.nom || "—").split(" ")[0] : null;
 
   return (
     <>
-      <Box sx={{
-        display: "flex", alignItems: "center", gap: "12px",
-        padding: "12px 18px 12px 16px",
-        borderLeft: `3px solid ${PRIORITY_BORDER[ticket.priorite] || "#E5E7EB"}`,
-        borderRadius: "0 10px 10px 0",
-        transition: "background 0.15s, padding-left 0.15s",
-        "&:hover": { backgroundColor: "#F8FAFF", paddingLeft: "20px" },
-      }}>
+      <Box
+        className="mgr-ticket-row"
+        sx={{
+          display: "flex",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: { xs: "10px", sm: "12px" },
+          padding: { xs: "12px 12px 12px 10px", sm: "12px 18px 12px 16px" },
+          borderLeft: `3px solid ${PRIORITY_BORDER[ticket.priorite] || "#E5E7EB"}`,
+          borderRadius: "0 10px 10px 0",
+          animation: `mgr-fadeSlide 0.35s ease ${index * 0.08}s both`,
+          flexWrap: { xs: "wrap", sm: "nowrap" },
+        }}
+      >
         <Box sx={{
           width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
           backgroundColor: PRIORITY_BORDER[ticket.priorite] || "#E5E7EB",
           boxShadow: `0 0 0 3px ${(PRIORITY_BORDER[ticket.priorite]||"#E5E7EB")}22`,
+          display: { xs: "none", sm: "block" },
+          mt: { xs: "5px", sm: 0 },
         }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 600, fontSize: "13.5px", color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "3px" }}>
+          <Typography sx={{ fontWeight: 600, fontSize: { xs: "13px", sm: "13.5px" }, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "3px" }}>
             {ticket.titre}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: "8px", sm: "12px" }, flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
               {DashboardIcon.calendar}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatDate(ticket.dateCreation)}</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
               {DashboardIcon.pin}
-              <Typography sx={{ fontSize: "11px", color: "#9CA3AF", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <Typography sx={{ fontSize: "11px", color: "#9CA3AF", maxWidth: { xs: 100, sm: 130 }, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {ticket.localisation}
               </Typography>
             </Box>
@@ -374,21 +420,21 @@ function RecentTicketRow({ ticket, techniciens, isLast }) {
               <Avatar sx={{ width: 20, height: 20, fontSize: "9px", fontWeight: 700, backgroundColor: "#DBEAFE", color: "#2563EB" }}>
                 {techName[0]}
               </Avatar>
-              <Typography sx={{ fontSize: "11px", color: "#6B7280" }}>{techName}</Typography>
+              <Typography sx={{ fontSize: "11px", color: "#6B7280", display: { xs: "none", sm: "block" } }}>{techName}</Typography>
             </Box>
           ) : (
             <Box sx={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#FEF2F2", borderRadius: "6px", padding: "2px 8px" }}>
               <Box sx={{ color: "#EF4444", display: "flex" }}>{alertIcon}</Box>
-              <Typography sx={{ fontSize: "11px", color: "#EF4444", fontWeight: 600 }}>Non assigné</Typography>
+              <Typography sx={{ fontSize: "11px", color: "#EF4444", fontWeight: 600, display: { xs: "none", sm: "block" } }}>Non assigné</Typography>
             </Box>
           )}
         </Box>
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", flexShrink: 0 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "row", sm: "column" }, alignItems: { xs: "center", sm: "flex-end" }, gap: "4px", flexShrink: 0 }}>
           <Badge status={ticket.priorite} />
           <Badge status={ticket.statut} />
         </Box>
       </Box>
-      {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: "18px" }} />}
+      {!isLast && <Divider sx={{ borderColor: "#F3F4F6", mx: { xs: "10px", sm: "18px" } }} />}
     </>
   );
 }
@@ -416,7 +462,6 @@ export default function MgrDashboard() {
       .slice(0, 4);
   }, [allTickets]);
 
-  // ✅ 3 tickets les plus récents (toutes priorités / statuts)
   const recentTickets = useMemo(() => {
     return [...allTickets]
       .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
@@ -426,7 +471,7 @@ export default function MgrDashboard() {
   const firstName = (authUser?.name || "Manager").split(" ")[0];
 
   return (
-    <Box sx={{ pb: "80px" }}>
+    <Box sx={{ pb: { xs: "60px", sm: "80px" } }}>
 
       {/* ── Header ── */}
       <DashboardHeader
@@ -439,10 +484,10 @@ export default function MgrDashboard() {
               display: "flex", alignItems: "center", gap: "6px",
               backgroundColor: "rgba(239,68,68,0.15)",
               border: "1px solid rgba(239,68,68,0.3)",
-              borderRadius: "8px", padding: "5px 12px",
+              borderRadius: "8px", padding: { xs: "4px 8px", sm: "5px 12px" },
             }}>
               <Box sx={{ color: "#FCA5A5", display: "flex" }}>{alertIcon}</Box>
-              <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#FCA5A5" }}>
+              <Typography sx={{ fontSize: { xs: "11px", sm: "12px" }, fontWeight: 700, color: "#FCA5A5" }}>
                 {unassignedUrgent.length} ticket{unassignedUrgent.length > 1 ? "s" : ""} sans technicien
               </Typography>
             </Box>
@@ -451,23 +496,39 @@ export default function MgrDashboard() {
       />
 
       {/* ── KPI Cards ── */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", mb: "20px" }}>
-        <KpiCard icon={DashboardIcon.ticket}        label="Total tickets"   count={totalCount}           color="#2563EB" bgColor="#EFF6FF" description="Tous statuts" />
-        <KpiCard icon={DashboardIcon.alertTriangle} label="Ouverts"         count={openCount}            color="#EF4444" bgColor="#FEF2F2" description="En attente d'assignation" />
-        <KpiCard icon={DashboardIcon.clock}         label="En traitement"   count={inProgressCount}      color="#F59E0B" bgColor="#FFFBEB" description="Assignés ou en cours" />
-        <KpiCard icon={DashboardIcon.check}         label="Taux résolution" count={`${resolutionRate}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedCount} résolus`} />
+      <Box sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" },
+        gap: { xs: "10px", sm: "14px" },
+        mb: "20px",
+      }}>
+        {[
+          { icon: DashboardIcon.ticket,        label: "Total tickets",   count: totalCount,           color: "#2563EB", bgColor: "#EFF6FF", description: "Tous statuts",               delay: "0s"    },
+          { icon: DashboardIcon.alertTriangle, label: "Ouverts",         count: openCount,            color: "#EF4444", bgColor: "#FEF2F2", description: "En attente d'assignation",   delay: "0.07s" },
+          { icon: DashboardIcon.clock,         label: "En traitement",   count: inProgressCount,      color: "#F59E0B", bgColor: "#FFFBEB", description: "Assignés ou en cours",       delay: "0.14s" },
+          { icon: DashboardIcon.check,         label: "Taux résolution", count: `${resolutionRate}%`, color: "#22C55E", bgColor: "#F0FDF4", description: `${resolvedCount} résolus`,   delay: "0.21s" },
+        ].map((kpi, i) => (
+          <Box key={i} className="mgr-kpi-card" style={{ animationDelay: kpi.delay }}>
+            <KpiCard {...kpi} />
+          </Box>
+        ))}
       </Box>
 
       {/* ── Ligne 2 : Urgences non assignées + Comparaison techniciens ── */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", mb: "20px" }}>
-
+      <Box sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+        gap: "16px",
+        mb: "20px",
+      }}>
         <Paper elevation={0} sx={{
-          borderRadius: "16px", padding: "20px 22px",
+          borderRadius: "16px", padding: { xs: "16px", sm: "20px 22px" },
           border: `1px solid ${unassignedUrgent.length > 0 ? "#FECACA" : "#E5E7EB"}`,
           backgroundColor: unassignedUrgent.length > 0 ? "#FFFAFA" : "#FFFFFF",
           boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+          transition: "border-color 0.3s",
         }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
             <Box>
               <Typography sx={{ fontSize: "11px", fontWeight: 700, color: unassignedUrgent.length > 0 ? "#EF4444" : "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 À assigner en urgence
@@ -489,11 +550,11 @@ export default function MgrDashboard() {
         </Paper>
 
         <Paper elevation={0} sx={{
-          borderRadius: "16px", padding: "20px 22px",
+          borderRadius: "16px", padding: { xs: "16px", sm: "20px 22px" },
           border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF",
           boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
         }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
             <Box>
               <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Charge des techniciens
@@ -517,9 +578,13 @@ export default function MgrDashboard() {
         backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
         overflow: "hidden", mb: "20px",
       }}>
-        <Box sx={{ padding: "16px 24px 14px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{
+          padding: { xs: "14px 16px 12px", sm: "16px 24px 14px" },
+          borderBottom: "1px solid #F3F4F6",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: "15px", color: "#111827" }}>
+            <Typography sx={{ fontWeight: 700, fontSize: { xs: "14px", sm: "15px" }, color: "#111827" }}>
               Tickets récents
             </Typography>
             <Typography sx={{ fontSize: "12px", color: "#9CA3AF", mt: "1px" }}>
@@ -527,20 +592,21 @@ export default function MgrDashboard() {
             </Typography>
           </Box>
           <Link to="/manager/tickets" style={{ textDecoration: "none" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", "&:hover": { opacity: 0.75 } }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "4px", transition: "opacity 0.15s", "&:hover": { opacity: 0.75 } }}>
               <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB" }}>Voir tous</Typography>
               {DashboardIcon.arrowRight}
             </Box>
           </Link>
         </Box>
 
-        <Box sx={{ padding: "8px 6px 12px" }}>
+        <Box sx={{ padding: { xs: "6px 2px 10px", sm: "8px 6px 12px" } }}>
           {recentTickets.map((ticket, index) => (
             <RecentTicketRow
               key={ticket.id}
               ticket={ticket}
               techniciens={techniciens}
               isLast={index === recentTickets.length - 1}
+              index={index}
             />
           ))}
         </Box>
@@ -548,11 +614,11 @@ export default function MgrDashboard() {
 
       {/* ── Ligne 4 : Heatmap catégories ── */}
       <Paper elevation={0} sx={{
-        borderRadius: "16px", padding: "20px 22px",
+        borderRadius: "16px", padding: { xs: "16px", sm: "20px 22px" },
         border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF",
         boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: "4px" }}>
+        <Box sx={{ display: "flex", alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between", mb: "4px", flexWrap: "wrap", gap: "8px" }}>
           <Box>
             <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Incidents par catégorie
@@ -561,7 +627,7 @@ export default function MgrDashboard() {
               Volume et répartition actifs / résolus — survolez pour les détails
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: "12px" }}>
+          <Box sx={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             {[{ color: "#EF4444", label: "Actifs" }, { color: "#22C55E", label: "Résolus" }, { color: "#E5E7EB", label: "Neutre" }].map((item) => (
               <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
                 <Box sx={{ width: 8, height: 4, borderRadius: "2px", backgroundColor: item.color }} />
