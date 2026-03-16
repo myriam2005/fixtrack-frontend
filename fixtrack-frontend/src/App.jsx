@@ -29,6 +29,7 @@ import Users from "./pages/admin/users-management/Users.jsx";
 import Configuration from "./pages/admin/Configuration.jsx";
 import ValiderResolutions from "./pages/manager/ValiderResolutions.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
+import TeamPerformance from "./pages/manager/team/TeamPerformance.jsx";
 
 // ─── Page placeholder ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title }) {
@@ -109,7 +110,7 @@ export default function App() {
                   <Route path="manager/dashboard" element={<MgrDashboard />} /> 
                   <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
                   <Route path="manager/resolutions" element={<ValiderResolutions />} />
-                  <Route path="manager/team"      element={<PlaceholderPage title="Équipe" />} />
+                  <Route path="manager/team"      element={<TeamPerformance />} />
                   <Route path="manager/reports"   element={<ReportsPage/>} />
 
                   {/* ── Admin ── */}
