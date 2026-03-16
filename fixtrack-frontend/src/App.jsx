@@ -18,7 +18,7 @@ import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
 import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
 import MgrDashboard from "./pages/manager/ManagerDashboard";
-
+import AssignTicket from "./pages/manager/AssignTickets";
 // ── Pages réelles ─────────────────────────────────────────────────────────────
 import EmpDashboard  from "./pages/employee/EmpDashboard";   
 import MyTickets from "./pages/employee/my-ticket/MyTickets";
@@ -108,7 +108,7 @@ export default function App() {
 
                   {/* ── Manager ── */}
                   <Route path="manager/dashboard" element={<MgrDashboard />} /> 
-                  <Route path="manager/tickets"   element={<PlaceholderPage title="Tous les Tickets" />} />
+                  <Route path="manager/tickets"   element={<AssignTicket/>} />
                   <Route path="manager/resolutions" element={<ValiderResolutions />} />
                   <Route path="manager/team"      element={<TeamPerformance />} />
                   <Route path="manager/reports"   element={<ReportsPage/>} />
