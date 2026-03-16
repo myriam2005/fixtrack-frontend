@@ -1,5 +1,5 @@
 // src/components/auth/SidePanel.jsx
-export default function SidePanel({ mode }) {
+export default function SidePanel() {
   return (
     <div style={{
       background: "linear-gradient(170deg, #1565D8 0%, #0D47A1 100%)",

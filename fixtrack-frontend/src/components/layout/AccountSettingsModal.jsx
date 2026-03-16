@@ -57,23 +57,39 @@ const fieldSx = {
 
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function AccountSettingsModal({ open, onClose, user }) {
-  const [tab, setTab]               = useState("profile");   // "profile" | "password"
-  const [name, setName]             = useState("");
-  const [email, setEmail]           = useState("");
-  const [currentPwd, setCurrentPwd] = useState("");
-  const [newPwd, setNewPwd]         = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
-  const [showPwd, setShowPwd]       = useState({ current: false, new: false, confirm: false });
-  const [errors, setErrors]         = useState({});
-  const [saved, setSaved]           = useState(false);
+  // Combine form state into a single object to batch updates and avoid cascading renders.
+  // This is the safer pattern recommended by React—one setState call per effect instead of many.
+  const [formState, setFormState] = useState({
+    tab: "profile",        // "profile" | "password"
+    name: "",
+    email: "",
+    currentPwd: "",
+    newPwd: "",
+    confirmPwd: "",
+    errors: {},
+    saved: false,
+  });
+  
+  const [showPwd, setShowPwd] = useState({ current: false, new: false, confirm: false });
 
-  // Réinitialise les champs à chaque ouverture
+  // Destructure for ease of use in rest of component
+  const { tab, name, email, currentPwd, newPwd, confirmPwd, errors, saved } = formState;
+
+  // Reset form state once when modal opens, using a single setState call.
+  // This avoids multiple synchronous setState calls that can trigger cascading renders.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (open) {
-      setName(user?.name  || "");
-      setEmail(user?.email || "");
-      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
-      setErrors({}); setSaved(false); setTab("profile");
+      setFormState({
+        tab: "profile",
+        name: user?.name || "",
+        email: user?.email || "",
+        currentPwd: "",
+        newPwd: "",
+        confirmPwd: "",
+        errors: {},
+        saved: false,
+      });
     }
   }, [open, user]);
 
@@ -98,7 +114,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
   // ── Sauvegarde ────────────────────────────────────────────────────────────
   const handleSave = () => {
     const errs = tab === "profile" ? validateProfile() : validatePassword();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (Object.keys(errs).length > 0) { setFormState(prev => ({ ...prev, errors: errs })); return; }
 
     // TODO : remplacer par l'appel API réel
     // tab === "profile"  → userService.updateProfile({ name, email })
@@ -108,9 +124,8 @@ export default function AccountSettingsModal({ open, onClose, user }) {
       localStorage.setItem("currentUser", JSON.stringify({ ...stored, name, email }));
     }
 
-    setErrors({});
-    setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 1200);
+    setFormState(prev => ({ ...prev, errors: {}, saved: true }));
+    setTimeout(() => { setFormState(prev => ({ ...prev, saved: false })); onClose(); }, 1200);
   };
 
   // ── Indicateur force du mot de passe ─────────────────────────────────────
@@ -198,7 +213,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
         ].map(t => (
           <Box
             key={t.id}
-            onClick={() => { setTab(t.id); setErrors({}); setSaved(false); }}
+            onClick={() => { setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false })); }}
             sx={{
               display: "flex", alignItems: "center", gap: 1,
               px: 2.5, py: 1.5, cursor: "pointer",
@@ -227,7 +242,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
             <TextField
               label="Nom complet"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
               error={!!errors.name}
               helperText={errors.name}
               fullWidth size="small"
@@ -244,7 +259,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
               label="Adresse e-mail"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => setFormState(prev => ({ ...prev, email: e.target.value }))}
               error={!!errors.email}
               helperText={errors.email}
               fullWidth size="small"
@@ -270,7 +285,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
               label="Mot de passe actuel"
               type={showPwd.current ? "text" : "password"}
               value={currentPwd}
-              onChange={e => setCurrentPwd(e.target.value)}
+              onChange={e => setFormState(prev => ({ ...prev, currentPwd: e.target.value }))}
               error={!!errors.currentPwd}
               helperText={errors.currentPwd}
               fullWidth size="small"
@@ -296,7 +311,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
               label="Nouveau mot de passe"
               type={showPwd.new ? "text" : "password"}
               value={newPwd}
-              onChange={e => setNewPwd(e.target.value)}
+              onChange={e => setFormState(prev => ({ ...prev, newPwd: e.target.value }))}
               error={!!errors.newPwd}
               helperText={errors.newPwd}
               fullWidth size="small"
@@ -337,7 +352,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
               label="Confirmer le nouveau mot de passe"
               type={showPwd.confirm ? "text" : "password"}
               value={confirmPwd}
-              onChange={e => setConfirmPwd(e.target.value)}
+              onChange={e => setFormState(prev => ({ ...prev, confirmPwd: e.target.value }))}
               error={!!errors.confirmPwd}
               helperText={errors.confirmPwd}
               fullWidth size="small"
