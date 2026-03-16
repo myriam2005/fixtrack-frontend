@@ -420,7 +420,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
         {/* Footer */}
         <div style={{ position: "relative", zIndex: 10, marginTop: 18, fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: ".3px" }}>
-          © 2025 FixTrack · FST Tunis
+          © 2025 FixTrack 
         </div>
       </div>
     </>

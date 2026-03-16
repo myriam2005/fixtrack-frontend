@@ -553,12 +553,13 @@ export default function ReportsPage() {
            <h1
   style={{
     fontFamily: "'DM Serif Display', serif",
-    fontSize: "clamp(22px, 4vw, 30px)",
-    fontWeight: 400,
+    fontSize: "clamp(30px, 5vw, 30px)",
+    fontWeight: 700,
     color: "#0F172A",
     letterSpacing: "-0.02em",
     lineHeight: 1.2,
-    margin: "0 0 6px"
+    margin: "0 0 6px",
+    
   }}
 >
   Rapports Système
