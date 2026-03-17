@@ -1,8 +1,8 @@
 // src/pages/auth/LoginPage.jsx
+// ✅ VERSION BACKEND RÉEL — même design, authentification via API
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { users } from "../../data/mockData";
 
 const ROLE_META = {
   employee:   { label: "Employé",    color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },
@@ -10,6 +10,14 @@ const ROLE_META = {
   manager:    { label: "Manager",    color: "#3b82f6", bg: "rgba(59,130,246,0.15)", border: "rgba(59,130,246,0.3)" },
   admin:      { label: "Admin",      color: "#ef4444", bg: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.3)"  },
 };
+
+// Comptes démo affichés dans le panneau gauche (pour faciliter les tests)
+const DEMO_ACCOUNTS = [
+  { id: "d1", nom: "Jean Dupont",   email: "jean@fst.tn",  password: "123456", role: "employee",   avatar: "JD" },
+  { id: "d2", nom: "Sara Ben Ali",  email: "sara@fst.tn",  password: "123456", role: "technician", avatar: "SB" },
+  { id: "d3", nom: "Lina Trabelsi", email: "lina@fst.tn",  password: "123456", role: "manager",    avatar: "LT" },
+  { id: "d4", nom: "Admin FST",     email: "admin@fst.tn", password: "123456", role: "admin",      avatar: "AF" },
+];
 
 // ── Subtle particle canvas ────────────────────────────────────────────────────
 function ParticleCanvas() {
@@ -67,7 +75,8 @@ function ParticleCanvas() {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function LoginPage({ onLoginSuccess }) {
-  const { login } = useAuth();
+  // ✅ On utilise loginWithBackend au lieu de login directement
+  const { loginWithBackend } = useAuth();
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -100,22 +109,37 @@ export default function LoginPage({ onLoginSuccess }) {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setApiErr(""); setLoading(true);
-    await new Promise(r => setTimeout(r, 1300));
+
+    // ✅ Appel réel vers le backend
+    const result = await loginWithBackend({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
     setLoading(false);
-    const acc = users.find(
-      u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password
-    );
-    if (!acc) { setApiErr("Email ou mot de passe incorrect."); return; }
-    setSuccUser(acc);
+
+    if (!result.success) {
+      setApiErr(result.error || "Email ou mot de passe incorrect.");
+      return;
+    }
+
+    // ✅ Succès — result.user contient { id, nom, email, role, avatar, token }
+    setSuccUser(result.user);
     setSuccess(true);
-    login({ id: acc.id, name: acc.nom, role: acc.role, email: acc.email, avatar: acc.avatar });
+
     setTimeout(() => {
-      if (onLoginSuccess) onLoginSuccess(acc.role);
-      else window.location.href = `/${acc.role}/dashboard`;
+      if (onLoginSuccess) onLoginSuccess(result.role);
+      else window.location.href = `/${result.role}/dashboard`;
     }, 1500);
   };
 
-  const fill = (u) => { setEmail(u.email); setPassword(u.password); setErrors({}); setApiErr(""); };
+  // Remplit les champs avec un compte démo (le vrai appel API sera quand même fait)
+  const fill = (u) => {
+    setEmail(u.email);
+    setPassword(u.password);
+    setErrors({});
+    setApiErr("");
+  };
 
   const CSS = `
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
@@ -170,7 +194,7 @@ export default function LoginPage({ onLoginSuccess }) {
           }}>
             <ParticleCanvas />
 
-            {/* Cercles déco supplémentaires */}
+            {/* Cercles déco */}
             <div style={{ position:"absolute", top:"-100px", left:"-100px", width:"300px", height:"300px", borderRadius:"50%", background:"radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)", pointerEvents:"none", zIndex:1 }} />
             <div style={{ position:"absolute", bottom:"-80px", right:"-80px", width:"250px", height:"250px", borderRadius:"50%", background:"radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)", pointerEvents:"none", zIndex:1 }} />
 
@@ -195,7 +219,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
               {/* Headline */}
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 26, lineHeight: 1.25, letterSpacing: "-0.4px", marginBottom: 10 }}>
-                Bienvenue <br />
+                Bienvenue
               </div>
               <div style={{ color: "rgba(255,255,255,0.75)", fontWeight: 400, fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
                 Plateforme intelligente de gestion des maintenances industrielles — tickets, techniciens & reporting.
@@ -218,7 +242,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   Comptes démo — clic pour remplir
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {users.map(u => {
+                  {DEMO_ACCOUNTS.map(u => {
                     const rm = ROLE_META[u.role] || {};
                     return (
                       <div key={u.id} className="ft-demo" onClick={() => fill(u)} style={{
@@ -263,6 +287,7 @@ export default function LoginPage({ onLoginSuccess }) {
               zIndex: 2,
             }}>
               {success ? (
+                /* ── Écran succès ── */
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, animation: "ftSlide .45s cubic-bezier(.22,1,.36,1) both" }}>
                   <div style={{
                     width: 68, height: 68, borderRadius: "50%",
@@ -419,7 +444,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
         {/* Footer */}
         <div style={{ position: "relative", zIndex: 10, marginTop: 18, fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: ".3px" }}>
-          © 2025 FixTrack 
+          © 2025 FixTrack
         </div>
       </div>
     </>

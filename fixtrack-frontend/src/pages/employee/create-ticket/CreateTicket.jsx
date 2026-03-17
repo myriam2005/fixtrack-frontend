@@ -1,8 +1,10 @@
 // src/pages/employee/CreateTicket/CreateTicket.jsx
+// ✅ VERSION BACKEND — même design, soumission via API réelle
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import { tickets } from "../../../data/mockData";
+import { ticketService } from "../../../services/api";
 
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
@@ -46,26 +48,14 @@ function HorizontalStepper({ current }) {
   );
 }
 
-// ── AI Panel (placeholder — prêt pour le backend) ─────────────────────────────
+// ── AI Panel ──────────────────────────────────────────────────────────────────
 function AIPanel({ form }) {
-  // Heuristic score jusqu'à ce que le vrai modèle soit branché
   const hasContent = form.titre.length > 4 || form.description.length > 10;
-
-  // Score simulé basé sur l'urgence choisie
   const scoreMap = { critical: 88, high: 65, medium: 42, low: 20 };
   const score    = scoreMap[form.urgence] || 42;
-  const scoreColor =
-    score >= 70 ? "#EF4444" :
-    score >= 45 ? "#F97316" :
-    score >= 25 ? "#F59E0B" : "#6B7280";
+  const scoreColor = score >= 70 ? "#EF4444" : score >= 45 ? "#F97316" : score >= 25 ? "#F59E0B" : "#6B7280";
 
-  const timeMap = {
-    critical: "< 1 heure",
-    high:     "2 – 4 heures",
-    medium:   "1 – 2 jours",
-    low:      "Cette semaine",
-  };
-
+  const timeMap = { critical: "< 1 heure", high: "2 – 4 heures", medium: "1 – 2 jours", low: "Cette semaine" };
   const priorityMap = {
     critical: { label: "CRITIQUE", bg: "#FEF2F2", color: "#B91C1C", border: "#FECACA" },
     high:     { label: "HAUTE",    bg: "#FFF7ED", color: "#C2410C", border: "#FED7AA" },
@@ -73,7 +63,6 @@ function AIPanel({ form }) {
     low:      { label: "BASSE",    bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
   };
   const prio = priorityMap[form.urgence] || priorityMap.medium;
-
   const suggestions = {
     critical: "Signalez immédiatement à votre responsable. Le technicien sera prévenu en urgence.",
     high:     "Pensez à vérifier le disjoncteur ou les connexions locales avant l'arrivée du technicien.",
@@ -81,10 +70,29 @@ function AIPanel({ form }) {
     low:      "Un technicien passera lors de sa prochaine tournée dans votre bâtiment.",
   };
 
+  const IcoSparkle = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
+    </svg>
+  );
+  const IcoPin = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+  const IcoInfo = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  );
+  const IcoExternal = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  );
+
   return (
     <div className="wz-ai-panel">
-
-      {/* AI analysis card */}
       <div className="wz-ai-card">
         <div className="wz-ai-card-head">
           <div className="wz-ai-badge">
@@ -94,47 +102,30 @@ function AIPanel({ form }) {
         </div>
 
         {!hasContent ? (
-          /* Placeholder tant que le formulaire est vide */
           <div className="wz-ai-placeholder">
-            <div className="wz-ai-placeholder-ico">
-              <IcoSparkle />
-            </div>
+            <div className="wz-ai-placeholder-ico"><IcoSparkle /></div>
             <p className="wz-ai-placeholder-text">
               Commencez à remplir le formulaire pour voir l'analyse en temps réel.
             </p>
           </div>
         ) : (
           <div className="wz-ai-card-body">
-
-            {/* Priority + score */}
             <div className="wz-ai-priority-row">
               <span className="wz-ai-priority-label">Priorité estimée</span>
-              <span style={{
-                fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
-                background: prio.bg, color: prio.color, border: `1px solid ${prio.border}`,
-                letterSpacing: "0.06em",
-              }}>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6, background: prio.bg, color: prio.color, border: `1px solid ${prio.border}`, letterSpacing: "0.06em" }}>
                 {prio.label}
               </span>
             </div>
-
             <div className="wz-ai-score">
               <span className="wz-ai-score-num" style={{ color: scoreColor }}>{score}</span>
               <span className="wz-ai-score-max">/ 100</span>
             </div>
-
             <div className="wz-ai-bar">
               <div className="wz-ai-bar-fill" style={{
                 width: `${score}%`,
-                background: score >= 70
-                  ? "linear-gradient(90deg,#EF4444,#DC2626)"
-                  : score >= 45
-                  ? "linear-gradient(90deg,#F97316,#EA580C)"
-                  : "linear-gradient(90deg,#F59E0B,#D97706)",
+                background: score >= 70 ? "linear-gradient(90deg,#EF4444,#DC2626)" : score >= 45 ? "linear-gradient(90deg,#F97316,#EA580C)" : "linear-gradient(90deg,#F59E0B,#D97706)",
               }} />
             </div>
-
-            {/* Metrics */}
             <div className="wz-ai-metrics">
               <div className="wz-ai-metric">
                 <div className="wz-ai-metric-lbl">Temps d'intervention</div>
@@ -142,31 +133,22 @@ function AIPanel({ form }) {
               </div>
               <div className="wz-ai-metric">
                 <div className="wz-ai-metric-lbl">Catégorie</div>
-                <div className="wz-ai-metric-val" style={{ fontSize: 12 }}>
-                  {form.categorie || "—"}
-                </div>
+                <div className="wz-ai-metric-val" style={{ fontSize: 12 }}>{form.categorie || "—"}</div>
               </div>
             </div>
-
-            {/* Suggestion */}
             <div className="wz-ai-suggestion">
               <span className="wz-ai-suggestion-ico"><IcoPin /></span>
-              <p className="wz-ai-suggestion-text">
-                {suggestions[form.urgence]}
-              </p>
+              <p className="wz-ai-suggestion-text">{suggestions[form.urgence]}</p>
             </div>
           </div>
         )}
 
         <div className="wz-ai-footer">
           <IcoInfo />
-          {hasContent
-            ? "Priorité calculée par IA — simulation locale"
-            : "L'IA analysera votre demande en temps réel"}
+          {hasContent ? "Priorité calculée par IA — serveur backend" : "L'IA analysera votre demande en temps réel"}
         </div>
       </div>
 
-      {/* Help card */}
       <div className="wz-help-card">
         <div className="wz-help-title">Besoin d'aide ?</div>
         <p className="wz-help-text">
@@ -176,35 +158,12 @@ function AIPanel({ form }) {
           Accéder au centre d'aide <IcoExternal />
         </a>
       </div>
-
     </div>
   );
 }
 
-// ── Inline icons for AI panel ─────────────────────────────────────────────────
-const IcoSparkle = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
-  </svg>
-);
-const IcoPin = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-  </svg>
-);
-const IcoInfo = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-  </svg>
-);
-const IcoExternal = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-  </svg>
-);
-
 // ── Success screen ────────────────────────────────────────────────────────────
-function SuccessScreen({ navigate }) {
+function SuccessScreen({ navigate, ticketId }) {
   return (
     <div className="wz">
       <style>{CSS}</style>
@@ -222,6 +181,11 @@ function SuccessScreen({ navigate }) {
               <span className="wz-status-dot" />
               Statut : Ouvert
             </div>
+            {ticketId && (
+              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>
+                Référence : #{ticketId}
+              </p>
+            )}
             <div style={{ marginTop: 28 }}>
               <button className="wz-nav-btn-next" onClick={() => navigate("/employee/tickets")}>
                 Voir mes tickets <Icon.Next />
@@ -237,7 +201,7 @@ function SuccessScreen({ navigate }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function CreateTicket() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user }  = useAuth();
 
   const [step,     setStep]     = useState(0);
   const [dir,      setDir]      = useState("next");
@@ -252,6 +216,8 @@ export default function CreateTicket() {
   const [showSugg, setShowSugg] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [success,  setSuccess]  = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [createdId, setCreatedId] = useState(null);
 
   const set = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -268,35 +234,43 @@ export default function CreateTicket() {
 
   const goBack = () => { setDir("back"); setStep(prev => prev - 1); };
 
+  // ✅ Soumission réelle vers le backend
   const handleSubmit = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
+    setApiError("");
+
     const cat = form.categorie === "Autre"
       ? `Autre — ${form.categorieAutre.trim()}`
       : form.categorie;
-    tickets.push({
-      id:           `t${Date.now()}`,
-      titre:         form.titre.trim(),
-      description:   form.description.trim(),
-      statut:        "open",
-      priorite:      form.urgence,
-      categorie:     cat,
-      localisation:  form.localisation.trim(),
-      auteurId:      user?.id || "u1",
-      auteurTel:     form.telephone.trim() || null,
-      technicienId:  null,
-      dateCreation:  new Date().toISOString().split("T")[0],
-      notes:         [],
-    });
-    setLoading(false);
-    setSuccess(true);
+
+    try {
+      const payload = {
+        titre:        form.titre.trim(),
+        description:  form.description.trim(),
+        categorie:    cat,
+        localisation: form.localisation.trim(),
+        urgence:      form.urgence,      // utilisé par l'IA backend pour calculer la priorité
+        auteurTel:    form.telephone.trim() || null,
+      };
+
+      const { data } = await ticketService.create(payload);
+      setCreatedId(data._id);
+      setSuccess(true);
+    } catch (err) {
+      const msg = err.response?.data?.message
+        || err.response?.data?.errors?.[0]?.msg
+        || "Erreur lors de la soumission. Réessayez.";
+      setApiError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const animCls   = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
   const stepProps = { form, errors, set, animCls };
 
   if (loading) return <LoadingSpinner size={48} />;
-  if (success) return <SuccessScreen navigate={navigate} />;
+  if (success) return <SuccessScreen navigate={navigate} ticketId={createdId} />;
 
   const renderStep = () => {
     switch (step) {
@@ -312,16 +286,21 @@ export default function CreateTicket() {
   return (
     <div className="wz">
       <style>{CSS}</style>
-
-      {/* Horizontal stepper */}
       <HorizontalStepper current={step} />
-
-      {/* 2-column layout */}
       <div className="wz-layout">
-
-        {/* Left — form card */}
         <div className="wz-main">
           <MobileProgress current={step} />
+
+          {/* ✅ Affiche les erreurs API */}
+          {apiError && (
+            <div style={{
+              padding: "10px 14px", marginBottom: 16,
+              background: "#FEF2F2", border: "1px solid #FECACA",
+              borderRadius: 10, fontSize: 13, color: "#DC2626",
+            }}>
+              ⚠ {apiError}
+            </div>
+          )}
 
           {renderStep()}
 
@@ -348,9 +327,7 @@ export default function CreateTicket() {
           </div>
         </div>
 
-        {/* Right — AI panel */}
         <AIPanel form={form} />
-
       </div>
     </div>
   );

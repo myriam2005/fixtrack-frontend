@@ -1,13 +1,14 @@
-// src/pages/employee/MyTickets.jsx
-import { useState } from "react";
+// src/pages/employee/my-ticket/MyTickets.jsx
+// ✅ VERSION BACKEND — même design, données réelles via API
+
+import { useState, useEffect } from "react";
 import styles from "./MyTickets.module.css";
 import Badge from "../../../components/common/badge/Badge";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
-import { tickets, users } from "../../../data/mockData";
 import { useAuth } from "../../../context/AuthContext";
-import DetailTicket from "../../ticketDetails"; // ✅ import du modal
+import { ticketService } from "../../../services/api";
+import DetailTicket from "../../ticketDetails";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 const STATUT_KEYS   = ["open", "assigned", "in_progress", "resolved", "closed"];
 const PRIORITE_KEYS = ["critical", "high", "medium", "low"];
 
@@ -47,28 +48,59 @@ const ArrowIcon = () => (
   </svg>
 );
 
-// ─── Toggle helper ────────────────────────────────────────────────────────────
 const toggle = (arr, setArr, val) =>
   setArr((prev) => prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]);
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Skeleton loading ─────────────────────────────────────────────────────────
+function SkeletonRow() {
+  return (
+    <tr>
+      {[1,2,3,4,5,6,7].map(i => (
+        <td key={i} style={{ padding: "14px 16px" }}>
+          <div style={{ height: 16, borderRadius: 6, background: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite" }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
 export default function MyTickets() {
   const { user } = useAuth();
 
-  const mesTickets = user ? tickets.filter((t) => t.auteurId === user.id) : [];
+  // ✅ États backend
+  const [tickets,     setTickets]     = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState("");
 
   const [search,      setSearch]      = useState("");
   const [statuts,     setStatuts]     = useState([]);
   const [priorites,   setPriorites]   = useState([]);
   const [categories,  setCategories]  = useState([]);
-  const [selectedId,  setSelectedId]  = useState(null); // ✅ ID du ticket sélectionné
+  const [selectedId,  setSelectedId]  = useState(null);
+
+  // ✅ Fetch tickets depuis le backend
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setLoading(true);
+      try {
+        const { data } = await ticketService.getAll();
+        setTickets(data || []);
+      } catch (err) {
+        setError("Impossible de charger les tickets. Vérifiez votre connexion.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
 
   const q = search.toLowerCase();
-  const filtered = mesTickets.filter((t) => {
+  const filtered = tickets.filter((t) => {
     const matchSearch =
       !q ||
-      t.titre.toLowerCase().includes(q) ||
-      t.id.toLowerCase().includes(q) ||
+      t.titre?.toLowerCase().includes(q) ||
+      t._id?.toLowerCase().includes(q) ||
       t.categorie?.toLowerCase().includes(q) ||
       t.localisation?.toLowerCase().includes(q);
     const matchStatut    = statuts.length === 0    || statuts.includes(t.statut);
@@ -81,41 +113,48 @@ export default function MyTickets() {
   const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
 
   const activeTags = [
-    ...statuts.map((s)    => ({ key: `s-${s}`, label: LABELS[s],   remove: () => toggle(statuts,    setStatuts,    s) })),
-    ...priorites.map((p)  => ({ key: `p-${p}`, label: LABELS[p],   remove: () => toggle(priorites,  setPriorites,  p) })),
-    ...categories.map((c) => ({ key: `c-${c}`, label: c,           remove: () => toggle(categories, setCategories, c) })),
+    ...statuts.map((s)    => ({ key: `s-${s}`, label: LABELS[s], remove: () => toggle(statuts, setStatuts, s) })),
+    ...priorites.map((p)  => ({ key: `p-${p}`, label: LABELS[p], remove: () => toggle(priorites, setPriorites, p) })),
+    ...categories.map((c) => ({ key: `c-${c}`, label: c,         remove: () => toggle(categories, setCategories, c) })),
     ...(search ? [{ key: "q", label: `"${search}"`, remove: () => setSearch("") }] : []),
   ];
 
   return (
     <div className={styles.root}>
 
-      {/* ── Modal DetailTicket ── */}
       {selectedId && (
-        <DetailTicket
-          ticketId={selectedId}
-          onClose={() => setSelectedId(null)}
-        />
+        <DetailTicket ticketId={selectedId} onClose={() => setSelectedId(null)} />
       )}
 
-      {/* ── Header ── */}
       <div className={styles.pageHeader}>
         <div className={styles.pageTitleGroup}>
           <span className={styles.pageEyebrow}>Mes tickets</span>
           <h1 className={styles.pageTitle}>Gestion des tickets</h1>
-          <p className={styles.pageSubtitle}>{mesTickets.length} ticket{mesTickets.length !== 1 ? "s" : ""} au total</p>
+          <p className={styles.pageSubtitle}>
+            {loading ? "Chargement…" : `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""} au total`}
+          </p>
         </div>
       </div>
 
+      {/* ── Erreur ── */}
+      {error && (
+        <div style={{
+          padding: "12px 16px", marginBottom: 16,
+          background: "#FEF2F2", border: "1px solid #FECACA",
+          borderRadius: 10, fontSize: 13, color: "#DC2626",
+        }}>
+          ⚠ {error}
+        </div>
+      )}
+
       {/* ── Filter panel ── */}
       <div className={styles.filterPanel}>
-
         <div className={styles.searchWrap}>
           <span className={styles.searchIcon}><IconSearch /></span>
           <input
             className={styles.searchInput}
             type="text"
-            placeholder="Rechercher par titre, ID, catégorie, localisation…"
+            placeholder="Rechercher par titre, catégorie, localisation…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -176,17 +215,28 @@ export default function MyTickets() {
         )}
       </div>
 
-      {/* ── Results bar ── */}
       <div className={styles.resultsBar}>
         <span className={styles.resultsText}>
           <strong>{filtered.length}</strong> ticket{filtered.length !== 1 ? "s" : ""}
-          {filtered.length !== mesTickets.length && ` sur ${mesTickets.length}`}
+          {filtered.length !== tickets.length && ` sur ${tickets.length}`}
         </span>
       </div>
 
       {/* ── Desktop Table ── */}
       <div className={styles.tableWrap}>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Priorité</th><th>Ticket</th><th>Catégorie</th>
+                <th>Statut</th><th>Technicien</th><th>Date</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[1,2,3,4].map(i => <SkeletonRow key={i} />)}
+            </tbody>
+          </table>
+        ) : filtered.length === 0 ? (
           <div className={styles.empty}>
             <IconEmpty />
             <div className={styles.emptyTitle}>Aucun ticket trouvé</div>
@@ -198,23 +248,19 @@ export default function MyTickets() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Priorité</th>
-                <th>Ticket</th>
-                <th>Catégorie</th>
-                <th>Statut</th>
-                <th>Technicien</th>
-                <th>Date</th>
-                <th></th>
+                <th>Priorité</th><th>Ticket</th><th>Catégorie</th>
+                <th>Statut</th><th>Technicien</th><th>Date</th><th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((t, i) => {
-                const tech = users.find((u) => u.id === t.technicienId);
+                // ✅ Le backend retourne technicienId populé avec { nom, avatar }
+                const tech = t.technicienId;
                 return (
-                  <tr key={t.id} style={{ animationDelay: `${i * 0.04}s` }}>
+                  <tr key={t._id || t.id} style={{ animationDelay: `${i * 0.04}s` }}>
                     <td><Badge status={t.priorite} /></td>
                     <td>
-                      <div className={styles.ticketId}>#{t.id.toUpperCase()}</div>
+                      <div className={styles.ticketId}>#{(t._id || t.id).toString().slice(-6).toUpperCase()}</div>
                       <div className={styles.ticketTitle} title={t.titre}>{t.titre}</div>
                       {t.localisation && (
                         <div className={styles.ticketLoc}>
@@ -227,20 +273,16 @@ export default function MyTickets() {
                     <td>
                       {tech ? (
                         <div className={styles.techWrap}>
-                          <div className={styles.avatar}>{tech.avatar}</div>
+                          <div className={styles.avatar}>{tech.avatar || tech.nom?.[0]}</div>
                           <span className={styles.techName}>{tech.nom}</span>
                         </div>
                       ) : (
                         <span className={styles.unassigned}>Non assigné</span>
                       )}
                     </td>
-                    <td><span className={styles.date}>{formatDate(t.dateCreation)}</span></td>
+                    <td><span className={styles.date}>{formatDate(t.createdAt || t.dateCreation)}</span></td>
                     <td>
-                      {/* ✅ onClick ouvre le modal */}
-                      <button
-                        className={styles.detailBtn}
-                        onClick={() => setSelectedId(t.id)}
-                      >
+                      <button className={styles.detailBtn} onClick={() => setSelectedId(t._id || t.id)}>
                         Voir détails <ArrowIcon />
                       </button>
                     </td>
@@ -254,7 +296,7 @@ export default function MyTickets() {
 
       {/* ── Mobile Cards ── */}
       <div className={styles.cards}>
-        {filtered.length === 0 ? (
+        {!loading && filtered.length === 0 ? (
           <div className={styles.empty}>
             <IconEmpty />
             <div className={styles.emptyTitle}>Aucun ticket trouvé</div>
@@ -262,42 +304,40 @@ export default function MyTickets() {
               {hasFilters ? "Ajustez vos filtres." : "Vous n'avez pas encore créé de tickets."}
             </div>
           </div>
-        ) : filtered.map((t, i) => {
-          const tech = users.find((u) => u.id === t.technicienId);
-          return (
-            <div key={t.id} className={styles.card} style={{ animationDelay: `${i * 0.05}s` }}>
-              <div className={styles.cardHeader}>
-                <div className={styles.cardTitle}>{t.titre}</div>
-                <Badge status={t.priorite} />
+        ) : (
+          filtered.map((t, i) => {
+            const tech = t.technicienId;
+            return (
+              <div key={t._id || t.id} className={styles.card} style={{ animationDelay: `${i * 0.05}s` }}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>{t.titre}</div>
+                  <Badge status={t.priorite} />
+                </div>
+                <div className={styles.cardBadges}>
+                  <Badge status={t.statut} />
+                  <span className={styles.catBadge}>{t.categorie}</span>
+                </div>
+                <div className={styles.cardFooter}>
+                  <span className={styles.cardLoc}>
+                    <IconPin />{t.localisation || "—"}
+                  </span>
+                  {tech ? (
+                    <div className={styles.techWrap}>
+                      <div className={styles.avatar}>{tech.avatar || tech.nom?.[0]}</div>
+                      <span className={styles.techName}>{tech.nom}</span>
+                    </div>
+                  ) : (
+                    <span className={styles.unassigned}>Non assigné</span>
+                  )}
+                  <span className={styles.date}>{formatDate(t.createdAt || t.dateCreation)}</span>
+                </div>
+                <button className={styles.detailBtnMobile} onClick={() => setSelectedId(t._id || t.id)}>
+                  Voir détails <ArrowIcon />
+                </button>
               </div>
-              <div className={styles.cardBadges}>
-                <Badge status={t.statut} />
-                <span className={styles.catBadge}>{t.categorie}</span>
-              </div>
-              <div className={styles.cardFooter}>
-                <span className={styles.cardLoc}>
-                  <IconPin />{t.localisation || "—"}
-                </span>
-                {tech ? (
-                  <div className={styles.techWrap}>
-                    <div className={styles.avatar}>{tech.avatar}</div>
-                    <span className={styles.techName}>{tech.nom}</span>
-                  </div>
-                ) : (
-                  <span className={styles.unassigned}>Non assigné</span>
-                )}
-                <span className={styles.date}>{formatDate(t.dateCreation)}</span>
-              </div>
-              {/* ✅ Mobile aussi */}
-              <button
-                className={styles.detailBtnMobile}
-                onClick={() => setSelectedId(t.id)}
-              >
-                Voir détails <ArrowIcon />
-              </button>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
     </div>

@@ -1,7 +1,7 @@
 // src/pages/employee/EmpDashboard.jsx
-// Dashboard Utilisateur — User-friendly, focalisé sur l'essentiel
+// ✅ VERSION BACKEND — même design, données réelles via API
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider, LinearProgress } from "@mui/material";
 
@@ -9,11 +9,10 @@ import Badge from "../../components/common/badge/Badge";
 import { DashboardHeader, KpiCard } from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
-import { tickets, users, mockNotifications } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
+import { ticketService, notificationService } from "../../services/api";
 
-// ─── Config ──────────────────────────────────────────────────────────────────
-
+// ─── Config ───────────────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
   critical: { label: "Critique", color: "#EF4444", bg: "#FEF2F2" },
   high:     { label: "Haute",    color: "#F59E0B", bg: "#FFFBEB" },
@@ -22,26 +21,23 @@ const PRIORITY_CONFIG = {
 };
 
 const FILTER_TABS = [
-  { key: "all",         label: "Tous"      },
-  { key: "open",        label: "Ouverts"   },
-  { key: "in_progress", label: "En cours"  },
-  { key: "resolved",    label: "Résolus"   },
+  { key: "all",         label: "Tous"     },
+  { key: "open",        label: "Ouverts"  },
+  { key: "in_progress", label: "En cours" },
+  { key: "resolved",    label: "Résolus"  },
 ];
 
 // ─── Icônes inline ────────────────────────────────────────────────────────────
-
 const BellIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
-
 const UserIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
   </svg>
 );
-
 const ClockIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -49,12 +45,10 @@ const ClockIcon = () => (
 );
 
 // ─── Progression ticket ───────────────────────────────────────────────────────
-
 function TicketProgress({ statut }) {
   const steps = ["open", "assigned", "in_progress", "resolved"];
   const stepIndex = { open: 0, assigned: 1, in_progress: 2, resolved: 3, closed: 3 };
   const current = stepIndex[statut] ?? 0;
-
   return (
     <Box sx={{ display: "flex", alignItems: "center", mt: "6px" }}>
       {steps.map((step, i) => {
@@ -80,7 +74,6 @@ function TicketProgress({ statut }) {
 }
 
 // ─── Carte ticket ─────────────────────────────────────────────────────────────
-
 function TicketCard({ ticket, isLast }) {
   const prio = PRIORITY_CONFIG[ticket.priorite] || PRIORITY_CONFIG.low;
   return (
@@ -108,7 +101,9 @@ function TicketCard({ ticket, isLast }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: "12px", mb: "6px", flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
               {DashboardIcon.calendar}
-              <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatDate(ticket.dateCreation)}</Typography>
+              <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>
+                {formatDate(ticket.createdAt || ticket.dateCreation)}
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
               {DashboardIcon.pin}
@@ -132,19 +127,17 @@ function TicketCard({ ticket, isLast }) {
 }
 
 // ─── Notification item ────────────────────────────────────────────────────────
-
 function NotifItem({ notif, isLast }) {
   const typeConfig = {
-    ticket_assigned:   { icon: "🔧", bg: "#F5F3FF" },
-    ticket_reassigned: { icon: "🔄", bg: "#FFFBEB" },
-    ticket_resolved:   { icon: "✅", bg: "#F0FDF4" },
-    ticket_critical:   { icon: "⚠️", bg: "#FEF2F2" },
-    ticket_in_progress:{ icon: "⚙️", bg: "#FFFBEB" },
-    ticket_created:    { icon: "📋", bg: "#EFF6FF" },
+    ticket_assigned:  { icon: "🔧", bg: "#F5F3FF" },
+    ticket_resolved:  { icon: "✅", bg: "#F0FDF4" },
+    ticket_critical:  { icon: "⚠️", bg: "#FEF2F2" },
+    status_changed:   { icon: "⚙️", bg: "#FFFBEB" },
+    ticket_validated: { icon: "📋", bg: "#EFF6FF" },
+    alert:            { icon: "🔔", bg: "#FEF2F2" },
   };
-  const cfg = typeConfig[notif.event] || { icon: "📢", bg: "#F3F4F6" };
+  const cfg = typeConfig[notif.type] || { icon: "📢", bg: "#F3F4F6" };
 
-  // Formatage timestamp ISO → lisible
   const formatTs = (ts) => {
     if (!ts) return "";
     const d = new Date(ts);
@@ -186,7 +179,9 @@ function NotifItem({ notif, isLast }) {
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <ClockIcon />
-            <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatTs(notif.timestamp)}</Typography>
+            <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>
+              {formatTs(notif.createdAt || notif.timestamp)}
+            </Typography>
           </Box>
         </Box>
       </Box>
@@ -196,7 +191,6 @@ function NotifItem({ notif, isLast }) {
 }
 
 // ─── Bandeau urgence ──────────────────────────────────────────────────────────
-
 function UrgentBanner({ ticket }) {
   if (!ticket) return null;
   return (
@@ -222,27 +216,17 @@ function UrgentBanner({ ticket }) {
           {ticket.titre}
         </Typography>
         <Typography sx={{ fontSize: "11px", color: "#B91C1C" }}>
-          {ticket.localisation} · Soumis le {formatDate(ticket.dateCreation)}
+          {ticket.localisation} · Soumis le {formatDate(ticket.createdAt || ticket.dateCreation)}
         </Typography>
-      </Box>
-      <Box sx={{
-        px: "12px", py: "7px", borderRadius: "8px",
-        backgroundColor: "#EF4444", color: "#fff",
-        fontSize: "12px", fontWeight: 700, cursor: "pointer", flexShrink: 0,
-        transition: "background 0.15s",
-        "&:hover": { backgroundColor: "#DC2626" },
-      }}>
-        Voir →
       </Box>
     </Box>
   );
 }
 
 // ─── Profil utilisateur ───────────────────────────────────────────────────────
-
 function ProfileCard({ user, totalTickets, resolvedCount }) {
   const pct = totalTickets > 0 ? Math.round((resolvedCount / totalTickets) * 100) : 0;
-  const initials = (user?.nom || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = (user?.nom || user?.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
     <Paper elevation={0} sx={{
       borderRadius: "16px", padding: "20px",
@@ -258,11 +242,11 @@ function ProfileCard({ user, totalTickets, resolvedCount }) {
           color: "#fff", fontWeight: 800, fontSize: "16px",
           boxShadow: "0 4px 12px rgba(37,99,235,0.3)", flexShrink: 0,
         }}>
-          {initials}
+          {user?.avatar || initials}
         </Box>
         <Box>
           <Typography sx={{ fontSize: "14px", fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
-            {user?.nom || "Utilisateur"}
+            {user?.nom || user?.name || "Utilisateur"}
           </Typography>
           <Typography sx={{ fontSize: "12px", color: "#6B7280", mt: "2px" }}>{user?.email || ""}</Typography>
           <Box sx={{
@@ -294,14 +278,10 @@ function ProfileCard({ user, totalTickets, resolvedCount }) {
             <Typography sx={{ fontSize: "12px", fontWeight: 700, color: "#22C55E" }}>{pct}%</Typography>
           </Box>
           <LinearProgress
-            variant="determinate"
-            value={pct}
+            variant="determinate" value={pct}
             sx={{
               height: 6, borderRadius: 3, backgroundColor: "#E5E7EB",
-              "& .MuiLinearProgress-bar": {
-                background: "linear-gradient(90deg, #22C55E, #16A34A)",
-                borderRadius: 3,
-              },
+              "& .MuiLinearProgress-bar": { background: "linear-gradient(90deg, #22C55E, #16A34A)", borderRadius: 3 },
             }}
           />
         </Box>
@@ -310,83 +290,102 @@ function ProfileCard({ user, totalTickets, resolvedCount }) {
   );
 }
 
-// ─── Page principale ──────────────────────────────────────────────────────────
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+function Skeleton({ h = 20, w = "100%", mb = 0 }) {
+  return (
+    <Box sx={{
+      height: h, width: w, borderRadius: 2,
+      backgroundColor: "#F1F5F9",
+      mb: `${mb}px`,
+      animation: "pulse 1.5s ease-in-out infinite",
+      "@keyframes pulse": {
+        "0%,100%": { opacity: 1 },
+        "50%": { opacity: 0.5 },
+      },
+    }} />
+  );
+}
 
+// ─── Page principale ──────────────────────────────────────────────────────────
 export default function EmpDashboard() {
   const { user: authUser } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
 
-  const mockUser = useMemo(
-    () => users.find((u) => u.email === authUser?.email) ?? users[0],
-    [authUser?.email]
-  );
+  // ✅ États backend
+  const [myTickets,      setMyTickets]      = useState([]);
+  const [notifications,  setNotifications]  = useState([]);
+  const [loading,        setLoading]        = useState(true);
 
-  const myTickets = useMemo(
-    () => tickets.filter((t) => t.auteurId === mockUser.id),
-    [mockUser.id]
-  );
+  // ✅ Fetch données réelles
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [ticketsRes, notifsRes] = await Promise.all([
+          ticketService.getAll(),
+          notificationService.getAll(),
+        ]);
+        setMyTickets(ticketsRes.data || []);
+        setNotifications((notifsRes.data || []).slice(0, 4));
+      } catch (err) {
+        console.error("Erreur chargement dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const myNotifications = useMemo(
-    () => mockNotifications.filter((n) => n.forUserId === mockUser.id).slice(0, 4),
-    [mockUser.id]
-  );
+  // ✅ Marquer tout comme lu
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, lu: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const totalCount      = myTickets.length;
-  const openCount       = myTickets.filter((t) => t.statut === "open").length;
-  const inProgressCount = myTickets.filter((t) => t.statut === "in_progress" || t.statut === "assigned").length;
-  const resolvedCount   = myTickets.filter((t) => t.statut === "resolved" || t.statut === "closed").length;
-  const urgentTicket    = myTickets.find((t) => t.statut === "open" && t.priorite === "critical");
-  const unreadCount     = myNotifications.filter((n) => !n.lu).length;
+  const openCount       = myTickets.filter(t => t.statut === "open").length;
+  const inProgressCount = myTickets.filter(t => t.statut === "in_progress" || t.statut === "assigned").length;
+  const resolvedCount   = myTickets.filter(t => t.statut === "resolved" || t.statut === "closed").length;
+  const urgentTicket    = myTickets.find(t => t.statut === "open" && t.priorite === "critical");
+  const unreadCount     = notifications.filter(n => !n.lu).length;
 
   const filteredTickets = useMemo(() => {
-    const sorted = [...myTickets].sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
-    if (activeFilter === "open")        return sorted.filter((t) => t.statut === "open");
-    if (activeFilter === "in_progress") return sorted.filter((t) => t.statut === "in_progress" || t.statut === "assigned");
-    if (activeFilter === "resolved")    return sorted.filter((t) => t.statut === "resolved" || t.statut === "closed");
+    const sorted = [...myTickets].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (activeFilter === "open")        return sorted.filter(t => t.statut === "open");
+    if (activeFilter === "in_progress") return sorted.filter(t => t.statut === "in_progress" || t.statut === "assigned");
+    if (activeFilter === "resolved")    return sorted.filter(t => t.statut === "resolved" || t.statut === "closed");
     return sorted.slice(0, 6);
   }, [myTickets, activeFilter]);
 
-  const firstName = (authUser?.name || mockUser.nom || "").split(" ")[0];
+  const firstName = (authUser?.nom || authUser?.name || "").split(" ")[0];
 
   return (
     <Box sx={{ pb: "60px" }}>
 
-      {/* ── Header ── */}
-      <DashboardHeader
-        firstName={firstName}
-        greeting={getGreeting()}
-        subtitle="Voici vos activités de maintenance"
-      />
+      <DashboardHeader firstName={firstName} greeting={getGreeting()} subtitle="Voici vos activités de maintenance" />
 
-      {/* ── Bandeau urgence ── */}
-      <UrgentBanner ticket={urgentTicket} />
+      {!loading && <UrgentBanner ticket={urgentTicket} />}
 
       {/* ── KPI Cards ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px", mb: "22px" }}>
-        <KpiCard
-          icon={DashboardIcon.ticket}
-          label="Tickets ouverts"
-          count={openCount}
-          color="#3B82F6"
-          bgColor="#EFF6FF"
-          description="En attente de prise en charge"
-        />
-        <KpiCard
-          icon={DashboardIcon.clock}
-          label="En cours"
-          count={inProgressCount}
-          color="#F59E0B"
-          bgColor="#FFFBEB"
-          description="Assignés ou en traitement"
-        />
-        <KpiCard
-          icon={DashboardIcon.check}
-          label="Résolus"
-          count={resolvedCount}
-          color="#22C55E"
-          bgColor="#F0FDF4"
-          description="Clôturés avec succès"
-        />
+        {loading ? (
+          [1,2,3].map(i => (
+            <Paper key={i} elevation={0} sx={{ borderRadius: "14px", p: "18px", border: "1px solid #E5E7EB" }}>
+              <Skeleton h={40} mb={10} />
+              <Skeleton h={14} w="60%" />
+            </Paper>
+          ))
+        ) : (
+          <>
+            <KpiCard icon={DashboardIcon.ticket} label="Tickets ouverts"  count={openCount}       color="#3B82F6" bgColor="#EFF6FF" description="En attente de prise en charge" />
+            <KpiCard icon={DashboardIcon.clock}  label="En cours"         count={inProgressCount} color="#F59E0B" bgColor="#FFFBEB" description="Assignés ou en traitement" />
+            <KpiCard icon={DashboardIcon.check}  label="Résolus"          count={resolvedCount}   color="#22C55E" bgColor="#F0FDF4" description="Clôturés avec succès" />
+          </>
+        )}
       </Box>
 
       {/* ── Layout 2 colonnes ── */}
@@ -403,14 +402,7 @@ export default function EmpDashboard() {
                   {activeFilter !== "all" ? " filtrés" : " récents"}
                 </Typography>
               </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: "4px", color: "#9CA3AF" }}>
-                {DashboardIcon.filter}
-                <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  Filtrer
-                </Typography>
-              </Box>
             </Box>
-            {/* Onglets filtre */}
             <Box sx={{ display: "flex", gap: "4px" }}>
               {FILTER_TABS.map((tab) => {
                 const isActive = activeFilter === tab.key;
@@ -444,8 +436,13 @@ export default function EmpDashboard() {
               })}
             </Box>
           </Box>
+
           <Box sx={{ py: "4px" }}>
-            {filteredTickets.length === 0 ? (
+            {loading ? (
+              <Box sx={{ p: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                {[1,2,3].map(i => <Skeleton key={i} h={60} />)}
+              </Box>
+            ) : filteredTickets.length === 0 ? (
               <Box sx={{ textAlign: "center", py: "40px" }}>
                 <Typography sx={{ fontSize: "32px", mb: "10px" }}>📋</Typography>
                 <Typography sx={{ fontWeight: 600, color: "#6B7280", mb: "4px", fontSize: "14px" }}>Aucun ticket dans cette catégorie</Typography>
@@ -453,14 +450,15 @@ export default function EmpDashboard() {
               </Box>
             ) : (
               filteredTickets.map((ticket, index) => (
-                <TicketCard key={ticket.id} ticket={ticket} isLast={index === filteredTickets.length - 1} />
+                <TicketCard key={ticket._id || ticket.id} ticket={ticket} isLast={index === filteredTickets.length - 1} />
               ))
             )}
           </Box>
+
           {activeFilter === "all" && myTickets.length > 6 && (
             <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 20px", textAlign: "center" }}>
               <Link to="/employee/tickets" style={{ textDecoration: "none" }}>
-                <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#2563EB", "&:hover": { textDecoration: "underline" } }}>
+                <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#2563EB" }}>
                   Voir tous mes tickets →
                 </Typography>
               </Link>
@@ -471,8 +469,7 @@ export default function EmpDashboard() {
         {/* ── Droite ── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: "18px" }}>
 
-          {/* Profil */}
-          <ProfileCard user={mockUser} totalTickets={totalCount} resolvedCount={resolvedCount} />
+          <ProfileCard user={authUser} totalTickets={totalCount} resolvedCount={resolvedCount} />
 
           {/* Notifications */}
           <Paper elevation={0} sx={{ borderRadius: "16px", border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
@@ -481,47 +478,44 @@ export default function EmpDashboard() {
                 <Box sx={{ color: "#F59E0B" }}><BellIcon /></Box>
                 <Typography sx={{ fontWeight: 700, fontSize: "14px", color: "#111827" }}>Notifications</Typography>
                 {unreadCount > 0 && (
-                  <Box sx={{
-                    backgroundColor: "#EF4444", color: "#fff",
-                    borderRadius: "20px", px: "6px", py: "1px",
-                    fontSize: "10px", fontWeight: 800, lineHeight: "16px",
-                  }}>
+                  <Box sx={{ backgroundColor: "#EF4444", color: "#fff", borderRadius: "20px", px: "6px", py: "1px", fontSize: "10px", fontWeight: 800, lineHeight: "16px" }}>
                     {unreadCount}
                   </Box>
                 )}
               </Box>
-              <Typography sx={{ fontSize: "11px", color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
-                Tout marquer lu
-              </Typography>
+              {unreadCount > 0 && (
+                <Typography onClick={handleMarkAllRead} sx={{ fontSize: "11px", color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
+                  Tout marquer lu
+                </Typography>
+              )}
             </Box>
             <Divider sx={{ borderColor: "#F3F4F6" }} />
-            {myNotifications.length === 0 ? (
+            {loading ? (
+              <Box sx={{ p: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                {[1,2,3].map(i => <Skeleton key={i} h={40} />)}
+              </Box>
+            ) : notifications.length === 0 ? (
               <Box sx={{ textAlign: "center", py: "30px" }}>
                 <Typography sx={{ fontSize: "26px", mb: "8px" }}>🔔</Typography>
                 <Typography sx={{ fontSize: "12px", color: "#9CA3AF" }}>Aucune notification</Typography>
               </Box>
             ) : (
-              myNotifications.map((notif, index) => (
-                <NotifItem key={notif.id} notif={notif} isLast={index === myNotifications.length - 1} />
+              notifications.map((notif, index) => (
+                <NotifItem key={notif._id || notif.id} notif={notif} isLast={index === notifications.length - 1} />
               ))
             )}
           </Paper>
 
           {/* Conseil du jour */}
           <Paper elevation={0} sx={{
-            borderRadius: "16px",
-            border: "1px solid #FDE68A",
-            backgroundColor: "#FEFCE8",
-            padding: "16px 18px",
+            borderRadius: "16px", border: "1px solid #FDE68A",
+            backgroundColor: "#FEFCE8", padding: "16px 18px",
             boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
           }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "9px", mb: "10px" }}>
-              <Box sx={{
-                width: 30, height: 30, borderRadius: "8px",
-                backgroundColor: "#FEF3C7",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "15px",
-              }}>💡</Box>
+              <Box sx={{ width: 30, height: 30, borderRadius: "8px", backgroundColor: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>
+                💡
+              </Box>
               <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#B45309", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                 Conseil du jour
               </Typography>

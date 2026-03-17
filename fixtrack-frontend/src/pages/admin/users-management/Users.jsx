@@ -1,23 +1,11 @@
-// ─────────────────────────────────────────────────────────────
-//  src/pages/admin/GestionUsers.jsx
-//  Page CRUD utilisateurs — FixTrack
-//  Styles : ./gestion-users.css
-// ─────────────────────────────────────────────────────────────
-import { useState } from "react";
+// src/pages/admin/users-management/Users.jsx
+// ✅ VERSION BACKEND — même design, données réelles via API
+
+import { useState, useEffect } from "react";
 import "./Users.css";
-import { users as mockUsers } from "../../../data/mockData";
+import { userService } from "../../../services/api";
 
-// ─── Import direct depuis mockData (statut + dateCreation inclus) ─
-const INITIAL_USERS = mockUsers.map(u => ({
-  id:           u.id,
-  nom:          u.nom,
-  email:        u.email,
-  role:         u.role,
-  statut:       u.statut,
-  dateCreation: u.dateCreation,
-}));
-
-// ─── Constantes rôles ───────────────────────────────────────
+// ─── Constantes rôles ────────────────────────────────────────
 export const ROLE_META = {
   employee:   { label:"Employé",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
   technician: { label:"Technicien",     color:"#D97706", bg:"#FFFBEB", border:"#FDE68A", avatar:"#D97706" },
@@ -25,12 +13,9 @@ export const ROLE_META = {
   admin:      { label:"Administrateur", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE", avatar:"#1D4ED8" },
 };
 
-// ─── Helpers ────────────────────────────────────────────────
-const uid      = () => "u" + Date.now();
-const initials = n  => n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-const fmtDate  = d  => new Date(d).toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" });
+const initials = n  => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+const fmtDate  = d  => d ? new Date(d).toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" }) : "—";
 
-// ─── SVG icons ──────────────────────────────────────────────
 const ICONS = {
   search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
   plus:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
@@ -47,22 +32,13 @@ const ICONS = {
 };
 
 const Ico = ({ k, size = 16, color }) => (
-  <span style={{ display:"inline-flex", width:size, height:size, color, flexShrink:0 }}>
-    {ICONS[k]}
-  </span>
+  <span style={{ display:"inline-flex", width:size, height:size, color, flexShrink:0 }}>{ICONS[k]}</span>
 );
-
-// ─────────────────────────────────────────────────────────────
-//  COMPOSANTS UI
-// ─────────────────────────────────────────────────────────────
 
 function Avatar({ name, role, size = 38 }) {
   const color = ROLE_META[role]?.avatar || "#94A3B8";
   return (
-    <div
-      className="ft-avatar"
-      style={{ width:size, height:size, backgroundColor:color, fontSize:size * 0.34 }}
-    >
+    <div className="ft-avatar" style={{ width:size, height:size, backgroundColor:color, fontSize:size * 0.34 }}>
       {initials(name)}
     </div>
   );
@@ -78,48 +54,29 @@ function RoleChip({ role }) {
   );
 }
 
-// Badge statut — simple texte coloré sans cadre
-function StatusBadge({ statut }) {
-  const on = statut === "actif";
+function StatusBadge({ actif }) {
   return (
-    <span style={{
-      fontSize: "0.72rem",
-      fontWeight: 600,
-      color: on ? "#16A34A" : "#9CA3AF",
-      letterSpacing: "0.01em",
-    }}>
-      {on ? "Actif" : "Inactif"}
+    <span style={{ fontSize:"0.72rem", fontWeight:600, color: actif ? "#16A34A" : "#9CA3AF", letterSpacing:"0.01em" }}>
+      {actif ? "Actif" : "Inactif"}
     </span>
   );
 }
 
 function StatTile({ label, value, sub, color, icon, active, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      className="ft-tile"
-      style={{
-        background:  active ? color : "#fff",
-        borderColor: active ? color : "#E2E8F0",
-        boxShadow:   active ? `0 4px 18px ${color}44` : "0 1px 3px rgba(0,0,0,.05)",
-      }}
-    >
+    <button onClick={onClick} className="ft-tile" style={{
+      background: active ? color : "#fff",
+      borderColor: active ? color : "#E2E8F0",
+      boxShadow: active ? `0 4px 18px ${color}44` : "0 1px 3px rgba(0,0,0,.05)",
+    }}>
       <div className="ft-tile__top">
         <div className="ft-tile__icon" style={{ background: active ? "rgba(255,255,255,.18)" : color + "14" }}>
           <Ico k={icon} size={17} color={active ? "#fff" : color} />
         </div>
-        <span className="ft-tile__value" style={{ color: active ? "#fff" : "#0F172A" }}>
-          {value}
-        </span>
+        <span className="ft-tile__value" style={{ color: active ? "#fff" : "#0F172A" }}>{value}</span>
       </div>
-      <p className="ft-tile__label" style={{ color: active ? "rgba(255,255,255,.8)" : "#64748B" }}>
-        {label}
-      </p>
-      {sub && (
-        <p className="ft-tile__sub" style={{ color: active ? "rgba(255,255,255,.55)" : "#94A3B8" }}>
-          {sub}
-        </p>
-      )}
+      <p className="ft-tile__label" style={{ color: active ? "rgba(255,255,255,.8)" : "#64748B" }}>{label}</p>
+      {sub && <p className="ft-tile__sub" style={{ color: active ? "rgba(255,255,255,.55)" : "#94A3B8" }}>{sub}</p>}
     </button>
   );
 }
@@ -135,9 +92,7 @@ function Modal({ open, onClose, title, subtitle, children, width = 480 }) {
             <h2 className="ft-modal__title">{title}</h2>
             {subtitle && <p className="ft-modal__subtitle">{subtitle}</p>}
           </div>
-          <button className="ft-modal__close" onClick={onClose}>
-            <Ico k="close" size={17} />
-          </button>
+          <button className="ft-modal__close" onClick={onClose}><Ico k="close" size={17} /></button>
         </div>
         <div className="ft-modal__body">{children}</div>
       </div>
@@ -148,19 +103,13 @@ function Modal({ open, onClose, title, subtitle, children, width = 480 }) {
 function Field({ label, icon, error, children }) {
   return (
     <div className="ft-form__field">
-      <label className="ft-form__label">
-        <Ico k={icon} size={12} color="#94A3B8" />
-        {label}
-      </label>
+      <label className="ft-form__label"><Ico k={icon} size={12} color="#94A3B8" />{label}</label>
       {children}
       {error && <span className="ft-form__error">{error}</span>}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-//  FORMULAIRE — sans champ département
-// ─────────────────────────────────────────────────────────────
 const BLANK_FORM = { nom:"", email:"", password:"", role:"employee" };
 
 function UserForm({ initial, isEdit, onSubmit, onCancel }) {
@@ -189,70 +138,37 @@ function UserForm({ initial, isEdit, onSubmit, onCancel }) {
 
   return (
     <div>
-      {/* Aperçu dynamique */}
       <div className="ft-form__preview">
         <Avatar name={form.nom || "?"} role={form.role} size={44} />
         <div>
           <p className="ft-form__preview-name">
             {form.nom || <span className="ft-form__preview-placeholder">Nom de l'utilisateur</span>}
           </p>
-          <div style={{ marginTop:6 }}>
-            <RoleChip role={form.role} />
-          </div>
+          <div style={{ marginTop:6 }}><RoleChip role={form.role} /></div>
         </div>
       </div>
-
       <div className="ft-form__grid">
-        {/* Nom — pleine largeur */}
         <div className="ft-form__full">
           <Field label="Nom complet" icon="user" error={errors.nom}>
-            <input
-              className={cls(errors.nom)}
-              value={form.nom}
-              onChange={setField("nom")}
-              placeholder="Ex: Jean Dupont"
-            />
+            <input className={cls(errors.nom)} value={form.nom} onChange={setField("nom")} placeholder="Ex: Jean Dupont" />
           </Field>
         </div>
-
-        {/* Email — pleine largeur */}
         <div className="ft-form__full">
           <Field label="Adresse email" icon="mail" error={errors.email}>
-            <input
-              type="email"
-              className={cls(errors.email)}
-              value={form.email}
-              onChange={setField("email")}
-              placeholder="jean@fst.tn"
-            />
+            <input type="email" className={cls(errors.email)} value={form.email} onChange={setField("email")} placeholder="jean@fst.tn" />
           </Field>
         </div>
-
-        {/* Mot de passe + Rôle côte à côte */}
         <Field label={isEdit ? "Nouveau mot de passe" : "Mot de passe"} icon="lock" error={errors.password}>
-          <input
-            type="password"
-            className={cls(errors.password)}
-            value={form.password}
-            onChange={setField("password")}
-            placeholder={isEdit ? "Laisser vide = inchangé" : "6+ caractères"}
-          />
+          <input type="password" className={cls(errors.password)} value={form.password} onChange={setField("password")} placeholder={isEdit ? "Laisser vide = inchangé" : "6+ caractères"} />
         </Field>
-
         <Field label="Rôle" icon="tag">
-          <select
-            className="ft-input"
-            style={{ cursor:"pointer" }}
-            value={form.role}
-            onChange={setField("role")}
-          >
+          <select className="ft-input" style={{ cursor:"pointer" }} value={form.role} onChange={setField("role")}>
             {Object.entries(ROLE_META).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
         </Field>
       </div>
-
       <div className="ft-form__actions">
         <button className="ft-btn-cancel" onClick={onCancel}>Annuler</button>
         <button className="ft-btn-submit" onClick={handleSubmit}>
@@ -264,26 +180,16 @@ function UserForm({ initial, isEdit, onSubmit, onCancel }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-//  DIALOG CONFIRMATION
-// ─────────────────────────────────────────────────────────────
 function ConfirmDialog({ user, onConfirm, onClose }) {
-  const deactivate = user?.statut === "actif";
+  const deactivate = user?.actif !== false;
   return (
-    <Modal
-      open={!!user}
-      onClose={onClose}
+    <Modal open={!!user} onClose={onClose}
       title={deactivate ? "Désactiver le compte" : "Réactiver le compte"}
-      subtitle="Confirmez cette action pour continuer."
-      width={400}
-    >
-      <div
-        className="ft-confirm-box"
-        style={{
-          background: deactivate ? "#FEF2F2" : "#F0FDF4",
-          border: `1.5px solid ${deactivate ? "#FECACA" : "#BBF7D0"}`,
-        }}
-      >
+      subtitle="Confirmez cette action pour continuer." width={400}>
+      <div className="ft-confirm-box" style={{
+        background: deactivate ? "#FEF2F2" : "#F0FDF4",
+        border: `1.5px solid ${deactivate ? "#FECACA" : "#BBF7D0"}`,
+      }}>
         <Ico k="warn" size={20} color={deactivate ? "#EF4444" : "#22C55E"} />
         <div>
           <p className="ft-confirm-box__title" style={{ color: deactivate ? "#7F1D1D" : "#14532D" }}>
@@ -298,10 +204,7 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
       </div>
       <div className="ft-form__actions">
         <button className="ft-btn-cancel" onClick={onClose}>Annuler</button>
-        <button
-          className={deactivate ? "ft-btn-danger" : "ft-btn-success"}
-          onClick={onConfirm}
-        >
+        <button className={deactivate ? "ft-btn-danger" : "ft-btn-success"} onClick={onConfirm}>
           <Ico k={deactivate ? "block" : "check"} size={15} />
           {deactivate ? "Désactiver" : "Réactiver"}
         </button>
@@ -310,40 +213,53 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-//  PAGE PRINCIPALE
-// ─────────────────────────────────────────────────────────────
+// ─── PAGE PRINCIPALE ─────────────────────────────────────────
 export default function Users() {
-
-  const [users, setUsers]             = useState(INITIAL_USERS);
+  const [users, setUsers]             = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
   const [search, setSearch]           = useState("");
   const [roleFilter, setRoleFilter]   = useState("all");
   const [statFilter, setStatFilter]   = useState("all");
-  const [sort, setSort]               = useState({ col:"dateCreation", dir:"desc" });
+  const [sort, setSort]               = useState({ col:"createdAt", dir:"desc" });
   const [addOpen, setAddOpen]         = useState(false);
   const [editUser, setEditUser]       = useState(null);
   const [confirmUser, setConfirmUser] = useState(null);
   const [toast, setToast]             = useState(null);
+
+  // ✅ Fetch users depuis le backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const { data } = await userService.getAll();
+        setUsers(data || []);
+      } catch (err) {
+        setError("Impossible de charger les utilisateurs.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const notify = (msg, type = "ok") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Stats ──────────────────────────────────────────────────
   const total     = users.length;
   const employees = users.filter(u => u.role === "employee").length;
   const techs     = users.filter(u => u.role === "technician").length;
   const admins    = users.filter(u => u.role === "admin" || u.role === "manager").length;
-  const isAdminManagerFilter = roleFilter === "admin" || roleFilter === "manager";
 
-  // ── Filtrage + tri ─────────────────────────────────────────
   const filtered = users
     .filter(u => {
       const q = search.toLowerCase();
       const matchSearch = !q || u.nom.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
       const matchRole   = roleFilter === "all" || u.role === roleFilter;
-      const matchStatus = statFilter === "all" || u.statut === statFilter;
+      const matchStatus = statFilter === "all" || (statFilter === "actif" ? u.actif !== false : u.actif === false);
       return matchSearch && matchRole && matchStatus;
     })
     .sort((a, b) => {
@@ -352,62 +268,75 @@ export default function Users() {
       return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
     });
 
-  const toggleSort   = col => setSort(s =>
-    s.col === col ? { col, dir: s.dir === "asc" ? "desc" : "asc" } : { col, dir:"asc" }
-  );
   const resetFilters = () => { setSearch(""); setRoleFilter("all"); setStatFilter("all"); };
   const hasFilters   = search || roleFilter !== "all" || statFilter !== "all";
 
-  // ── CRUD ──────────────────────────────────────────────────
-  const handleAdd = form => {
-    setUsers(prev => [
-      ...prev,
-      { ...form, id:uid(), statut:"actif", dateCreation:new Date().toISOString().split("T")[0] },
-    ]);
-    setAddOpen(false);
-    notify(`${form.nom} créé avec succès.`);
+  // ✅ Créer un utilisateur via API
+  const handleAdd = async (form) => {
+    try {
+      const { data } = await userService.getAll(); // refresh après création via register
+      // On appelle register via fetch direct
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(localStorage.getItem("currentUser"))?.token}` },
+        body: JSON.stringify(form),
+      });
+      const newUser = await res.json();
+      if (res.ok) {
+        setUsers(prev => [newUser.user || newUser, ...prev]);
+        setAddOpen(false);
+        notify(`${form.nom} créé avec succès.`);
+      } else {
+        notify(newUser.message || "Erreur lors de la création.", "warn");
+      }
+    } catch (err) {
+      notify("Erreur lors de la création.", "warn");
+    }
   };
 
-  const handleEdit = form => {
-    setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...form } : u));
-    setEditUser(null);
-    notify(`Profil de ${form.nom} mis à jour.`);
+  // ✅ Modifier le rôle via API
+  const handleEdit = async (form) => {
+    try {
+      await userService.updateRole(editUser._id, form.role);
+      await userService.update(editUser._id, { nom: form.nom, telephone: form.telephone });
+      setUsers(prev => prev.map(u => u._id === editUser._id ? { ...u, ...form } : u));
+      setEditUser(null);
+      notify(`Profil de ${form.nom} mis à jour.`);
+    } catch (err) {
+      notify("Erreur lors de la modification.", "warn");
+    }
   };
 
-  const handleToggleStatus = () => {
-    const next = confirmUser.statut === "actif" ? "inactif" : "actif";
-    setUsers(prev => prev.map(u => u.id === confirmUser.id ? { ...u, statut:next } : u));
-    notify(`${confirmUser.nom} est maintenant ${next}.`, next === "actif" ? "ok" : "warn");
-    setConfirmUser(null);
+  // ✅ Désactiver/réactiver via API (soft delete)
+  const handleToggleStatus = async () => {
+    try {
+      if (confirmUser.actif !== false) {
+        // Désactiver
+        await userService.delete(confirmUser._id);
+        setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: false } : u));
+        notify(`${confirmUser.nom} est maintenant inactif.`, "warn");
+      } else {
+        // Réactiver — changer le rôle suffit pour réactiver (ou via update)
+        await userService.update(confirmUser._id, { actif: true });
+        setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: true } : u));
+        notify(`${confirmUser.nom} est maintenant actif.`);
+      }
+      setConfirmUser(null);
+    } catch (err) {
+      notify("Erreur lors du changement de statut.", "warn");
+    }
   };
-
-  const TH = ({ col, children }) => (
-    <th
-      onClick={() => col && toggleSort(col)}
-      className={`ft-th${col ? (sort.col === col ? " ft-th--active" : "") : " ft-th--no-sort"}`}
-    >
-      {children}
-      {col && (
-        <span className="ft-th__arrow" style={{ opacity: sort.col === col ? 1 : 0.3 }}>
-          {sort.col === col ? (sort.dir === "asc" ? "↑" : "↓") : "↕"}
-        </span>
-      )}
-    </th>
-  );
 
   return (
     <div className="ft-page">
 
-      {/* ── Toast ── */}
       {toast && (
         <div className={`ft-toast ft-toast--${toast.type}`}>
-          <Ico k={toast.type === "warn" ? "warn" : "check"} size={16}
-            color={toast.type === "warn" ? "#FCD34D" : "#4ADE80"} />
+          <Ico k={toast.type === "warn" ? "warn" : "check"} size={16} color={toast.type === "warn" ? "#FCD34D" : "#4ADE80"} />
           {toast.msg}
         </div>
       )}
 
-      {/* ── Header éditorial ── */}
       <div className="ft-header">
         <div>
           <div className="ft-header__overline">
@@ -415,7 +344,7 @@ export default function Users() {
             <span className="ft-header__label">Administration</span>
           </div>
           <h1 className="ft-header__title">Gestion des utilisateurs</h1>
-          <p className="ft-header__sub">{total} utilisateurs au total</p>
+          <p className="ft-header__sub">{loading ? "Chargement…" : `${total} utilisateurs au total`}</p>
         </div>
         <button className="ft-btn-add" onClick={() => setAddOpen(true)}>
           <Ico k="plus" size={15} />
@@ -423,62 +352,39 @@ export default function Users() {
         </button>
       </div>
 
-      {/* ── Stat tiles ── */}
+      {error && (
+        <div style={{ padding:"12px 16px", marginBottom:16, background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:10, fontSize:13, color:"#DC2626" }}>
+          ⚠ {error}
+        </div>
+      )}
+
       <div className="ft-tiles">
-        <StatTile label="Tous les utilisateurs" value={total} icon="users2" color="#1D4ED8"
-          sub={`${total} comptes créés`}
-          active={roleFilter === "all" && statFilter === "all"}
-          onClick={() => { setRoleFilter("all"); setStatFilter("all"); }} />
-        <StatTile label="Employés" value={employees} icon="user" color="#059669"
-          sub="Personnel de terrain"
-          active={roleFilter === "employee"}
-          onClick={() => setRoleFilter(r => r === "employee" ? "all" : "employee")} />
-        <StatTile label="Techniciens" value={techs} icon="tag" color="#D97706"
-          sub="Équipe maintenance"
-          active={roleFilter === "technician"}
-          onClick={() => setRoleFilter(r => r === "technician" ? "all" : "technician")} />
-        <StatTile label="Admins & Managers" value={admins} icon="lock" color="#7C3AED"
-          sub="Accès privilégiés"
-          active={isAdminManagerFilter}
-          onClick={() => setRoleFilter(r => (r === "admin" || r === "manager") ? "all" : "admin")} />
+        <StatTile label="Tous les utilisateurs" value={total} icon="users2" color="#1D4ED8" sub={`${total} comptes créés`} active={roleFilter === "all" && statFilter === "all"} onClick={() => { setRoleFilter("all"); setStatFilter("all"); }} />
+        <StatTile label="Employés"              value={employees} icon="user" color="#059669" sub="Personnel de terrain" active={roleFilter === "employee"} onClick={() => setRoleFilter(r => r === "employee" ? "all" : "employee")} />
+        <StatTile label="Techniciens"           value={techs} icon="tag" color="#D97706" sub="Équipe maintenance" active={roleFilter === "technician"} onClick={() => setRoleFilter(r => r === "technician" ? "all" : "technician")} />
+        <StatTile label="Admins & Managers"     value={admins} icon="lock" color="#7C3AED" sub="Accès privilégiés" active={roleFilter === "admin" || roleFilter === "manager"} onClick={() => setRoleFilter(r => (r === "admin" || r === "manager") ? "all" : "admin")} />
       </div>
 
-      {/* ── Toolbar ── */}
       <div className="ft-toolbar">
         <div className="ft-toolbar__search">
           <span className="ft-toolbar__search-icon"><Ico k="search" size={15} /></span>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            className="ft-input" placeholder="Rechercher nom ou email…"
-            style={{ paddingLeft:34, maxWidth:320 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} className="ft-input" placeholder="Rechercher nom ou email…" style={{ paddingLeft:34, maxWidth:320 }} />
         </div>
-
         <div className="ft-toolbar__divider" />
-
-        {/* Pills rôle */}
         <div className="ft-pills">
-          {[
-            ["all", "Tous"],
-            ...Object.entries(ROLE_META).map(([k, v]) => [k, v.label]),
-          ].map(([val, lbl]) => {
-            const isActive     = val === "all" ? roleFilter === "all"
-              : val === "admin" ? isAdminManagerFilter : roleFilter === val;
-            const activeColor  = val === "all" ? "#1D4ED8" : ROLE_META[val]?.color  || "#1D4ED8";
-            const activeBg     = val === "all" ? "#EFF6FF" : ROLE_META[val]?.bg     || "#EFF6FF";
-            const activeBorder = val === "all" ? "#BFDBFE" : ROLE_META[val]?.border || "#BFDBFE";
+          {[["all","Tous"], ...Object.entries(ROLE_META).map(([k,v]) => [k,v.label])].map(([val,lbl]) => {
+            const isActive    = val === "all" ? roleFilter === "all" : roleFilter === val;
+            const activeColor = val === "all" ? "#1D4ED8" : ROLE_META[val]?.color  || "#1D4ED8";
+            const activeBg    = val === "all" ? "#EFF6FF" : ROLE_META[val]?.bg     || "#EFF6FF";
+            const activeBorder= val === "all" ? "#BFDBFE" : ROLE_META[val]?.border || "#BFDBFE";
             return (
               <button key={val} onClick={() => setRoleFilter(val)} className="ft-pill"
-                style={{
-                  border:     `1.5px solid ${isActive ? activeBorder : "#E2E8F0"}`,
-                  background: isActive ? activeBg    : "transparent",
-                  color:      isActive ? activeColor : "#64748B",
-                }}>
+                style={{ border:`1.5px solid ${isActive ? activeBorder : "#E2E8F0"}`, background:isActive ? activeBg : "transparent", color:isActive ? activeColor : "#64748B" }}>
                 {lbl}
               </button>
             );
           })}
         </div>
-
-        {/* Filtre statut */}
         <div className="ft-status-filters">
           {[
             { val:"all",     label:"Tous",     dot:null,      border:"#BFDBFE", bg:"#EFF6FF", color:"#1D4ED8" },
@@ -486,98 +392,74 @@ export default function Users() {
             { val:"inactif", label:"Inactifs", dot:"#CBD5E1", border:"#E2E8F0", bg:"#F8FAFC", color:"#64748B" },
           ].map(({ val, label, dot, border, bg, color }) => (
             <button key={val} onClick={() => setStatFilter(val)} className="ft-status-btn"
-              style={{
-                border:     `1.5px solid ${statFilter === val ? border : "#E2E8F0"}`,
-                background: statFilter === val ? bg    : "#fff",
-                color:      statFilter === val ? color : "#94A3B8",
-                boxShadow:  statFilter === val ? "0 1px 4px rgba(0,0,0,.08)" : "none",
-              }}>
-              {dot && (
-                <span
-                  className={`ft-status-btn__dot${val === "actif" && statFilter === "actif" ? " ft-status-btn__dot--pulse" : ""}`}
-                  style={{ background:dot }} />
-              )}
+              style={{ border:`1.5px solid ${statFilter === val ? border : "#E2E8F0"}`, background:statFilter === val ? bg : "#fff", color:statFilter === val ? color : "#94A3B8" }}>
+              {dot && <span className="ft-status-btn__dot" style={{ background:dot }} />}
               {label}
-              <span className="ft-status-btn__count"
-                style={{
-                  background: statFilter === val ? border : "#F1F5F9",
-                  color:      statFilter === val ? color  : "#94A3B8",
-                }}>
-                {val === "all" ? users.length : users.filter(u => u.statut === val).length}
+              <span className="ft-status-btn__count" style={{ background:statFilter === val ? border : "#F1F5F9", color:statFilter === val ? color : "#94A3B8" }}>
+                {val === "all" ? users.length : users.filter(u => val === "actif" ? u.actif !== false : u.actif === false).length}
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Tableau ── */}
       <div className="ft-table-card">
         <div className="ft-table-scroll">
           <table className="ft-table">
             <thead>
               <tr>
-                <th col="nom">Utilisateur</th>
-                <th col="email">Email</th>
-                <th col="role">Rôle</th>
-                <th col="dateCreation">Créé le</th>
-                <th>Actions</th>
+                <th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Créé le</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                [1,2,3,4,5].map(i => (
+                  <tr key={i}>
+                    {[1,2,3,4,5].map(j => (
+                      <td key={j} className="ft-td">
+                        <div style={{ height:16, borderRadius:6, background:"#F1F5F9" }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="ft-td">
                     <div className="ft-empty">
                       <div className="ft-empty__inner">
-                        <div className="ft-empty__icon">
-                          <Ico k="search" size={22} color="#CBD5E1" />
-                        </div>
+                        <div className="ft-empty__icon"><Ico k="search" size={22} color="#CBD5E1" /></div>
                         <p className="ft-empty__text">Aucun résultat</p>
-                        <button className="ft-empty__reset" onClick={resetFilters}>
-                          Réinitialiser les filtres
-                        </button>
+                        <button className="ft-empty__reset" onClick={resetFilters}>Réinitialiser les filtres</button>
                       </div>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filtered.map((u, i) => (
-                  <tr key={u.id} className="ft-row" style={{ animationDelay:`${i * 20}ms` }}>
-
-                    {/* Colonne utilisateur : badge statut AU-DESSUS du nom */}
+                  <tr key={u._id || u.id} className="ft-row" style={{ animationDelay:`${i * 20}ms` }}>
                     <td className="ft-td">
                       <div className="ft-user-cell">
                         <Avatar name={u.nom} role={u.role} />
                         <div className="ft-user-info">
                           <p className="ft-user-name">{u.nom}</p>
-                          <StatusBadge statut={u.statut} />
+                          <StatusBadge actif={u.actif !== false} />
                         </div>
                       </div>
                     </td>
-
-                    <td className="ft-td">
-                      <span className="ft-email">{u.email}</span>
-                    </td>
-
-                    <td className="ft-td">
-                      <RoleChip role={u.role} />
-                    </td>
-
-                    <td className="ft-td">
-                      <span className="ft-date">{fmtDate(u.dateCreation)}</span>
-                    </td>
-
+                    <td className="ft-td"><span className="ft-email">{u.email}</span></td>
+                    <td className="ft-td"><RoleChip role={u.role} /></td>
+                    <td className="ft-td"><span className="ft-date">{fmtDate(u.createdAt || u.dateCreation)}</span></td>
                     <td className="ft-td">
                       <div className="ft-actions">
                         <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })}>
                           <Ico k="edit" size={12} /> Modifier
                         </button>
                         <button
-                          className={u.statut === "actif" ? "ft-btn-deactivate" : "ft-btn-activate"}
+                          className={u.actif !== false ? "ft-btn-deactivate" : "ft-btn-activate"}
                           onClick={() => setConfirmUser(u)}
                         >
-                          <Ico k={u.statut === "actif" ? "block" : "check"} size={12} />
-                          {u.statut === "actif" ? "Désactiver" : "Réactiver"}
+                          <Ico k={u.actif !== false ? "block" : "check"} size={12} />
+                          {u.actif !== false ? "Désactiver" : "Réactiver"}
                         </button>
                       </div>
                     </td>
@@ -602,20 +484,14 @@ export default function Users() {
         </div>
       </div>
 
-      {/* ── Modals ── */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)}
-        title="Ajouter un utilisateur" subtitle="Créer un nouveau compte sur FixTrack.">
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un utilisateur" subtitle="Créer un nouveau compte sur FixTrack.">
         <UserForm isEdit={false} onSubmit={handleAdd} onCancel={() => setAddOpen(false)} />
       </Modal>
 
-      <Modal open={!!editUser} onClose={() => setEditUser(null)}
-        title="Modifier le profil"
-        subtitle={editUser ? `Modification de ${editUser.nom}` : ""}>
+      <Modal open={!!editUser} onClose={() => setEditUser(null)} title="Modifier le profil" subtitle={editUser ? `Modification de ${editUser.nom}` : ""}>
         {editUser && (
-          <UserForm isEdit
-            initial={{ nom:editUser.nom, email:editUser.email, password:"", role:editUser.role }}
-            onSubmit={handleEdit}
-            onCancel={() => setEditUser(null)} />
+          <UserForm isEdit initial={{ nom:editUser.nom, email:editUser.email, password:"", role:editUser.role }}
+            onSubmit={handleEdit} onCancel={() => setEditUser(null)} />
         )}
       </Modal>
 
