@@ -1,35 +1,30 @@
 // src/components/layout/AccountSettingsModal.jsx
-// ─────────────────────────────────────────────────────────────
-//  Modale "Paramètres du compte" — accessible à tous les rôles
-//  Props : open, onClose, user
-// ─────────────────────────────────────────────────────────────
-
-import React, { useState, useEffect } from "react";
+// ── Branché API — AUCUN changement design ─────────────────────────────────────
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogActions,
   Box, Typography, Avatar, IconButton,
   TextField, Button, InputAdornment, alpha,
 } from "@mui/material";
+import { userService } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
-// ── Icônes SVG inline ─────────────────────────────────────────────────────────
 const Ico = {
-  close:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  user:    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  lock:    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-  eye:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  eyeOff:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
-  check:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  close:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  user:   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  lock:   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  eye:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  check:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
 };
 
-// ── Métadonnées des rôles ─────────────────────────────────────────────────────
 const ROLE_META = {
-  employee:   { label: "Utilisateur",        color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  employee:   { label: "Utilisateur",    color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
 };
 
-// ── Tokens visuels (synchronisés avec Layout) ─────────────────────────────────
 const T = {
   accent:      "#2563EB",
   accentHover: "#1d4ed8",
@@ -43,92 +38,94 @@ const T = {
   textMuted:   "#94A3B8",
 };
 
-// ── Style partagé des TextField ───────────────────────────────────────────────
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: "8px",
-    backgroundColor: "#FFFFFF",
-    "& fieldset":           { borderColor: "#E2E8F0" },
-    "&:hover fieldset":     { borderColor: "#94A3B8" },
+    borderRadius: "8px", backgroundColor: "#FFFFFF",
+    "& fieldset":             { borderColor: "#E2E8F0" },
+    "&:hover fieldset":       { borderColor: "#94A3B8" },
     "&.Mui-focused fieldset": { borderColor: "#2563EB" },
   },
   "& .MuiInputLabel-root.Mui-focused": { color: "#2563EB" },
 };
 
-// ── Composant principal ───────────────────────────────────────────────────────
 export default function AccountSettingsModal({ open, onClose, user }) {
-  // Combine form state into a single object to batch updates and avoid cascading renders.
-  // This is the safer pattern recommended by React—one setState call per effect instead of many.
+  const { login } = useAuth();
+
   const [formState, setFormState] = useState({
-    tab: "profile",        // "profile" | "password"
-    name: "",
-    email: "",
-    currentPwd: "",
-    newPwd: "",
-    confirmPwd: "",
-    errors: {},
-    saved: false,
+    tab: "profile",
+    name: "", email: "",
+    currentPwd: "", newPwd: "", confirmPwd: "",
+    errors: {}, saved: false, apiError: "",
   });
-  
   const [showPwd, setShowPwd] = useState({ current: false, new: false, confirm: false });
+  const [saving,  setSaving]  = useState(false);
 
-  // Destructure for ease of use in rest of component
-  const { tab, name, email, currentPwd, newPwd, confirmPwd, errors, saved } = formState;
+  const { tab, name, email, currentPwd, newPwd, confirmPwd, errors, saved, apiError } = formState;
 
-  // Reset form state once when modal opens, using a single setState call.
-  // This avoids multiple synchronous setState calls that can trigger cascading renders.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (open) {
       setFormState({
         tab: "profile",
-        name: user?.name || "",
-        email: user?.email || "",
-        currentPwd: "",
-        newPwd: "",
-        confirmPwd: "",
-        errors: {},
-        saved: false,
+        name: user?.name || "", email: user?.email || "",
+        currentPwd: "", newPwd: "", confirmPwd: "",
+        errors: {}, saved: false, apiError: "",
       });
     }
   }, [open, user]);
 
-  // ── Validation ────────────────────────────────────────────────────────────
   const validateProfile = () => {
     const errs = {};
     if (!name.trim())  errs.name  = "Le nom est requis.";
     if (!email.trim()) errs.email = "L'e-mail est requis.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      errs.email = "Format d'e-mail invalide.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Format d'e-mail invalide.";
     return errs;
   };
 
   const validatePassword = () => {
     const errs = {};
-    if (!currentPwd)           errs.currentPwd  = "Mot de passe actuel requis.";
-    if (newPwd.length < 6)     errs.newPwd      = "Minimum 6 caractères.";
-    if (newPwd !== confirmPwd) errs.confirmPwd  = "Les mots de passe ne correspondent pas.";
+    if (!currentPwd)           errs.currentPwd = "Mot de passe actuel requis.";
+    if (newPwd.length < 6)     errs.newPwd     = "Minimum 6 caractères.";
+    if (newPwd !== confirmPwd) errs.confirmPwd = "Les mots de passe ne correspondent pas.";
     return errs;
   };
 
-  // ── Sauvegarde ────────────────────────────────────────────────────────────
-  const handleSave = () => {
+  const handleSave = async () => {
     const errs = tab === "profile" ? validateProfile() : validatePassword();
-    if (Object.keys(errs).length > 0) { setFormState(prev => ({ ...prev, errors: errs })); return; }
-
-    // TODO : remplacer par l'appel API réel
-    // tab === "profile"  → userService.updateProfile({ name, email })
-    // tab === "password" → userService.changePassword({ currentPwd, newPwd })
-    if (tab === "profile") {
-      const stored = JSON.parse(localStorage.getItem("currentUser") || "{}");
-      localStorage.setItem("currentUser", JSON.stringify({ ...stored, name, email }));
+    if (Object.keys(errs).length > 0) {
+      setFormState(prev => ({ ...prev, errors: errs }));
+      return;
     }
+    setFormState(prev => ({ ...prev, errors: {}, apiError: "" }));
+    setSaving(true);
 
-    setFormState(prev => ({ ...prev, errors: {}, saved: true }));
-    setTimeout(() => { setFormState(prev => ({ ...prev, saved: false })); onClose(); }, 1200);
+    try {
+      if (tab === "profile") {
+        // ── Appel API réel ──────────────────────────────────────────────────────
+        const updated = await userService.updateProfile({ nom: name, email });
+
+        // Mettre à jour le contexte auth + localStorage
+        const currentStored = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        const newUser = { ...currentStored, name: updated.nom || name, email: updated.email || email };
+        localStorage.setItem("currentUser", JSON.stringify(newUser));
+        login(newUser); // sync AuthContext
+      } else {
+        // ── Changement de mot de passe ──────────────────────────────────────────
+        await userService.changePassword({ currentPassword: currentPwd, newPassword: newPwd });
+      }
+
+      setFormState(prev => ({ ...prev, saved: true }));
+      setTimeout(() => {
+        setFormState(prev => ({ ...prev, saved: false }));
+        onClose();
+      }, 1200);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Une erreur est survenue.";
+      setFormState(prev => ({ ...prev, apiError: msg }));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // ── Indicateur force du mot de passe ─────────────────────────────────────
   const pwdStrength = (() => {
     if (!newPwd) return 0;
     let s = 0;
@@ -138,12 +135,11 @@ export default function AccountSettingsModal({ open, onClose, user }) {
     if (/[^A-Za-z0-9]/.test(newPwd)) s++;
     return s;
   })();
-  const strengthMeta = [
-    null,
-    { label: "Faible",  color: "#EF4444" },
-    { label: "Moyen",   color: "#F59E0B" },
-    { label: "Bon",     color: "#3B82F6" },
-    { label: "Fort",    color: "#22C55E" },
+  const strengthMeta = [null,
+    { label: "Faible", color: "#EF4444" },
+    { label: "Moyen",  color: "#F59E0B" },
+    { label: "Bon",    color: "#3B82F6" },
+    { label: "Fort",   color: "#22C55E" },
   ][pwdStrength];
 
   const togglePwd = (field) => setShowPwd(p => ({ ...p, [field]: !p[field] }));
@@ -152,259 +148,102 @@ export default function AccountSettingsModal({ open, onClose, user }) {
   const initials = user?.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "14px",
-          boxShadow: "0 20px 60px rgba(15,23,42,0.15)",
-          overflow: "hidden",
-        },
-      }}
-    >
-      {/* ── En-tête dégradé ── */}
-      <Box sx={{
-        background: `linear-gradient(135deg, ${T.accent} 0%, #1d4ed8 100%)`,
-        px: 3, pt: 3, pb: 2.5,
-        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-      }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
+      PaperProps={{ sx: { borderRadius: "14px", boxShadow: "0 20px 60px rgba(15,23,42,0.15)", overflow: "hidden" } }}>
+
+      <Box sx={{ background: `linear-gradient(135deg, ${T.accent} 0%, #1d4ed8 100%)`, px: 3, pt: 3, pb: 2.5, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar sx={{
-            width: 52, height: 52, fontSize: 18, fontWeight: 700,
-            backgroundColor: "rgba(255,255,255,0.2)",
-            border: "2px solid rgba(255,255,255,0.4)",
-            color: "#fff",
-          }}>
+          <Avatar sx={{ width: 52, height: 52, fontSize: 18, fontWeight: 700, backgroundColor: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", color: "#fff" }}>
             {initials}
           </Avatar>
           <Box>
-            <Typography sx={{ fontSize: 17, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
-              Paramètres du compte
-            </Typography>
-            {/* Badge rôle dans l'en-tête */}
-            <Box sx={{
-              display: "inline-flex", alignItems: "center", gap: 0.5,
-              px: 0.9, py: 0.3, mt: 0.6, borderRadius: "5px",
-              backgroundColor: "rgba(255,255,255,0.18)",
-            }}>
+            <Typography sx={{ fontSize: 17, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>Paramètres du compte</Typography>
+            <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, px: 0.9, py: 0.3, mt: 0.6, borderRadius: "5px", backgroundColor: "rgba(255,255,255,0.18)" }}>
               <Box sx={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#fff", opacity: 0.9 }} />
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                {role.label}
-              </Typography>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{role.label}</Typography>
             </Box>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose} size="small"
-          sx={{ color: "rgba(255,255,255,0.8)", "&:hover": { color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" } }}
-        >
+        <IconButton onClick={onClose} size="small" sx={{ color: "rgba(255,255,255,0.8)", "&:hover": { color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" } }}>
           {Ico.close}
         </IconButton>
       </Box>
 
-      {/* ── Onglets ── */}
       <Box sx={{ display: "flex", borderBottom: `1px solid ${T.border}`, backgroundColor: T.sidebar }}>
-        {[
-          { id: "profile",  label: "Profil",       icon: Ico.user },
-          { id: "password", label: "Mot de passe", icon: Ico.lock },
-        ].map(t => (
-          <Box
-            key={t.id}
-            onClick={() => { setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false })); }}
-            sx={{
-              display: "flex", alignItems: "center", gap: 1,
-              px: 2.5, py: 1.5, cursor: "pointer",
-              borderBottom: tab === t.id ? `2px solid ${T.accent}` : "2px solid transparent",
-              color: tab === t.id ? T.accent : T.textMuted,
-              fontWeight: tab === t.id ? 600 : 400,
-              fontSize: 13.5,
-              transition: "all 0.15s",
-              "&:hover": { color: T.accent },
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", color: tab === t.id ? T.accent : T.textMuted }}>
-              {t.icon}
-            </Box>
+        {[{ id: "profile", label: "Profil", icon: Ico.user }, { id: "password", label: "Mot de passe", icon: Ico.lock }].map(t => (
+          <Box key={t.id} onClick={() => setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false, apiError: "" }))}
+            sx={{ display: "flex", alignItems: "center", gap: 1, px: 2.5, py: 1.5, cursor: "pointer", borderBottom: tab === t.id ? `2px solid ${T.accent}` : "2px solid transparent", color: tab === t.id ? T.accent : T.textMuted, fontWeight: tab === t.id ? 600 : 400, fontSize: 13.5, transition: "all 0.15s", "&:hover": { color: T.accent } }}>
+            <Box sx={{ display: "flex", alignItems: "center", color: tab === t.id ? T.accent : T.textMuted }}>{t.icon}</Box>
             {t.label}
           </Box>
         ))}
       </Box>
 
-      {/* ── Corps ── */}
       <DialogContent sx={{ px: 3, py: 2.5, backgroundColor: T.bg }}>
 
-        {/* Onglet Profil */}
-        {tab === "profile" && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField
-              label="Nom complet"
-              value={name}
-              onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
-              error={!!errors.name}
-              helperText={errors.name}
-              fullWidth size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.user}</Box>
-                  </InputAdornment>
-                ),
-              }}
-              sx={fieldSx}
-            />
-            <TextField
-              label="Adresse e-mail"
-              type="email"
-              value={email}
-              onChange={e => setFormState(prev => ({ ...prev, email: e.target.value }))}
-              error={!!errors.email}
-              helperText={errors.email}
-              fullWidth size="small"
-              sx={fieldSx}
-            />
-            {/* Rôle — lecture seule */}
-            <TextField
-              label="Rôle"
-              value={role.label}
-              fullWidth size="small"
-              disabled
-              helperText="Le rôle est géré par l'administrateur."
-              sx={fieldSx}
-            />
+        {/* Erreur API */}
+        {apiError && (
+          <Box sx={{ mb: 2, p: "10px 14px", borderRadius: "8px", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}>
+            <Typography sx={{ fontSize: 13, color: "#EF4444", fontWeight: 500 }}>{apiError}</Typography>
           </Box>
         )}
 
-        {/* Onglet Mot de passe */}
+        {tab === "profile" && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <TextField label="Nom complet" value={name}
+              onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
+              error={!!errors.name} helperText={errors.name} fullWidth size="small"
+              InputProps={{ startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.user}</Box></InputAdornment> }}
+              sx={fieldSx} />
+            <TextField label="Adresse e-mail" type="email" value={email}
+              onChange={e => setFormState(prev => ({ ...prev, email: e.target.value }))}
+              error={!!errors.email} helperText={errors.email} fullWidth size="small" sx={fieldSx} />
+            <TextField label="Rôle" value={role.label} fullWidth size="small" disabled
+              helperText="Le rôle est géré par l'administrateur." sx={fieldSx} />
+          </Box>
+        )}
+
         {tab === "password" && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {/* Mot de passe actuel */}
-            <TextField
-              label="Mot de passe actuel"
-              type={showPwd.current ? "text" : "password"}
-              value={currentPwd}
+            <TextField label="Mot de passe actuel" type={showPwd.current ? "text" : "password"} value={currentPwd}
               onChange={e => setFormState(prev => ({ ...prev, currentPwd: e.target.value }))}
-              error={!!errors.currentPwd}
-              helperText={errors.currentPwd}
-              fullWidth size="small"
+              error={!!errors.currentPwd} helperText={errors.currentPwd} fullWidth size="small"
               InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.lock}</Box>
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>
-                      {showPwd.current ? Ico.eyeOff : Ico.eye}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={fieldSx}
-            />
+                startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.lock}</Box></InputAdornment>,
+                endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>{showPwd.current ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment>,
+              }} sx={fieldSx} />
 
-            {/* Nouveau mot de passe */}
-            <TextField
-              label="Nouveau mot de passe"
-              type={showPwd.new ? "text" : "password"}
-              value={newPwd}
+            <TextField label="Nouveau mot de passe" type={showPwd.new ? "text" : "password"} value={newPwd}
               onChange={e => setFormState(prev => ({ ...prev, newPwd: e.target.value }))}
-              error={!!errors.newPwd}
-              helperText={errors.newPwd}
-              fullWidth size="small"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => togglePwd("new")} sx={{ color: T.textMuted }}>
-                      {showPwd.new ? Ico.eyeOff : Ico.eye}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={fieldSx}
-            />
+              error={!!errors.newPwd} helperText={errors.newPwd} fullWidth size="small"
+              InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("new")} sx={{ color: T.textMuted }}>{showPwd.new ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
+              sx={fieldSx} />
 
-            {/* Barre de force */}
             {newPwd && (
               <Box>
                 <Box sx={{ display: "flex", gap: 0.5, mb: 0.5 }}>
-                  {[1, 2, 3, 4].map(i => (
-                    <Box key={i} sx={{
-                      flex: 1, height: 4, borderRadius: 2,
-                      backgroundColor: i <= pwdStrength ? strengthMeta?.color : T.border,
-                      transition: "background-color 0.2s",
-                    }} />
-                  ))}
+                  {[1,2,3,4].map(i => <Box key={i} sx={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= pwdStrength ? strengthMeta?.color : T.border, transition: "background-color 0.2s" }} />)}
                 </Box>
-                {strengthMeta && (
-                  <Typography sx={{ fontSize: 11, color: strengthMeta.color, fontWeight: 600 }}>
-                    {strengthMeta.label}
-                  </Typography>
-                )}
+                {strengthMeta && <Typography sx={{ fontSize: 11, color: strengthMeta.color, fontWeight: 600 }}>{strengthMeta.label}</Typography>}
               </Box>
             )}
 
-            {/* Confirmation */}
-            <TextField
-              label="Confirmer le nouveau mot de passe"
-              type={showPwd.confirm ? "text" : "password"}
-              value={confirmPwd}
+            <TextField label="Confirmer le nouveau mot de passe" type={showPwd.confirm ? "text" : "password"} value={confirmPwd}
               onChange={e => setFormState(prev => ({ ...prev, confirmPwd: e.target.value }))}
-              error={!!errors.confirmPwd}
-              helperText={errors.confirmPwd}
-              fullWidth size="small"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => togglePwd("confirm")} sx={{ color: T.textMuted }}>
-                      {showPwd.confirm ? Ico.eyeOff : Ico.eye}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={fieldSx}
-            />
+              error={!!errors.confirmPwd} helperText={errors.confirmPwd} fullWidth size="small"
+              InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("confirm")} sx={{ color: T.textMuted }}>{showPwd.confirm ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
+              sx={fieldSx} />
           </Box>
         )}
       </DialogContent>
 
-      {/* ── Actions ── */}
-      <DialogActions sx={{
-        px: 3, py: 2,
-        borderTop: `1px solid ${T.border}`,
-        backgroundColor: T.sidebar,
-        gap: 1,
-      }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            borderRadius: "8px", textTransform: "none", fontWeight: 500,
-            borderColor: T.border, color: T.textSub,
-            "&:hover": { borderColor: T.textMuted, backgroundColor: T.borderLight },
-          }}
-        >
+      <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${T.border}`, backgroundColor: T.sidebar, gap: 1 }}>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 500, borderColor: T.border, color: T.textSub, "&:hover": { borderColor: T.textMuted, backgroundColor: T.borderLight } }}>
           Annuler
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={saved ? Ico.check : null}
-          sx={{
-            borderRadius: "8px", textTransform: "none", fontWeight: 600,
-            minWidth: 140,
-            backgroundColor: saved ? "#22C55E" : T.accent,
-            boxShadow: saved
-              ? "0 2px 8px rgba(34,197,94,0.35)"
-              : `0 2px 8px ${alpha(T.accent, 0.3)}`,
-            "&:hover": { backgroundColor: saved ? "#16A34A" : T.accentHover },
-            transition: "background-color 0.2s",
-          }}
-        >
-          {saved ? "Enregistré !" : "Enregistrer"}
+        <Button onClick={handleSave} variant="contained" disabled={saving || saved} startIcon={saved ? Ico.check : null}
+          sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600, minWidth: 140, backgroundColor: saved ? "#22C55E" : T.accent, boxShadow: saved ? "0 2px 8px rgba(34,197,94,0.35)" : `0 2px 8px ${alpha(T.accent, 0.3)}`, "&:hover": { backgroundColor: saved ? "#16A34A" : T.accentHover }, transition: "background-color 0.2s" }}>
+          {saving ? "Enregistrement…" : saved ? "Enregistré !" : "Enregistrer"}
         </Button>
       </DialogActions>
     </Dialog>
