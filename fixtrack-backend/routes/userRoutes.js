@@ -1,4 +1,5 @@
 // routes/userRoutes.js
+// IMPORTANT : /profile et /password AVANT /:id pour éviter le conflit
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
@@ -7,12 +8,18 @@ const {
   getAllUsers,
   getTechnicians,
   getUserById,
-  updateUserRole,
   updateUser,
+  updateRole,
   deleteUser,
+  updateProfile,
+  changePassword,
 } = require("../controllers/userController");
 
-// GET /api/users/technicians  (managers + admins)
+// ── Routes du profil connecté (pas de rôle requis, juste auth) ───────────────
+router.put("/profile", auth, updateProfile); // ← AVANT /:id
+router.put("/password", auth, changePassword); // ← AVANT /:id
+
+// ── Routes publiques (pour la liste des techniciens — manager/admin) ─────────
 router.get(
   "/technicians",
   auth,
@@ -20,19 +27,11 @@ router.get(
   getTechnicians,
 );
 
-// GET /api/users  (admin only)
+// ── Routes admin ─────────────────────────────────────────────────────────────
 router.get("/", auth, roleCheck(["admin"]), getAllUsers);
-
-// GET /api/users/:id
-router.get("/:id", auth, getUserById);
-
-// PUT /api/users/:id/role  (admin only)
-router.put("/:id/role", auth, roleCheck(["admin"]), updateUserRole);
-
-// PUT /api/users/:id
-router.put("/:id", auth, updateUser);
-
-// DELETE /api/users/:id  (admin only — soft delete)
+router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
+router.put("/:id", auth, roleCheck(["admin"]), updateUser);
+router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);
 router.delete("/:id", auth, roleCheck(["admin"]), deleteUser);
 
 module.exports = router;
