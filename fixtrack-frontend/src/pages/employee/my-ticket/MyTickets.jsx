@@ -83,8 +83,8 @@ export default function MyTickets() {
     const fetchTickets = async () => {
       setLoading(true);
       try {
-        const { data } = await ticketService.getAll();
-        setTickets(data || []);
+        const tickets = await ticketService.getAll();
+setTickets(tickets || []);
       } catch (err) {
         setError("Impossible de charger les tickets. Vérifiez votre connexion.");
         console.error(err);

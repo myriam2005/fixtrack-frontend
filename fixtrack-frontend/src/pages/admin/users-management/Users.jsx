@@ -232,8 +232,8 @@ export default function Users() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const { data } = await userService.getAll();
-        setUsers(data || []);
+        const users = await userService.getAll();
+setUsers(users || []);
       } catch (err) {
         setError("Impossible de charger les utilisateurs.");
         console.error(err);

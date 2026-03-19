@@ -321,12 +321,12 @@ export default function EmpDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [ticketsRes, notifsRes] = await Promise.all([
-          ticketService.getAll(),
-          notificationService.getAll(),
-        ]);
-        setMyTickets(ticketsRes.data || []);
-        setNotifications((notifsRes.data || []).slice(0, 4));
+      const [tickets, notifs] = await Promise.all([
+  ticketService.getAll(),
+  notificationService.getAll(),
+]);
+setMyTickets(tickets || []);
+setNotifications((notifs || []).slice(0, 4));
       } catch (err) {
         console.error("Erreur chargement dashboard:", err);
       } finally {

@@ -1,15 +1,19 @@
 // src/pages/technician/Dashboard.jsx
-import { useMemo, useState } from "react";
+// ✅ VERSION BACKEND — suppression mockData, données réelles via API
+
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge from "../../components/common/badge/Badge";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import {  DashboardHeader, KpiCard } from "../../components/common/dashboard/DashboardShared";
+import { DashboardHeader, KpiCard } from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
-import { tickets, users } from "../../data/mockData";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
-import DetailTicket from "../ticketDetails"// ── Config priorités ──────────────────────────────────────────────────────────
+import { ticketService } from "../../services/api";
+import DetailTicket from "../ticketDetails";
+
+// ── Config priorités ──────────────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444",
   high:     "#F59E0B",
@@ -25,22 +29,21 @@ const FILTER_TABS = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const formatId = (id) => `FT-${id.replace(/\D/g, "").padStart(3, "0")}`;
+const formatId = (id) =>
+  `FT-${(id || "").toString().slice(-6).toUpperCase()}`;
 
 const heuresDepuis = (dateStr) =>
   Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60));
 
-const estTermineAujourdhui = (ticket) => {
-  if (!["resolved", "closed"].includes(ticket.statut)) return false;
-  return new Date(ticket.dateCreation).toDateString() === new Date().toDateString();
-};
-
 // ── TicketRow ─────────────────────────────────────────────────────────────────
 function TicketRow({ ticket, isLast, onNavigate }) {
+  // ✅ Utilise createdAt (backend) au lieu de dateCreation (mockData)
+  const dateField = ticket.createdAt || ticket.dateCreation;
+
   const isCriticalLate =
     ticket.priorite === "critical" &&
     !["resolved", "closed"].includes(ticket.statut) &&
-    heuresDepuis(ticket.dateCreation) > 24;
+    heuresDepuis(dateField) > 24;
 
   return (
     <>
@@ -90,15 +93,14 @@ function TicketRow({ ticket, isLast, onNavigate }) {
             flexWrap: "wrap",
           }}>
             <Typography sx={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace", fontWeight: 600 }}>
-              {formatId(ticket.id)}
+              {formatId(ticket._id || ticket.id)}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
               {DashboardIcon.calendar}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>
-                {formatDate(ticket.dateCreation)}
+                {formatDate(dateField)}
               </Typography>
             </Box>
-            {/* Localisation inline — sm+ only */}
             {ticket.localisation && (
               <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", gap: "3px" }}>
                 {DashboardIcon.pin}
@@ -133,7 +135,7 @@ function TicketRow({ ticket, isLast, onNavigate }) {
             )}
           </Box>
 
-          {/* Localisation — mobile only, below badges */}
+          {/* Localisation — mobile only */}
           {ticket.localisation && (
             <Box sx={{
               display: { xs: "flex", sm: "none" },
@@ -155,7 +157,7 @@ function TicketRow({ ticket, isLast, onNavigate }) {
 
         {/* Voir détails → */}
         <Box
-          onClick={() => onNavigate(ticket.id)}
+          onClick={() => onNavigate(ticket._id || ticket.id)}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -171,7 +173,6 @@ function TicketRow({ ticket, isLast, onNavigate }) {
             "&:hover": { color: "#1D4ED8", gap: "6px" },
           }}
         >
-          {/* Text hidden on xs, shown on sm+ */}
           <Typography sx={{
             fontSize: "13px",
             fontWeight: 600,
@@ -194,35 +195,51 @@ function TicketRow({ ticket, isLast, onNavigate }) {
 export default function TechnicianDashboard() {
   const navigate           = useNavigate();
   const { user: authUser } = useAuth();
-  const [activeFilter, setActiveFilter] = useState("all");
-const [selectedTicketId, setSelectedTicketId] = useState(null);
-  const mockUser = useMemo(
-    () => users.find((u) => u.email === authUser?.email) ?? users.find((u) => u.role === "technician") ?? users[1],
-    [authUser?.email]
-  );
 
-  const myTickets = useMemo(
-    () => tickets.filter((t) => t.technicienId === mockUser?.id),
-    [mockUser?.id]
-  );
+  const [activeFilter,     setActiveFilter]     = useState("all");
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
 
+  // ✅ États backend
+  const [myTickets, setMyTickets] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+
+  // ✅ Fetch tickets depuis le backend
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setLoading(true);
+      try {
+        // Le backend filtre automatiquement par technicienId grâce au middleware auth
+        const tickets = await ticketService.getAll();
+        setMyTickets(tickets || []);
+      } catch (err) {
+        console.error("Erreur dashboard technicien:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
+
+  // ✅ Utilise createdAt (backend) au lieu de dateCreation (mockData)
   const aFaireCount   = myTickets.filter(t => ["open", "assigned"].includes(t.statut)).length;
   const enCoursCount  = myTickets.filter(t => t.statut === "in_progress").length;
-  const terminesCount = myTickets.filter(t => estTermineAujourdhui(t)).length;
+  const terminesCount = myTickets.filter(t => ["resolved", "closed"].includes(t.statut)).length;
 
   const alertesCritiques = useMemo(() =>
     myTickets.filter(t =>
       t.priorite === "critical" &&
       !["resolved", "closed"].includes(t.statut) &&
-      heuresDepuis(t.dateCreation) > 24
+      heuresDepuis(t.createdAt || t.dateCreation) > 24
     ), [myTickets]
   );
 
   const filteredTickets = useMemo(() => {
-    const sorted = [...myTickets].sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
+    const sorted = [...myTickets].sort((a, b) =>
+      new Date(b.createdAt || b.dateCreation) - new Date(a.createdAt || a.dateCreation)
+    );
     if (activeFilter === "assigned")    return sorted.filter(t => t.statut === "assigned");
     if (activeFilter === "in_progress") return sorted.filter(t => t.statut === "in_progress");
-    if (activeFilter === "resolved")    return sorted.filter(t => ["resolved","closed"].includes(t.statut));
+    if (activeFilter === "resolved")    return sorted.filter(t => ["resolved", "closed"].includes(t.statut));
     return sorted.slice(0, 5);
   }, [myTickets, activeFilter]);
 
@@ -230,13 +247,12 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
     all:         myTickets.length,
     assigned:    myTickets.filter(t => t.statut === "assigned").length,
     in_progress: enCoursCount,
-    resolved:    myTickets.filter(t => ["resolved","closed"].includes(t.statut)).length,
+    resolved:    terminesCount,
   };
 
-  const firstName = (authUser?.name || mockUser?.nom || "").split(" ")[0];
-  const greeting  = getGreeting();
+  const firstName = (authUser?.nom || authUser?.name || "").split(" ")[0];
 
-  if (!mockUser) {
+  if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
         <LoadingSpinner />
@@ -249,7 +265,7 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
 
       {/* ── Header ── */}
       <DashboardHeader
-        greeting={greeting}
+        greeting={getGreeting()}
         firstName={firstName}
         subtitle="Voici vos activités de maintenance"
       />
@@ -288,13 +304,13 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", ml: { xs: 0, sm: "36px" } }}>
             {alertesCritiques.map(t => (
-              <Box key={t.id} sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+              <Box key={t._id || t.id} sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                 <Box sx={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#EF4444", flexShrink: 0 }} />
                 <Typography sx={{ fontSize: "12px", color: "#7F1D1D", flex: 1, minWidth: 0 }}>
-                  <strong>{formatId(t.id)}</strong> — {t.titre}
+                  <strong>{formatId(t._id || t.id)}</strong> — {t.titre}
                 </Typography>
                 <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#EF4444", whiteSpace: "nowrap" }}>
-                  {Math.floor(heuresDepuis(t.dateCreation) / 24)}j de retard
+                  {Math.floor(heuresDepuis(t.createdAt || t.dateCreation) / 24)}j de retard
                 </Typography>
               </Box>
             ))}
@@ -302,7 +318,7 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
         </Box>
       )}
 
-      {/* ── KPI Cards ── 1 col mobile / 3 col desktop ── */}
+      {/* ── KPI Cards ── */}
       <Box sx={{
         display: "grid",
         gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
@@ -327,7 +343,7 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
         />
         <KpiCard
           icon={DashboardIcon.check}
-          label="Résolus ce mois"
+          label="Résolus"
           count={terminesCount}
           color="#22C55E"
           bgColor="#F0FDF4"
@@ -376,7 +392,7 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
             </Box>
           </Box>
 
-          {/* Onglets — scrollable horizontalement sur mobile */}
+          {/* Onglets */}
           <Box sx={{
             display: "flex",
             gap: { xs: "2px", sm: "4px" },
@@ -387,7 +403,7 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
           }}>
             {FILTER_TABS.map((tab) => {
               const isActive = activeFilter === tab.key;
-              const count = tabCounts[tab.key] ?? 0;
+              const count    = tabCounts[tab.key] ?? 0;
               return (
                 <Box
                   key={tab.key}
@@ -448,17 +464,17 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
           ) : (
             filteredTickets.map((ticket, index) => (
               <TicketRow
-                key={ticket.id}
+                key={ticket._id || ticket.id}
                 ticket={ticket}
                 isLast={index === filteredTickets.length - 1}
-              onNavigate={(id) => setSelectedTicketId(id)}
+                onNavigate={(id) => setSelectedTicketId(id)}
               />
             ))
           )}
         </Box>
 
         {/* Lien voir tous */}
-        {activeFilter === "all" && myTickets.length > 2 && (
+        {activeFilter === "all" && myTickets.length > 5 && (
           <Box sx={{
             borderTop: "1px solid #F3F4F6",
             padding: { xs: "10px 16px", sm: "12px 24px" },
@@ -478,12 +494,15 @@ const [selectedTicketId, setSelectedTicketId] = useState(null);
         )}
 
       </Paper>
+
+      {/* ── Détail ticket modal ── */}
       {selectedTicketId && (
-  <DetailTicket
-    ticketId={selectedTicketId}
-    onClose={() => setSelectedTicketId(null)}
-  />
-)}
+        <DetailTicket
+          ticketId={selectedTicketId}
+          onClose={() => setSelectedTicketId(null)}
+        />
+      )}
+
     </Box>
   );
 }

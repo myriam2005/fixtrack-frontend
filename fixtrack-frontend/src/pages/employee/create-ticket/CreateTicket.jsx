@@ -234,37 +234,36 @@ export default function CreateTicket() {
 
   const goBack = () => { setDir("back"); setStep(prev => prev - 1); };
 
-  // ✅ Soumission réelle vers le backend
-  const handleSubmit = async () => {
-    setLoading(true);
-    setApiError("");
+const handleSubmit = async () => {
+  setLoading(true);
+  setApiError("");
 
-    const cat = form.categorie === "Autre"
-      ? `Autre — ${form.categorieAutre.trim()}`
-      : form.categorie;
+  const cat = form.categorie === "Autre"
+    ? `Autre — ${form.categorieAutre.trim()}`
+    : form.categorie;
 
-    try {
-      const payload = {
-        titre:        form.titre.trim(),
-        description:  form.description.trim(),
-        categorie:    cat,
-        localisation: form.localisation.trim(),
-        urgence:      form.urgence,      // utilisé par l'IA backend pour calculer la priorité
-        auteurTel:    form.telephone.trim() || null,
-      };
+  try {
+    const payload = {
+      titre:        form.titre.trim(),
+      description:  form.description.trim(),
+      categorie:    cat,
+      localisation: form.localisation.trim(),
+      urgence:      form.urgence,
+      auteurTel:    form.telephone.trim() || null,
+    };
+    const ticket = await ticketService.create(payload);
+    setCreatedId(ticket._id);
+    setSuccess(true);
 
-      const { data } = await ticketService.create(payload);
-      setCreatedId(data._id);
-      setSuccess(true);
-    } catch (err) {
-      const msg = err.response?.data?.message
-        || err.response?.data?.errors?.[0]?.msg
-        || "Erreur lors de la soumission. Réessayez.";
-      setApiError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    const msg = err.response?.data?.message
+      || err.response?.data?.errors?.[0]?.msg
+      || "Erreur lors de la soumission. Réessayez.";
+    setApiError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const animCls   = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
   const stepProps = { form, errors, set, animCls };

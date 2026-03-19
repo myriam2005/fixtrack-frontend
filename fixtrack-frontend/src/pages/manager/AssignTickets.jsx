@@ -118,12 +118,12 @@ export default function AssignTicket() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [tRes, techRes] = await Promise.all([
-          ticketService.getAll(),
-          userService.getTechnicians(),
-        ]);
-        setTickets(tRes.data || []);
-        setTechs(techRes.data || []);
+       const [tickets, techs] = await Promise.all([
+  ticketService.getAll(),
+  userService.getTechnicians(),
+]);
+setTickets(tickets || []);
+setTechs(techs || []);
       } catch (err) {
         console.error(err);
       } finally {

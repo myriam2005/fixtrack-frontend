@@ -245,10 +245,10 @@ export default function TeamPerformance() {
 
   useEffect(() => {
     Promise.all([ticketService.getAll(), userService.getAll()])
-      .then(([t, u]) => {
-        setTickets(t.map(x => ({ ...x, id: x._id || x.id })));
-        setUsers(u.map(x => ({ ...x, id: x._id || x.id })));
-      })
+  .then(([t, u]) => {
+    setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
+    setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
+  })
       .catch(console.error);
   }, []);
 

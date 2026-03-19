@@ -352,14 +352,12 @@ export default function MgrDashboard() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [ticketsRes, techsRes, statsRes] = await Promise.all([
-          ticketService.getAll(),
-          userService.getTechnicians(),
-          statsService.manager(),
-        ]);
-        setAllTickets(ticketsRes.data || []);
-        setTechniciens(techsRes.data || []);
-        setStats(statsRes.data || null);
+       const [tickets, techs] = await Promise.all([
+  ticketService.getAll(),
+  userService.getTechnicians(),
+]);
+setAllTickets(tickets || []);
+setTechniciens(techs || []);
       } catch (err) {
         console.error("Erreur dashboard manager:", err);
       } finally {
