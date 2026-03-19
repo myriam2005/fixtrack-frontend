@@ -420,14 +420,39 @@ exports.validateTicket = async (req, res) => {
       `Clôturé: "${ticket.titre}"`,
       req.user.id,
     );
+
+    // ✅ Notifie le technicien
     if (ticket.technicienId) {
       await sendNotification({
         userId: ticket.technicienId,
-        message: `Ticket "${ticket.titre}" validé.`,
+        message: `Ticket "${ticket.titre}" validé et clôturé.`,
         type: "ticket_validated",
         ticketId: ticket._id,
       });
     }
+
+    // ✅ Notifie l'auteur du ticket (employé)
+    if (ticket.auteurId) {
+      await sendNotification({
+        userId: ticket.auteurId,
+        message: `Votre ticket "${ticket.titre}" a été validé et clôturé.`,
+        type: "ticket_validated",
+        ticketId: ticket._id,
+      });
+    }
+
+    // ✅ Notifie les admins
+    const admins = await User.find({ role: "admin", actif: true });
+    await Promise.all(
+      admins.map((a) =>
+        sendNotification({
+          userId: a._id,
+          message: `Ticket "${ticket.titre}" validé par le manager.`,
+          type: "ticket_validated",
+          ticketId: ticket._id,
+        }),
+      ),
+    );
 
     const updated = await Ticket.findById(ticket._id)
       .populate("auteurId", "nom email")
