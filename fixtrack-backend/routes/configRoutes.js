@@ -20,20 +20,18 @@ const Category =
   mongoose.models.Category || mongoose.model("Category", categorySchema);
 
 // ── GET /api/config/categories ───────────────────────────────────────────────
+// ── GET /api/config/categories ───────────────────────────────────────────────
 router.get("/categories", auth, async (req, res) => {
   try {
-    const { Ticket } = require("../models/Ticket");
+    // ✅ Import direct sans destructuring
+    const Ticket = require("../models/Ticket");
     const cats = await Category.find().sort({ nom: 1 });
 
-    // Enrichir avec le nombre de tickets par catégorie
     const enriched = await Promise.all(
       cats.map(async (cat) => {
-        let nombreTickets = 0;
-        try {
-          nombreTickets = await Ticket.countDocuments({ categorie: cat.nom });
-        } catch {
-          /* Ticket model may not exist yet */
-        }
+        const nombreTickets = await Ticket.countDocuments({
+          categorie: cat.nom,
+        });
         return { ...cat.toObject(), _id: cat._id, nombreTickets };
       }),
     );

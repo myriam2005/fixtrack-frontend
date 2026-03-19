@@ -40,7 +40,8 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/stats", require("./routes/statsRoutes"));
 app.use("/api/export", require("./routes/exportRoutes"));
 app.use("/api/config", require("./routes/configRoutes"));
-
+const configRoutes = require("./routes/configRoutes");
+app.use("/api/config", configRoutes);
 app.get("/", (req, res) =>
   res.json({ message: "🚀 FixTrack API is running!", status: "OK" }),
 );
