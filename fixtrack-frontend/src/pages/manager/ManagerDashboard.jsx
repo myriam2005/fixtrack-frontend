@@ -9,9 +9,8 @@ import { DashboardHeader, KpiCard } from "../../components/common/dashboard/Dash
 import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
-import { ticketService, userService, statsService } from "../../services/api";
+import { ticketService, userService } from "../../services/api";
 
-// ── Constantes ────────────────────────────────────────────────────────────────
 const PRIORITY_BORDER = {
   critical: "#EF4444", high: "#F97316", medium: "#3B82F6", low: "#D1D5DB",
 };
@@ -57,7 +56,6 @@ if (typeof document !== "undefined" && !document.getElementById("mgr-dash-styles
 
 const NOW = Date.now();
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton({ h = 20, w = "100%", mb = 0, br = 8 }) {
   return (
     <Box sx={{
@@ -69,7 +67,6 @@ function Skeleton({ h = 20, w = "100%", mb = 0, br = 8 }) {
   );
 }
 
-// ── Feature 1 : Tickets non assignés en urgence ────────────────────────────────
 function UnassignedUrgentPanel({ unassignedTickets, techCount }) {
   const getDaysAgo = (dateStr) => {
     const diff = NOW - new Date(dateStr).getTime();
@@ -142,7 +139,6 @@ function UnassignedUrgentPanel({ unassignedTickets, techCount }) {
   );
 }
 
-// ── Feature 2 : Comparaison charge techniciens ─────────────────────────────────
 function TechComparisonPanel({ techniciens, allTickets }) {
   const [selected, setSelected] = useState(null);
 
@@ -228,7 +224,6 @@ function TechComparisonPanel({ techniciens, allTickets }) {
   );
 }
 
-// ── Feature 3 : Heatmap catégories ────────────────────────────────────────────
 function CategoryHeatmap({ allTickets }) {
   const [hovered, setHovered] = useState(null);
   const data = useMemo(() => {
@@ -283,7 +278,6 @@ function CategoryHeatmap({ allTickets }) {
   );
 }
 
-// ── Ligne ticket récent ────────────────────────────────────────────────────────
 function RecentTicketRow({ ticket, isLast, index }) {
   const tech     = ticket.technicienId;
   const techName = tech ? (tech.nom || "—").split(" ")[0] : null;
@@ -339,27 +333,25 @@ function RecentTicketRow({ ticket, isLast, index }) {
   );
 }
 
-// ── Page principale ────────────────────────────────────────────────────────────
 export default function MgrDashboard() {
   const { user: authUser } = useAuth();
 
   const [allTickets,  setAllTickets]  = useState([]);
   const [techniciens, setTechniciens] = useState([]);
-  const [stats,       setStats]       = useState(null);
   const [loading,     setLoading]     = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-       const [tickets, techs] = await Promise.all([
-  ticketService.getAll(),
-  userService.getTechnicians(),
-]);
-setAllTickets(tickets || []);
-setTechniciens(techs || []);
-      } catch (err) {
-        console.error("Erreur dashboard manager:", err);
+        const [tickets, techs] = await Promise.all([
+          ticketService.getAll(),
+          userService.getTechnicians(),
+        ]);
+        setAllTickets(tickets || []);
+        setTechniciens(techs || []);
+      } catch {
+        // erreur silencieuse
       } finally {
         setLoading(false);
       }
@@ -403,7 +395,6 @@ setTechniciens(techs || []);
         }
       />
 
-      {/* KPI Cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4,1fr)" }, gap: { xs: "10px", sm: "14px" }, mb: "20px" }}>
         {loading ? (
           [1,2,3,4].map(i => (
@@ -423,7 +414,6 @@ setTechniciens(techs || []);
         )}
       </Box>
 
-      {/* Ligne 2 */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: "16px", mb: "20px" }}>
         <Paper elevation={0} sx={{ borderRadius: "16px", padding: "20px 22px", border: `1px solid ${unassignedUrgent.length > 0 ? "#FECACA" : "#E5E7EB"}`, backgroundColor: unassignedUrgent.length > 0 ? "#FFFAFA" : "#FFFFFF", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: unassignedUrgent.length > 0 ? "#EF4444" : "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>À assigner en urgence</Typography>
@@ -438,7 +428,6 @@ setTechniciens(techs || []);
         </Paper>
       </Box>
 
-      {/* Ligne 3 : Tickets récents */}
       <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden", mb: "20px" }}>
         <Box sx={{ padding: "16px 24px 14px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Box>
@@ -462,7 +451,6 @@ setTechniciens(techs || []);
         </Box>
       </Paper>
 
-      {/* Ligne 4 : Heatmap */}
       <Paper elevation={0} sx={{ borderRadius: "16px", padding: "20px 22px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
         <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>Incidents par catégorie</Typography>
         <Typography sx={{ fontSize: "12px", color: "#6B7280", mt: "2px" }}>Volume et répartition actifs / résolus</Typography>

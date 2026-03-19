@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import styles from "./MyTickets.module.css";
 import Badge from "../../../components/common/badge/Badge";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
-import { useAuth } from "../../../context/AuthContext";
 import { ticketService } from "../../../services/api";
 import DetailTicket from "../../ticketDetails";
 
@@ -15,7 +14,6 @@ const PRIORITE_KEYS = ["critical", "high", "medium", "low"];
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
 const IconSearch = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -51,7 +49,6 @@ const ArrowIcon = () => (
 const toggle = (arr, setArr, val) =>
   setArr((prev) => prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]);
 
-// ─── Skeleton loading ─────────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
     <tr>
@@ -65,26 +62,21 @@ function SkeletonRow() {
 }
 
 export default function MyTickets() {
-  const { user } = useAuth();
-
-  // ✅ États backend
   const [tickets,     setTickets]     = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState("");
-
   const [search,      setSearch]      = useState("");
   const [statuts,     setStatuts]     = useState([]);
   const [priorites,   setPriorites]   = useState([]);
   const [categories,  setCategories]  = useState([]);
   const [selectedId,  setSelectedId]  = useState(null);
 
-  // ✅ Fetch tickets depuis le backend
   useEffect(() => {
     const fetchTickets = async () => {
       setLoading(true);
       try {
-        const tickets = await ticketService.getAll();
-setTickets(tickets || []);
+        const data = await ticketService.getAll();
+        setTickets(data || []);
       } catch (err) {
         setError("Impossible de charger les tickets. Vérifiez votre connexion.");
         console.error(err);
@@ -121,7 +113,6 @@ setTickets(tickets || []);
 
   return (
     <div className={styles.root}>
-
       {selectedId && (
         <DetailTicket ticketId={selectedId} onClose={() => setSelectedId(null)} />
       )}
@@ -136,18 +127,12 @@ setTickets(tickets || []);
         </div>
       </div>
 
-      {/* ── Erreur ── */}
       {error && (
-        <div style={{
-          padding: "12px 16px", marginBottom: 16,
-          background: "#FEF2F2", border: "1px solid #FECACA",
-          borderRadius: 10, fontSize: 13, color: "#DC2626",
-        }}>
+        <div style={{ padding: "12px 16px", marginBottom: 16, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, fontSize: 13, color: "#DC2626" }}>
           ⚠ {error}
         </div>
       )}
 
-      {/* ── Filter panel ── */}
       <div className={styles.filterPanel}>
         <div className={styles.searchWrap}>
           <span className={styles.searchIcon}><IconSearch /></span>
@@ -222,7 +207,6 @@ setTickets(tickets || []);
         </span>
       </div>
 
-      {/* ── Desktop Table ── */}
       <div className={styles.tableWrap}>
         {loading ? (
           <table className={styles.table}>
@@ -254,7 +238,6 @@ setTickets(tickets || []);
             </thead>
             <tbody>
               {filtered.map((t, i) => {
-                // ✅ Le backend retourne technicienId populé avec { nom, avatar }
                 const tech = t.technicienId;
                 return (
                   <tr key={t._id || t.id} style={{ animationDelay: `${i * 0.04}s` }}>
@@ -294,7 +277,6 @@ setTickets(tickets || []);
         )}
       </div>
 
-      {/* ── Mobile Cards ── */}
       <div className={styles.cards}>
         {!loading && filtered.length === 0 ? (
           <div className={styles.empty}>
@@ -339,7 +321,6 @@ setTickets(tickets || []);
           })
         )}
       </div>
-
     </div>
   );
 }

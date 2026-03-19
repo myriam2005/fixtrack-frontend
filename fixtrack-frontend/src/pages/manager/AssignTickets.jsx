@@ -37,7 +37,6 @@ if (typeof document !== "undefined" && !document.getElementById("at-modal-styles
   document.head.appendChild(s);
 }
 
-// ─── TicketRow ────────────────────────────────────────────────────────────────
 function TicketRow({ ticket, tech, isLast, onAssign, index }) {
   const leftColor = PRIORITY_LEFT_COLOR[ticket.priorite] || "#E2E8F0";
   const techName  = tech?.nom || null;
@@ -101,7 +100,6 @@ function TicketRow({ ticket, tech, isLast, onAssign, index }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AssignTicket() {
   const [tickets,      setTickets]   = useState([]);
   const [techniciens,  setTechs]     = useState([]);
@@ -113,19 +111,18 @@ export default function AssignTicket() {
   const [toast,        setToast]     = useState(null);
   const [assigning,    setAssigning] = useState(false);
 
-  // ✅ Fetch
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-       const [tickets, techs] = await Promise.all([
-  ticketService.getAll(),
-  userService.getTechnicians(),
-]);
-setTickets(tickets || []);
-setTechs(techs || []);
-      } catch (err) {
-        console.error(err);
+        const [ticketsData, techs] = await Promise.all([
+          ticketService.getAll(),
+          userService.getTechnicians(),
+        ]);
+        setTickets(ticketsData || []);
+        setTechs(techs || []);
+      } catch {
+        // erreur silencieuse — les tableaux restent vides
       } finally {
         setLoading(false);
       }
@@ -135,17 +132,16 @@ setTechs(techs || []);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  // ✅ Confirmer l'assignation via API
   const confirmer = async () => {
     if (!selectedTech || !modal) return;
     const tech = techniciens.find(t => (t._id || t.id) === selectedTech);
     setAssigning(true);
     try {
-      const { data } = await ticketService.assign(modal._id || modal.id, selectedTech);
+      const data = await ticketService.assign(modal._id || modal.id, selectedTech);
       setTickets(prev => prev.map(t => (t._id || t.id) === (modal._id || modal.id) ? data : t));
       setModal(null); setSel(null);
       showToast(`Ticket assigné à ${tech?.nom}`);
-    } catch (err) {
+    } catch {
       showToast("Erreur lors de l'assignation.");
     } finally {
       setAssigning(false);
@@ -246,7 +242,6 @@ setTechs(techs || []);
         </Box>
       </div>
 
-      {/* Modal assignation */}
       {modal && (
         <div onClick={e => e.target === e.currentTarget && (setModal(null), setSel(null))} style={{ position: "fixed", inset: 0, background: "rgba(10,12,30,0.5)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, animation: "at-fadeIn .18s ease", padding: "16px" }}>
           <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 100px rgba(0,0,0,0.22)", overflow: "hidden", animation: "at-slideUp .24s cubic-bezier(.22,1,.36,1)" }}>

@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import "./Users.css";
 import { userService } from "../../../services/api";
 
-// ─── Constantes rôles ────────────────────────────────────────
 export const ROLE_META = {
   employee:   { label:"Employé",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
   technician: { label:"Technicien",     color:"#D97706", bg:"#FFFBEB", border:"#FDE68A", avatar:"#D97706" },
@@ -213,7 +212,6 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
   );
 }
 
-// ─── PAGE PRINCIPALE ─────────────────────────────────────────
 export default function Users() {
   const [users, setUsers]             = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -221,19 +219,19 @@ export default function Users() {
   const [search, setSearch]           = useState("");
   const [roleFilter, setRoleFilter]   = useState("all");
   const [statFilter, setStatFilter]   = useState("all");
-  const [sort, setSort]               = useState({ col:"createdAt", dir:"desc" });
+  // sort utilisé en lecture seule — pas de setter exposé dans l'UI pour l'instant
+  const [sort]                        = useState({ col:"createdAt", dir:"desc" });
   const [addOpen, setAddOpen]         = useState(false);
   const [editUser, setEditUser]       = useState(null);
   const [confirmUser, setConfirmUser] = useState(null);
   const [toast, setToast]             = useState(null);
 
-  // ✅ Fetch users depuis le backend
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const users = await userService.getAll();
-setUsers(users || []);
+        const data = await userService.getAll();
+        setUsers(data || []);
       } catch (err) {
         setError("Impossible de charger les utilisateurs.");
         console.error(err);
@@ -271,11 +269,8 @@ setUsers(users || []);
   const resetFilters = () => { setSearch(""); setRoleFilter("all"); setStatFilter("all"); };
   const hasFilters   = search || roleFilter !== "all" || statFilter !== "all";
 
-  // ✅ Créer un utilisateur via API
   const handleAdd = async (form) => {
     try {
-      const { data } = await userService.getAll(); // refresh après création via register
-      // On appelle register via fetch direct
       const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(localStorage.getItem("currentUser"))?.token}` },
@@ -289,12 +284,11 @@ setUsers(users || []);
       } else {
         notify(newUser.message || "Erreur lors de la création.", "warn");
       }
-    } catch (err) {
+    } catch {
       notify("Erreur lors de la création.", "warn");
     }
   };
 
-  // ✅ Modifier le rôle via API
   const handleEdit = async (form) => {
     try {
       await userService.updateRole(editUser._id, form.role);
@@ -302,34 +296,30 @@ setUsers(users || []);
       setUsers(prev => prev.map(u => u._id === editUser._id ? { ...u, ...form } : u));
       setEditUser(null);
       notify(`Profil de ${form.nom} mis à jour.`);
-    } catch (err) {
+    } catch {
       notify("Erreur lors de la modification.", "warn");
     }
   };
 
-  // ✅ Désactiver/réactiver via API (soft delete)
   const handleToggleStatus = async () => {
     try {
       if (confirmUser.actif !== false) {
-        // Désactiver
         await userService.delete(confirmUser._id);
         setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: false } : u));
         notify(`${confirmUser.nom} est maintenant inactif.`, "warn");
       } else {
-        // Réactiver — changer le rôle suffit pour réactiver (ou via update)
         await userService.update(confirmUser._id, { actif: true });
         setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: true } : u));
         notify(`${confirmUser.nom} est maintenant actif.`);
       }
       setConfirmUser(null);
-    } catch (err) {
+    } catch {
       notify("Erreur lors du changement de statut.", "warn");
     }
   };
 
   return (
     <div className="ft-page">
-
       {toast && (
         <div className={`ft-toast ft-toast--${toast.type}`}>
           <Ico k={toast.type === "warn" ? "warn" : "check"} size={16} color={toast.type === "warn" ? "#FCD34D" : "#4ADE80"} />

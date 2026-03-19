@@ -48,6 +48,28 @@ function HorizontalStepper({ current }) {
   );
 }
 
+// ── Icônes déplacées EN DEHORS de AIPanel ─────────────────────────────────────
+const IcoSparkle = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
+  </svg>
+);
+const IcoPin = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+const IcoInfo = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+);
+const IcoExternal = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+  </svg>
+);
+
 // ── AI Panel ──────────────────────────────────────────────────────────────────
 function AIPanel({ form }) {
   const hasContent = form.titre.length > 4 || form.description.length > 10;
@@ -69,27 +91,6 @@ function AIPanel({ form }) {
     medium:   "Notez l'heure d'apparition du problème pour faciliter le diagnostic.",
     low:      "Un technicien passera lors de sa prochaine tournée dans votre bâtiment.",
   };
-
-  const IcoSparkle = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
-    </svg>
-  );
-  const IcoPin = () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-    </svg>
-  );
-  const IcoInfo = () => (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-    </svg>
-  );
-  const IcoExternal = () => (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-    </svg>
-  );
 
   return (
     <div className="wz-ai-panel">
@@ -234,36 +235,35 @@ export default function CreateTicket() {
 
   const goBack = () => { setDir("back"); setStep(prev => prev - 1); };
 
-const handleSubmit = async () => {
-  setLoading(true);
-  setApiError("");
+  const handleSubmit = async () => {
+    setLoading(true);
+    setApiError("");
 
-  const cat = form.categorie === "Autre"
-    ? `Autre — ${form.categorieAutre.trim()}`
-    : form.categorie;
+    const cat = form.categorie === "Autre"
+      ? `Autre — ${form.categorieAutre.trim()}`
+      : form.categorie;
 
-  try {
-    const payload = {
-      titre:        form.titre.trim(),
-      description:  form.description.trim(),
-      categorie:    cat,
-      localisation: form.localisation.trim(),
-      urgence:      form.urgence,
-      auteurTel:    form.telephone.trim() || null,
-    };
-    const ticket = await ticketService.create(payload);
-    setCreatedId(ticket._id);
-    setSuccess(true);
-
-  } catch (err) {
-    const msg = err.response?.data?.message
-      || err.response?.data?.errors?.[0]?.msg
-      || "Erreur lors de la soumission. Réessayez.";
-    setApiError(msg);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const payload = {
+        titre:        form.titre.trim(),
+        description:  form.description.trim(),
+        categorie:    cat,
+        localisation: form.localisation.trim(),
+        urgence:      form.urgence,
+        auteurTel:    form.telephone.trim() || null,
+      };
+      const ticket = await ticketService.create(payload);
+      setCreatedId(ticket._id);
+      setSuccess(true);
+    } catch (err) {
+      const msg = err.response?.data?.message
+        || err.response?.data?.errors?.[0]?.msg
+        || "Erreur lors de la soumission. Réessayez.";
+      setApiError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const animCls   = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
   const stepProps = { form, errors, set, animCls };
@@ -290,7 +290,6 @@ const handleSubmit = async () => {
         <div className="wz-main">
           <MobileProgress current={step} />
 
-          {/* ✅ Affiche les erreurs API */}
           {apiError && (
             <div style={{
               padding: "10px 14px", marginBottom: 16,
