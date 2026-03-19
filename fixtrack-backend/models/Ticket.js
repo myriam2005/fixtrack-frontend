@@ -1,4 +1,4 @@
-// models/Ticket.js
+// models/Ticket.js — sans enum sur categorie, description optionnelle
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
@@ -19,13 +19,13 @@ const ticketSchema = new Schema(
       type: String,
       required: [true, "Le titre est requis"],
       trim: true,
-      minlength: 5,
-      maxlength: 100,
+      minlength: 3,
+      maxlength: 200,
     },
     description: {
       type: String,
-      required: [true, "La description est requise"],
       trim: true,
+      default: "",
     },
     statut: {
       type: String,
@@ -44,47 +44,24 @@ const ticketSchema = new Schema(
       enum: ["low", "medium", "high", "critical"],
       default: "medium",
     },
-    scoreIA: {
-      type: Number,
-      default: 0,
-    },
+    scoreIA: { type: Number, default: 0 },
+
+    // ← PAS d'enum : accepte toute catégorie dynamique + "Autre"
     categorie: {
       type: String,
-      enum: [
-        "Électrique",
-        "Mécanique",
-        "Informatique",
-        "HVAC",
-        "Plomberie",
-        "Sécurité",
-      ],
       required: [true, "La catégorie est requise"],
+      trim: true,
     },
+
     localisation: {
       type: String,
       required: [true, "La localisation est requise"],
       trim: true,
     },
-    // machineId est optionnel (comme dans mockData.js, les tickets n'ont plus machineId)
-    machineId: {
-      type: Schema.Types.ObjectId,
-      ref: "Machine",
-      default: null,
-    },
-    auteurId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    auteurTel: {
-      type: String,
-      default: null,
-    },
-    technicienId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
+    machineId: { type: Schema.Types.ObjectId, ref: "Machine", default: null },
+    auteurId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    auteurTel: { type: String, default: null },
+    technicienId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     notes: [noteSchema],
     feedback: {
       note: { type: Number, min: 1, max: 5, default: null },
@@ -94,11 +71,9 @@ const ticketSchema = new Schema(
   { timestamps: true },
 );
 
-// Virtual for dateCreation (alias for createdAt — matches mockData.js format)
 ticketSchema.virtual("dateCreation").get(function () {
   return this.createdAt;
 });
-
 ticketSchema.set("toJSON", { virtuals: true });
 
 module.exports = mongoose.model("Ticket", ticketSchema);

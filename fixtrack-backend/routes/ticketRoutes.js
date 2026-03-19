@@ -1,62 +1,38 @@
 // routes/ticketRoutes.js
 const express = require("express");
 const router = express.Router();
-const { check } = require("express-validator");
 const auth = require("../middleware/auth");
 const roleCheck = require("../middleware/roleCheck");
 const {
-  createTicket,
-  getTickets,
+  getAllTickets,
   getTicketById,
+  createTicket,
+  updateTicket,
+  deleteTicket,
   updateStatus,
   assignTicket,
   suggestTechnician,
   addNote,
   resolveTicket,
   validateTicket,
-  deleteTicket,
 } = require("../controllers/ticketController");
 
-// POST /api/tickets  (employee, manager, admin)
-router.post(
+// ── Lecture ───────────────────────────────────────────────────────────────────
+router.get(
   "/",
   auth,
-  roleCheck(["employee", "manager", "admin"]),
-  [
-    check("titre")
-      .notEmpty()
-      .withMessage("Le titre est obligatoire")
-      .isLength({ min: 5, max: 100 })
-      .withMessage("Le titre doit faire entre 5 et 100 caractères"),
-    check("description")
-      .notEmpty()
-      .withMessage("La description est obligatoire"),
-    check("categorie").notEmpty().withMessage("La catégorie est obligatoire"),
-    check("localisation")
-      .notEmpty()
-      .withMessage("La localisation est obligatoire"),
-  ],
-  createTicket,
+  roleCheck(["employee", "technician", "manager", "admin"]),
+  getAllTickets,
 );
 
-// GET /api/tickets
-router.get("/", auth, getTickets);
-
-// GET /api/tickets/:id
-router.get("/:id", auth, getTicketById);
-
-// PATCH /api/tickets/:id/status
-router.patch("/:id/status", auth, updateStatus);
-
-// PATCH /api/tickets/:id/assign  (manager, admin)
-router.patch(
-  "/:id/assign",
+router.get(
+  "/:id",
   auth,
-  roleCheck(["manager", "admin"]),
-  assignTicket,
+  roleCheck(["employee", "technician", "manager", "admin"]),
+  getTicketById,
 );
 
-// GET /api/tickets/:id/suggest-technician  (manager, admin)
+// ── Suggestion technicien (avant /:id/assign pour éviter conflit) ─────────────
 router.get(
   "/:id/suggest-technician",
   auth,
@@ -64,7 +40,37 @@ router.get(
   suggestTechnician,
 );
 
-// POST /api/tickets/:id/notes  (technician, manager, admin)
+// ── Création ──────────────────────────────────────────────────────────────────
+router.post(
+  "/",
+  auth,
+  roleCheck(["employee", "manager", "admin"]),
+  createTicket,
+);
+
+// ── Modification complète (admin) ─────────────────────────────────────────────
+router.put("/:id", auth, roleCheck(["admin"]), updateTicket);
+
+// ── Suppression (admin) ───────────────────────────────────────────────────────
+router.delete("/:id", auth, roleCheck(["admin"]), deleteTicket);
+
+// ── Changement de statut ──────────────────────────────────────────────────────
+router.patch(
+  "/:id/status",
+  auth,
+  roleCheck(["technician", "manager", "admin"]),
+  updateStatus,
+);
+
+// ── Assignation (manager/admin) ───────────────────────────────────────────────
+router.patch(
+  "/:id/assign",
+  auth,
+  roleCheck(["manager", "admin"]),
+  assignTicket,
+);
+
+// ── Notes techniques (technicien) ────────────────────────────────────────────
 router.post(
   "/:id/notes",
   auth,
@@ -72,23 +78,15 @@ router.post(
   addNote,
 );
 
-// PATCH /api/tickets/:id/resolve  (technician)
-router.patch(
-  "/:id/resolve",
-  auth,
-  roleCheck(["technician", "manager", "admin"]),
-  resolveTicket,
-);
+// ── Résoudre (technicien) ─────────────────────────────────────────────────────
+router.patch("/:id/resolve", auth, roleCheck(["technician"]), resolveTicket);
 
-// PATCH /api/tickets/:id/validate  (manager, admin)
+// ── Valider / clôturer (manager/admin) ───────────────────────────────────────
 router.patch(
   "/:id/validate",
   auth,
   roleCheck(["manager", "admin"]),
   validateTicket,
 );
-
-// DELETE /api/tickets/:id  (admin only)
-router.delete("/:id", auth, roleCheck(["admin"]), deleteTicket);
 
 module.exports = router;

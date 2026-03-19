@@ -8,45 +8,43 @@ const connectDB = require("./config/database");
 
 const app = express();
 
-// ─── Connect to MongoDB ───────────────────────────────────────────────────────
 connectDB();
 
-// ─── Security Middleware ──────────────────────────────────────────────────────
-app.use(helmet()); // Sécurise les headers HTTP
-
-// ─── CORS — autorise le frontend React (localhost:5173) ──────────────────────
+app.use(helmet());
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   }),
 );
-
-// ─── Body Parser ──────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Rate Limiting global ─────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // max 200 requêtes par IP par 15 min
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { message: "Trop de requêtes, réessayez plus tard." },
 });
 app.use(globalLimiter);
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-app.use("/api/auth", require("./routes/authRoutes"));
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: "Trop de tentatives. Réessayez dans 15 minutes." },
+});
+
+app.use("/api/auth", authLimiter, require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/tickets", require("./routes/ticketRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/stats", require("./routes/statsRoutes"));
 app.use("/api/export", require("./routes/exportRoutes"));
-// ─── Route de test ────────────────────────────────────────────────────────────
-app.get("/", (req, res) => {
-  res.json({ message: "🚀 FixTrack API is running!", status: "OK" });
-});
+app.use("/api/config", require("./routes/configRoutes"));
 
-// ─── Error Handler global ─────────────────────────────────────────────────────
+app.get("/", (req, res) =>
+  res.json({ message: "🚀 FixTrack API is running!", status: "OK" }),
+);
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res
@@ -54,8 +52,5 @@ app.use((err, req, res, next) => {
     .json({ message: "Erreur serveur interne", error: err.message });
 });
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));

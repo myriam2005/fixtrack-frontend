@@ -5,11 +5,11 @@ const createLog = require("../utils/createLog");
 const sendNotification = require("../utils/sendNotification");
 const calculatePriority = require("../utils/priorityAI");
 
-// ── Ordre des statuts valides ─────────────────────────────────────────────────
 const VALID_TRANSITIONS = {
   open: ["assigned", "in_progress", "closed"],
   assigned: ["in_progress", "open", "closed"],
   in_progress: ["resolved", "assigned", "closed"],
+  pending: ["assigned", "in_progress", "open"],
   resolved: ["closed", "in_progress"],
   closed: [],
 };
@@ -18,16 +18,10 @@ const VALID_TRANSITIONS = {
 exports.getAllTickets = async (req, res) => {
   try {
     const { statut, priorite, technicienId, categorie } = req.query;
-    let filter = {};
+    const filter = {};
 
-    // Filtrage par rôle
-    if (req.user.role === "employee") {
-      filter.auteurId = req.user.id;
-    } else if (req.user.role === "technician") {
-      filter.technicienId = req.user.id;
-    }
-    // manager et admin voient tout
-
+    if (req.user.role === "employee") filter.auteurId = req.user.id;
+    if (req.user.role === "technician") filter.technicienId = req.user.id;
     if (statut) filter.statut = statut;
     if (priorite) filter.priorite = priorite;
     if (technicienId) filter.technicienId = technicienId;
@@ -50,7 +44,6 @@ exports.getTicketById = async (req, res) => {
     const ticket = await Ticket.findById(req.params.id)
       .populate("auteurId", "nom email avatar telephone")
       .populate("technicienId", "nom email avatar competences");
-
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
     res.json(ticket);
   } catch (err) {
@@ -61,51 +54,73 @@ exports.getTicketById = async (req, res) => {
 // ── POST /api/tickets ─────────────────────────────────────────────────────────
 exports.createTicket = async (req, res) => {
   try {
-    const { titre, description, categorie, localisation, auteurTel, urgence } =
-      req.body;
-
-    if (!titre || !categorie || !localisation)
-      return res
-        .status(400)
-        .json({ message: "titre, categorie et localisation sont requis" });
-
-    // ✅ IA branchée : calcul automatique de la priorité
-    const { priorite, score } = await calculatePriority({
-      categorie,
-      urgence: urgence || "medium",
-      localisation,
-    });
-
-    const ticket = await new Ticket({
+    let {
       titre,
       description,
       categorie,
+      categorieAutre,
       localisation,
-      priorite, // ← calculé par IA
+      auteurTel,
+      urgence,
+    } = req.body;
+
+    if (!titre || !titre.trim())
+      return res.status(400).json({ message: "Le titre est requis" });
+    if (!localisation || !localisation.trim())
+      return res.status(400).json({ message: "La localisation est requise" });
+
+    if (!categorie || !categorie.trim()) categorie = "Autre";
+    if (categorie === "Autre" && categorieAutre && categorieAutre.trim()) {
+      categorie = `Autre — ${categorieAutre.trim()}`;
+    }
+
+    const { priorite, score } = await calculatePriority({
+      categorie,
+      urgence: urgence || "medium",
+      localisation: localisation.trim(),
+      description: description || "",
+    });
+
+    const ticket = await new Ticket({
+      titre: titre.trim(),
+      description: (description || "").trim(),
+      categorie,
+      localisation: localisation.trim(),
+      priorite,
+      scoreIA: score,
       auteurId: req.user.id,
       auteurTel: auteurTel || null,
       statut: "open",
     }).save();
 
-    // Log
     await createLog(
       "TICKET_CREATED",
-      `Ticket créé: "${titre}" | priorité IA: ${priorite} (score: ${score})`,
+      `Ticket: "${titre}" | catégorie: ${categorie} | priorité IA: ${priorite} (${score})`,
       req.user.id,
-      "info",
     );
 
-    // Notifier les managers et admins d'un ticket critique
+    const managers = await User.find({
+      role: { $in: ["manager", "admin"] },
+      actif: true,
+    });
+
+    await Promise.all(
+      managers.map((m) =>
+        sendNotification({
+          userId: m._id,
+          message: `📋 Nouveau ticket: "${titre}" — priorité: ${priorite} | ${localisation}`,
+          type: "ticket_created",
+          ticketId: ticket._id,
+        }),
+      ),
+    );
+
     if (priorite === "critical") {
-      const managers = await User.find({
-        role: { $in: ["manager", "admin"] },
-        actif: true,
-      });
       await Promise.all(
         managers.map((m) =>
           sendNotification({
             userId: m._id,
-            message: `🚨 Ticket critique ouvert : ${titre}`,
+            message: `🚨 Ticket CRITIQUE: "${titre}" — intervention urgente requise`,
             type: "ticket_critical",
             ticketId: ticket._id,
           }),
@@ -113,36 +128,35 @@ exports.createTicket = async (req, res) => {
       );
     }
 
-    // Populate avant de renvoyer
     const populated = await Ticket.findById(ticket._id)
       .populate("auteurId", "nom email avatar")
       .populate("technicienId", "nom email avatar");
 
     res.status(201).json(populated);
   } catch (err) {
+    console.error("CREATE TICKET ERROR:", err);
     res.status(500).json({ message: "Erreur serveur", error: err.message });
   }
 };
 
-// ── PUT /api/tickets/:id (admin — modifier tout) ──────────────────────────────
+// ── PUT /api/tickets/:id ──────────────────────────────────────────────────────
 exports.updateTicket = async (req, res) => {
   try {
     const { titre, description, categorie, localisation, priorite, statut } =
       req.body;
     const update = {};
-    if (titre) update.titre = titre;
-    if (description) update.description = description;
-    if (categorie) update.categorie = categorie;
-    if (localisation) update.localisation = localisation;
-    if (priorite) update.priorite = priorite;
-    if (statut) update.statut = statut;
+    if (titre !== undefined) update.titre = titre;
+    if (description !== undefined) update.description = description;
+    if (categorie !== undefined) update.categorie = categorie;
+    if (localisation !== undefined) update.localisation = localisation;
+    if (priorite !== undefined) update.priorite = priorite;
+    if (statut !== undefined) update.statut = statut;
 
     const ticket = await Ticket.findByIdAndUpdate(req.params.id, update, {
       new: true,
     })
       .populate("auteurId", "nom email")
       .populate("technicienId", "nom email");
-
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
     await createLog(
@@ -163,7 +177,7 @@ exports.deleteTicket = async (req, res) => {
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
     await createLog(
       "TICKET_DELETED",
-      `Ticket supprimé: ${ticket.titre}`,
+      `Supprimé: ${ticket.titre}`,
       req.user.id,
       "warning",
     );
@@ -183,25 +197,24 @@ exports.updateStatus = async (req, res) => {
     const allowed = VALID_TRANSITIONS[ticket.statut] || [];
     if (!allowed.includes(statut))
       return res.status(400).json({
-        message: `Transition invalide : ${ticket.statut} → ${statut}`,
+        message: `Transition invalide: ${ticket.statut} → ${statut}`,
         allowed,
       });
 
+    const oldStatut = ticket.statut;
     ticket.statut = statut;
     await ticket.save();
 
-    // Log
     await createLog(
       "STATUS_CHANGED",
-      `Ticket "${ticket.titre}" : ${ticket.statut} → ${statut}`,
+      `"${ticket.titre}": ${oldStatut} → ${statut}`,
       req.user.id,
     );
 
-    // Notification à l'auteur
     if (["in_progress", "resolved", "closed"].includes(statut)) {
       await sendNotification({
         userId: ticket.auteurId,
-        message: `Votre ticket "${ticket.titre}" est maintenant : ${statut}`,
+        message: `Votre ticket "${ticket.titre}" est maintenant: ${statut}`,
         type: "status_changed",
         ticketId: ticket._id,
       });
@@ -220,7 +233,6 @@ exports.updateStatus = async (req, res) => {
 exports.assignTicket = async (req, res) => {
   try {
     const { technicienId } = req.body;
-
     const tech = await User.findById(technicienId);
     if (!tech || tech.role !== "technician")
       return res.status(400).json({ message: "Technicien invalide" });
@@ -232,24 +244,19 @@ exports.assignTicket = async (req, res) => {
     )
       .populate("auteurId", "nom email")
       .populate("technicienId", "nom email avatar competences");
-
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
-    // Log
     await createLog(
       "TICKET_ASSIGNED",
-      `Ticket "${ticket.titre}" assigné à ${tech.nom}`,
+      `"${ticket.titre}" → ${tech.nom}`,
       req.user.id,
     );
-
-    // Notifier le technicien
     await sendNotification({
       userId: technicienId,
-      message: `Nouveau ticket assigné : ${ticket.titre}`,
+      message: `Nouveau ticket: ${ticket.titre}`,
       type: "ticket_assigned",
       ticketId: ticket._id,
     });
-
     res.json(ticket);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -270,34 +277,30 @@ exports.suggestTechnician = async (req, res) => {
     const scored = await Promise.all(
       techs.map(async (tech) => {
         let score = 0;
-        const techId = tech._id.toString();
+        const tid = tech._id.toString();
 
-        // +40 si compétence correspond à la catégorie
         if (
           tech.competences?.some(
             (c) =>
               ticket.categorie?.toLowerCase().includes(c.toLowerCase()) ||
               c.toLowerCase().includes(ticket.categorie?.toLowerCase()),
           )
-        ) {
+        )
           score += 40;
-        }
 
-        // -10 par ticket déjà en cours (charge de travail)
-        const activeCount = allTickets.filter(
-          (t) => t.technicienId?.toString() === techId,
+        const active = allTickets.filter(
+          (t) => t.technicienId?.toString() === tid,
         ).length;
-        score -= activeCount * 10;
+        score -= active * 10;
 
-        // +20 si a déjà résolu des tickets dans cette localisation
-        const pastResolved = await Ticket.countDocuments({
+        const past = await Ticket.countDocuments({
           technicienId: tech._id,
           localisation: {
             $regex: new RegExp(ticket.localisation?.split(" ")[0] || "", "i"),
           },
           statut: { $in: ["resolved", "closed"] },
         });
-        if (pastResolved > 0) score += 20;
+        if (past > 0) score += 20;
 
         return {
           technicien: {
@@ -307,8 +310,8 @@ exports.suggestTechnician = async (req, res) => {
             competences: tech.competences,
           },
           score,
-          activeTickets: activeCount,
-          pastResolved,
+          activeTickets: active,
+          pastResolved: past,
         };
       }),
     );
@@ -324,27 +327,14 @@ exports.suggestTechnician = async (req, res) => {
 exports.addNote = async (req, res) => {
   try {
     const { texte } = req.body;
-    if (!texte)
-      return res
-        .status(400)
-        .json({ message: "Le texte de la note est requis" });
+    if (!texte) return res.status(400).json({ message: "Le texte est requis" });
 
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
-    ticket.notes = ticket.notes || [];
-    ticket.notes.push({
-      auteur: req.user.id,
-      texte,
-      date: new Date(),
-    });
+    ticket.notes.push({ auteur: req.user.id, texte, date: new Date() });
     await ticket.save();
-
-    await createLog(
-      "NOTE_ADDED",
-      `Note ajoutée sur "${ticket.titre}"`,
-      req.user.id,
-    );
+    await createLog("NOTE_ADDED", `Note sur "${ticket.titre}"`, req.user.id);
 
     const updated = await Ticket.findById(ticket._id)
       .populate("auteurId", "nom email")
@@ -363,30 +353,27 @@ exports.resolveTicket = async (req, res) => {
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
     ticket.statut = "resolved";
-    if (solution) {
-      ticket.notes = ticket.notes || [];
+    if (solution)
       ticket.notes.push({
         auteur: req.user.id,
-        texte: `✅ SOLUTION : ${solution}`,
+        texte: `✅ SOLUTION: ${solution}`,
         type: "solution",
         date: new Date(),
       });
-    }
     await ticket.save();
 
     await createLog(
       "TICKET_RESOLVED",
-      `Ticket résolu : "${ticket.titre}"`,
+      `Résolu: "${ticket.titre}"`,
       req.user.id,
     );
-
-    // Notifier l'auteur et les managers
     await sendNotification({
       userId: ticket.auteurId,
-      message: `Votre ticket "${ticket.titre}" a été résolu. Merci de valider.`,
+      message: `Ticket "${ticket.titre}" résolu.`,
       type: "ticket_resolved",
       ticketId: ticket._id,
     });
+
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -395,7 +382,7 @@ exports.resolveTicket = async (req, res) => {
       managers.map((m) =>
         sendNotification({
           userId: m._id,
-          message: `Ticket "${ticket.titre}" résolu — en attente de validation`,
+          message: `Ticket "${ticket.titre}" résolu — attente validation`,
           type: "ticket_resolved",
           ticketId: ticket._id,
         }),
@@ -419,28 +406,24 @@ exports.validateTicket = async (req, res) => {
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
     ticket.statut = "closed";
-    if (commentaire) {
-      ticket.notes = ticket.notes || [];
+    if (commentaire)
       ticket.notes.push({
         auteur: req.user.id,
-        texte: `🔒 VALIDATION : ${commentaire}`,
+        texte: `🔒 VALIDATION: ${commentaire}`,
         type: "validation",
         date: new Date(),
       });
-    }
     await ticket.save();
 
     await createLog(
       "TICKET_VALIDATED",
-      `Ticket clôturé : "${ticket.titre}"`,
+      `Clôturé: "${ticket.titre}"`,
       req.user.id,
     );
-
-    // Notifier le technicien
     if (ticket.technicienId) {
       await sendNotification({
         userId: ticket.technicienId,
-        message: `Ticket "${ticket.titre}" validé et clôturé.`,
+        message: `Ticket "${ticket.titre}" validé.`,
         type: "ticket_validated",
         ticketId: ticket._id,
       });
