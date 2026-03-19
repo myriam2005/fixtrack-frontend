@@ -1,7 +1,7 @@
 // src/pages/employee/CreateTicket/WizardSteps.jsx
 import Badge from "../../../components/common/badge/Badge";
 import {
-  Icon, CATEGORIES, LOC_SUGGESTIONS, URGENCES, STEPS,
+  Icon, LOC_SUGGESTIONS, URGENCES, STEPS, useDynamicCategories,
 } from "./Wizardconstants";
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
@@ -129,9 +129,12 @@ export function StepProbleme({ form, errors, set, animCls }) {
 }
 
 // ── Step 1 : Localisation & Catégorie ────────────────────────────────────────
+// ✅ Charge les catégories depuis l'API via useDynamicCategories
 
 export function StepLocalisation({ form, errors, set, showSugg, setShowSugg, animCls }) {
-  // Suggestions filtrées par première lettre uniquement
+  // ✅ Catégories dynamiques depuis l'API (fallback sur les défauts)
+  const categories = useDynamicCategories();
+
   const filtered = form.localisation.length > 0
     ? LOC_SUGGESTIONS.filter(s =>
         s.toLowerCase().startsWith(form.localisation[0].toLowerCase())
@@ -180,11 +183,11 @@ export function StepLocalisation({ form, errors, set, showSugg, setShowSugg, ani
           <FieldError msg={errors.localisation} />
         </div>
 
-        {/* Catégories */}
+        {/* Catégories — chargées depuis l'API */}
         <div className="wz-field">
           <FieldLabel label="Catégorie du problème" req />
           <div className="wz-cg">
-            {CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const CatIcon = cat.IcoComp;
               return (
                 <button key={cat.value} type="button"
@@ -275,7 +278,6 @@ export function StepContact({ form, errors, set, focused, setFocused, user, anim
       </div>
       <div className="wz-fields">
 
-        {/* User card */}
         {user && (
           <div className="wz-cc">
             <div className="wz-av">
@@ -291,7 +293,6 @@ export function StepContact({ form, errors, set, focused, setFocused, user, anim
           </div>
         )}
 
-        {/* Téléphone */}
         <div className="wz-field">
           <FieldLabel htmlFor="tel" label="Téléphone" note="— optionnel" />
           <div className="wz-iw">
@@ -307,7 +308,6 @@ export function StepContact({ form, errors, set, focused, setFocused, user, anim
           <FieldError msg={errors.telephone} />
         </div>
 
-        {/* Photos */}
         <div className="wz-field">
           <FieldLabel label="Photos" note="— optionnel" />
           <label style={{ display: "block", cursor: "pointer" }}>
@@ -366,7 +366,6 @@ export function StepRecap({ form, user, setStep, setDir, animCls }) {
 
       <div className="wz-recap">
 
-        {/* Bloc Problème */}
         <div className="wz-recap-block">
           <div className="wz-recap-head">
             Problème
@@ -385,7 +384,6 @@ export function StepRecap({ form, user, setStep, setDir, animCls }) {
           </div>
         </div>
 
-        {/* Bloc Localisation */}
         <div className="wz-recap-block">
           <div className="wz-recap-head">
             Localisation & Catégorie
@@ -404,7 +402,6 @@ export function StepRecap({ form, user, setStep, setDir, animCls }) {
           </div>
         </div>
 
-        {/* Bloc Urgence */}
         <div className="wz-recap-block">
           <div className="wz-recap-head">
             Urgence
@@ -423,7 +420,6 @@ export function StepRecap({ form, user, setStep, setDir, animCls }) {
           </div>
         </div>
 
-        {/* Bloc Contact */}
         <div className="wz-recap-block">
           <div className="wz-recap-head">
             Contact
