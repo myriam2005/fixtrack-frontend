@@ -42,12 +42,15 @@ const PRIORITY_META = {
   low:      { label:"Basse",    color:"#6b7280", bg:"#f9fafb", border:"#e5e7eb" },
 };
 
-const getName = (id, users) => users.find(u => (u._id || u.id) === id)?.nom || "—";
+const getName = (id, users) => {
+  const rawId = id?._id || id;
+  return users.find(u => (u._id || u.id) === rawId)?.nom || "—";
+};
 
 function computeReport(type, userId, userRole, dateFrom, dateTo, tickets, users) {
   let src = userRole === "technician"
-    ? tickets.filter(t => t.technicienId === userId)
-    : [...tickets];
+  ? tickets.filter(t => (t.technicienId?._id || t.technicienId) === userId)
+  : [...tickets];
 
   if (dateFrom) src = src.filter(t => t.dateCreation >= dateFrom);
   if (dateTo)   src = src.filter(t => t.dateCreation <= dateTo);
@@ -72,7 +75,7 @@ function computeReport(type, userId, userRole, dateFrom, dateTo, tickets, users)
       type,
       rows: techs.map(tech => {
         const tid = tech._id || tech.id;
-        const assigned = src.filter(t => t.technicienId === tid);
+        const assigned = src.filter(t => (t.technicienId?._id || t.technicienId) === tid);
         const resolved = assigned.filter(t => t.statut==="resolved"||t.statut==="closed");
         const inProg   = assigned.filter(t => t.statut==="in_progress");
         const rate     = assigned.length > 0 ? Math.round(resolved.length/assigned.length*100) : 0;
@@ -238,10 +241,10 @@ export default function ReportsPage() {
 
   useEffect(() => {
     Promise.all([ticketService.getAll(), userService.getAll()])
-      .then(([t, u]) => {
-        setTickets(t.map(x => ({ ...x, id: x._id || x.id })));
-        setUsers(u.map(x => ({ ...x, id: x._id || x.id })));
-      })
+  .then(([t, u]) => {
+    setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
+    setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
+  })
       .catch(console.error)
       .finally(() => setDataLoading(false));
   }, []);

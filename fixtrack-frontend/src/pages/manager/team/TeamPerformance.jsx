@@ -263,7 +263,10 @@ export default function TeamPerformance() {
   // On passe users comme dépendance pour satisfaire le compilateur React
   const techStats = useMemo(() =>
     techniciens.map((tech, idx) => {
-      const techTickets   = tickets.filter(t => t.technicienId === tech.id);
+      const techTickets = tickets.filter(t => {
+  const tid = t.technicienId?._id || t.technicienId;
+  return tid === tech.id || tid === tech._id;
+});
       const thisMonth     = techTickets.filter(t => { const d = new Date(t.dateCreation); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
       const resolusMonth  = thisMonth.filter(t => ["resolved","closed"].includes(t.statut)).length;
       const resolusTotal  = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
