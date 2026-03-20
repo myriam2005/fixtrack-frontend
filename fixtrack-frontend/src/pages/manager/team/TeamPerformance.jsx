@@ -1,5 +1,4 @@
 // src/pages/manager/team/TeamPerformance.jsx
-// Fixes: cumul reassign in useMemo, authUser unused, useMemo deps warning
 import { useMemo, useState, useEffect } from "react";
 import { Box, Typography, Paper } from "@mui/material";
 import { KpiCard } from "../../../components/common/dashboard/DashboardShared";
@@ -49,12 +48,19 @@ const CHART_COLORS = [
   { base:"#93C5FD", light:"#EFF6FF" },{ base:"#BFDBFE", light:"#EFF6FF" },
 ];
 
+// ✅ Résout l'id qu'il soit string ou objet populé { _id, nom }
+const resolveId = (val) => {
+  if (!val) return null;
+  if (typeof val === "object") return String(val._id || val.id || "");
+  return String(val);
+};
+
 const heuresDepuis  = (d) => Math.floor((Date.now() - new Date(d).getTime()) / 3600000);
 const initials      = (nom) => (nom || "??").split(" ").map(n => n[0]).join("").toUpperCase().slice(0,2);
 const delaiMoyenResolution = (techTickets) => {
   const resolus = techTickets.filter(t => ["resolved","closed"].includes(t.statut));
   if (!resolus.length) return null;
-  return Math.round(resolus.reduce((a,t) => a + heuresDepuis(t.dateCreation), 0) / resolus.length);
+  return Math.round(resolus.reduce((a,t) => a + heuresDepuis(t.dateCreation || t.createdAt), 0) / resolus.length);
 };
 const formatDelai   = (h) => { if (h === null) return "—"; if (h < 24) return `${h}h`; const j = Math.floor(h/24), r = h%24; return r > 0 ? `${j}j ${r}h` : `${j}j`; };
 const noteSimulee   = (techTickets, seed) => {
@@ -67,7 +73,7 @@ const noteSimulee   = (techTickets, seed) => {
 const calcScore     = (techTickets) => {
   if (!techTickets.length) return 0;
   const resolus = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
-  const late    = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation) > 24).length;
+  const late    = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation || t.createdAt) > 24).length;
   return Math.max(0, Math.round((resolus / techTickets.length) * 100 - late * 10));
 };
 const sortByRate    = (a, b) => { if (b.tauxResolution !== a.tauxResolution) return b.tauxResolution - a.tauxResolution; if (b.score !== a.score) return b.score - a.score; return b.resolusTotal - a.resolusTotal; };
@@ -97,8 +103,6 @@ function StarRating({ note }) {
   );
 }
 
-// Fix: PurePieChart — cumul ne peut pas être réassigné dans useMemo/render
-// Solution: on calcule les slices avec reduce au lieu de mutation de variable
 function PurePieChart({ data, total, title = "Répartition", subtitle }) {
   const [animated, setAnimated] = useState(false);
   const [hovered,  setHovered]  = useState(null);
@@ -112,7 +116,6 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
 
   const SIZE = 210, CX = 105, CY = 105, R_OUT = 88, R_IN = 56;
 
-  // Fix: utilise reduce pour accumuler sans muter de variable externe
   const slices = enriched.reduce((acc, d) => {
     const prevCumul = acc.length === 0 ? 0 : acc[acc.length - 1]._cumul;
     const pct        = total > 0 ? d.value / total : 0;
@@ -151,7 +154,7 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
                 style={{ opacity: animated ? (hovered !== null && hovered !== i ? 0.5 : 1) : 0, transform: animated ? "scale(1)" : "scale(0.78)", transformOrigin: `${CX}px ${CY}px`, transition: [`opacity 0.5s ease ${i * 0.08}s`,`transform 0.5s cubic-bezier(.34,1.56,.64,1) ${i * 0.08}s`,"d 0.25s cubic-bezier(.34,1.2,.64,1)","filter 0.2s ease"].join(", "), cursor:"pointer" }}
                 onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} />
             ))}
-            <text x={CX} y={CY - 10} textAnchor="middle" fontSize={hovSlice ? "18" : "24"} fontWeight="900" fill={hovSlice ? hovSlice.color : "#111827"} style={{ transition:"all 0.25s ease", fontVariantNumeric:"tabular-nums" }}>{hovSlice ? hovSlice.value : total}</text>
+            <text x={CX} y={CY - 10} textAnchor="middle" fontSize={hovSlice ? "18" : "24"} fontWeight="900" fill={hovSlice ? hovSlice.color : "#111827"} style={{ transition:"all 0.25s ease" }}>{hovSlice ? hovSlice.value : total}</text>
             <text x={CX} y={CY + 8}  textAnchor="middle" fontSize="9" fontWeight="700" fill={hovSlice ? hovSlice.color : "#9CA3AF"} style={{ textTransform:"uppercase", letterSpacing:"0.07em", transition:"all 0.25s ease" }}>{hovSlice ? hovSlice.name.split(" ")[0] : "tickets"}</text>
             {hovSlice && <text x={CX} y={CY + 24} textAnchor="middle" fontSize="13" fontWeight="800" fill={hovSlice.color}>{hovSlice.pct}%</text>}
           </svg>
@@ -178,7 +181,7 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
 
 function TeamBarChart({ allTickets }) {
   const months = getLast3Months();
-  const counts = months.map(({year,month}) => allTickets.filter(t => { const d = new Date(t.dateCreation); return d.getFullYear()===year && d.getMonth()===month; }).length);
+  const counts = months.map(({year,month}) => allTickets.filter(t => { const d = new Date(t.dateCreation || t.createdAt); return d.getFullYear()===year && d.getMonth()===month; }).length);
   const max = Math.max(...counts, 1);
   return (
     <Box>
@@ -237,14 +240,14 @@ function ConseilDuJour({ techStats, totalTickets, critiquesAlert }) {
 }
 
 export default function TeamPerformance() {
-  // Fix: authUser supprimé car non utilisé dans ce composant
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("score");
+  const [search,  setSearch]  = useState("");
+  const [sortBy,  setSortBy]  = useState("score");
   const [tickets, setTickets] = useState([]);
   const [users,   setUsers]   = useState([]);
 
+  // ✅ getAll() retourne déjà le tableau directement
   useEffect(() => {
-    Promise.all([ticketService.getAll(), userService.getAll()])
+    Promise.all([ticketService.getAll(), userService.getTechnicians()])
   .then(([t, u]) => {
     setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
     setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
@@ -259,19 +262,19 @@ export default function TeamPerformance() {
     [users]
   );
 
-  // Fix: dépendances useMemo incluent users (via techniciens) ET tickets
-  // On passe users comme dépendance pour satisfaire le compilateur React
   const techStats = useMemo(() =>
     techniciens.map((tech, idx) => {
-      const techTickets = tickets.filter(t => {
-  const tid = t.technicienId?._id || t.technicienId;
-  return tid === tech.id || tid === tech._id;
-});
-      const thisMonth     = techTickets.filter(t => { const d = new Date(t.dateCreation); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
+      const techId = String(tech._id || tech.id || "");
+      // ✅ resolveId gère technicienId populé { _id, nom } ou string
+      const techTickets   = tickets.filter(t => resolveId(t.technicienId) === techId);
+      const thisMonth     = techTickets.filter(t => {
+        const d = new Date(t.dateCreation || t.createdAt);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      });
       const resolusMonth  = thisMonth.filter(t => ["resolved","closed"].includes(t.statut)).length;
       const resolusTotal  = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
       const enCours       = techTickets.filter(t => t.statut === "in_progress").length;
-      const critiquesLate = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation) > 24).length;
+      const critiquesLate = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation || t.createdAt) > 24).length;
       const delaiMoyen    = delaiMoyenResolution(techTickets);
       const note          = noteSimulee(techTickets, idx + 1);
       const score         = calcScore(techTickets);
@@ -280,10 +283,8 @@ export default function TeamPerformance() {
       const tauxResolution = techTickets.length > 0 ? Math.round((resolusTotal / techTickets.length) * 100) : 0;
       return { ...tech, techTickets, totalTickets: techTickets.length, resolusTotal, resolusMonth, enCours, critiquesLate, delaiMoyen, note, score, specialite, statutKey, tauxResolution };
     }),
-    // Fix: on liste users ET tickets explicitement pour satisfaire exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, tickets]
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [users, tickets]);
 
   const globalRanking = useMemo(() => [...techStats].sort(sortByRate), [techStats]);
   const top3          = useMemo(() => globalRanking.slice(0, 3), [globalRanking]);
@@ -308,7 +309,7 @@ export default function TeamPerformance() {
       const isResolu = ["resolved","closed"].includes(t.statut);
       if (isResolu) resolus++;
       else if (t.statut === "in_progress") enCours++;
-      if (t.priorite === "critical" && !isResolu && heuresDepuis(t.dateCreation) > 24) critiques++;
+      if (t.priorite === "critical" && !isResolu && heuresDepuis(t.dateCreation || t.createdAt) > 24) critiques++;
     }
     return { totalTickets: tickets.length, totalResolus: resolus, totalEnCours: enCours, critiquesAlert: critiques };
   }, [tickets]);
