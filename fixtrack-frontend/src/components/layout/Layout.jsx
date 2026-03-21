@@ -1,9 +1,4 @@
 // src/components/layout/Layout.jsx
-// CHANGEMENTS vs ta version actuelle :
-//   1. Import ajouté    : import NotificationBell from "../notifications/NotificationBell"
-//   2. Prop supprimée   : notifCount retiré de la signature
-//   3. Dans le topbar   : le bloc <Tooltip><IconButton><Badge>... remplacé par <NotificationBell />
-
 import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
@@ -12,7 +7,7 @@ import {
 } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import AccountSettingsModal from "./AccountSettingsModal";
-import NotificationBell from "../common/notification/NotificationBell"; // ← AJOUT
+import NotificationBell from "../common/notification/NotificationBell";
 
 const Ico = {
   dashboard: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
@@ -57,7 +52,7 @@ const NAV = {
 };
 
 const ROLE_META = {
-  employee:   { label: "utilisateur",        color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  employee:   { label: "Demandeur",      color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
@@ -75,6 +70,14 @@ const T = {
   textSub:     "#475569",
   textMuted:   "#94A3B8",
   sideW:       252,
+};
+
+// helper — résout nom/name peu importe ce que le backend/localStorage retourne
+const getDisplayName = (user) => user?.nom || user?.name || "Utilisateur";
+
+const getInitials = (user) => {
+  const name = getDisplayName(user);
+  return name.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 };
 
 function NavItem({ link, isActive }) {
@@ -102,7 +105,10 @@ function NavItem({ link, isActive }) {
 
 function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) {
   const role     = ROLE_META[user.role] || ROLE_META.employee;
-  const initials = user.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+
+  const displayName = getDisplayName(user);
+  const initials    = getInitials(user);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Logo */}
@@ -119,6 +125,7 @@ function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) 
           </Typography>
         </Box>
       </Box>
+
       {/* Profil */}
       <Box sx={{ mx: 1.5, mt: 2, mb: 1.5, px: 1.5, py: 1.25, borderRadius: "11px", backgroundColor: T.borderLight, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
         <Box sx={{ position: "relative", flexShrink: 0 }}>
@@ -126,7 +133,9 @@ function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) 
           <Box sx={{ position: "absolute", bottom: 1, right: 1, width: 8, height: 8, borderRadius: "50%", backgroundColor: "#22c55e", border: `2px solid ${T.borderLight}` }} />
         </Box>
         <Box sx={{ overflow: "hidden", flex: 1 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.name}</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {displayName}
+          </Typography>
           <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, px: 0.75, py: 0.2, mt: 0.4, borderRadius: "4px", backgroundColor: role.bg }}>
             <Box sx={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: role.dot }} />
             <Typography sx={{ fontSize: 10, fontWeight: 700, color: role.color, lineHeight: 1 }}>{role.label}</Typography>
@@ -138,14 +147,17 @@ function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) 
           </IconButton>
         </Tooltip>
       </Box>
+
       {/* Label menu */}
       <Box sx={{ px: 2.5, pb: 0.75, flexShrink: 0 }}>
         <Typography sx={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.8px" }}>Menu</Typography>
       </Box>
+
       {/* Nav */}
       <Box sx={{ flex: 1, overflowY: "auto", pb: 1, "&::-webkit-scrollbar": { width: 3 }, "&::-webkit-scrollbar-thumb": { backgroundColor: T.border, borderRadius: 2 } }}>
         {navLinks.map(link => <NavItem key={link.to} link={link} isActive={location.pathname === link.to} />)}
       </Box>
+
       {/* Logout */}
       <Box sx={{ borderTop: `1px solid ${T.border}`, px: 1, py: 1.25, flexShrink: 0 }}>
         <Box onClick={onLogout} role="button" tabIndex={0} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "9px", cursor: "pointer", color: T.textMuted, transition: "all 0.14s", "&:hover": { backgroundColor: "#FEF2F2", color: "#DC2626" } }}>
@@ -157,8 +169,6 @@ function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) 
   );
 }
 
-// ─── EXPORT PRINCIPAL ─────────────────────────────────────────
-// notifCount supprimé — NotificationBell se gère seul via contexte
 export default function Layout({ children }) {
   const location = useLocation();
   const theme    = useTheme();
@@ -168,11 +178,14 @@ export default function Layout({ children }) {
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const user     = ctxUser || { name: "Utilisateur", role: "employee", email: "" };
+  const user     = ctxUser || { nom: "Utilisateur", role: "employee", email: "" };
   const navLinks = NAV[user.role] || NAV.employee;
   const allLinks = Object.values(NAV).flat();
   const active   = allLinks.find(l => l.to === location.pathname);
-  const initials = user.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+
+  // ✅ Fix : utilise les helpers pour nom/name
+  const displayName = getDisplayName(user);
+  const initials    = getInitials(user);
 
   const sidebarNode = (
     <SidebarContent
@@ -228,7 +241,7 @@ export default function Layout({ children }) {
             )}
           </Box>
 
-          {/* ── CLOCHE — remplace l'ancien IconButton+Badge ── */}
+          {/* Cloche notifications */}
           <NotificationBell />
 
           {/* Paramètres */}
@@ -238,13 +251,15 @@ export default function Layout({ children }) {
             </IconButton>
           </Tooltip>
 
-          {/* Avatar */}
+          {/* Avatar + nom */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, pl: 1.5, borderLeft: `1px solid ${T.border}` }}>
             <Avatar onClick={() => setSettingsOpen(true)} sx={{ width: 32, height: 32, fontSize: 11, fontWeight: 700, backgroundColor: T.accent, cursor: "pointer", "&:hover": { boxShadow: `0 0 0 3px ${alpha(T.accent, 0.25)}` } }}>
+              
               {initials}
             </Avatar>
             <Box sx={{ display: { xs: "none", md: "block" } }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{user.name}</Typography>
+              
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{displayName}</Typography>
               <Typography sx={{ fontSize: 10, color: T.textMuted, lineHeight: 1.2 }}>{user.email}</Typography>
             </Box>
           </Box>

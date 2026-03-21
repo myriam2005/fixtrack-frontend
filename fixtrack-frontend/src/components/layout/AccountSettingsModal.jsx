@@ -1,5 +1,4 @@
 // src/components/layout/AccountSettingsModal.jsx
-// ── Branché API — AUCUN changement design ─────────────────────────────────────
 import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogActions,
@@ -19,7 +18,7 @@ const Ico = {
 };
 
 const ROLE_META = {
-  employee:   { label: "Utilisateur",    color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  employee:   { label: "Demandeur",      color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
@@ -51,6 +50,7 @@ const fieldSx = {
 export default function AccountSettingsModal({ open, onClose, user }) {
   const { login } = useAuth();
 
+  // ✅ Fix : user.nom (backend) pas user.name
   const [formState, setFormState] = useState({
     tab: "profile",
     name: "", email: "",
@@ -62,11 +62,13 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
   const { tab, name, email, currentPwd, newPwd, confirmPwd, errors, saved, apiError } = formState;
 
+  // ✅ Fix : user.nom au lieu de user.name
   useEffect(() => {
     if (open) {
       setFormState({
         tab: "profile",
-        name: user?.name || "", email: user?.email || "",
+        name:  user?.nom  || user?.name  || "",
+        email: user?.email || "",
         currentPwd: "", newPwd: "", confirmPwd: "",
         errors: {}, saved: false, apiError: "",
       });
@@ -100,17 +102,33 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
     try {
       if (tab === "profile") {
-        // ── Appel API réel ──────────────────────────────────────────────────────
-        const updated = await userService.updateProfile({ nom: name, email });
+        // ✅ Fix : envoie { nom, email } — le backend attend "nom" pas "name"
+        const result = await userService.updateProfile({ nom: name.trim(), email: email.trim() });
 
-        // Mettre à jour le contexte auth + localStorage
-        const currentStored = JSON.parse(localStorage.getItem("currentUser") || "{}");
-        const newUser = { ...currentStored, name: updated.nom || name, email: updated.email || email };
-        localStorage.setItem("currentUser", JSON.stringify(newUser));
-        login(newUser); // sync AuthContext
+        // ✅ Fix : récupère le user mis à jour depuis la réponse API
+        // updateProfile retourne { message, user } ou directement le user
+        const updatedUser = result?.user || result;
+        const newNom      = updatedUser?.nom || name.trim();
+        const newEmail    = updatedUser?.email || email.trim();
+
+        // ✅ Fix : met à jour localStorage avec les bonnes clés
+        const stored = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        const newStored = {
+          ...stored,
+          nom:   newNom,
+          name:  newNom,   // compatibilité si certains endroits utilisent .name
+          email: newEmail,
+        };
+        localStorage.setItem("currentUser", JSON.stringify(newStored));
+
+        // ✅ Fix : sync AuthContext pour que l'UI se mette à jour immédiatement
+        login(newStored);
+
       } else {
-        // ── Changement de mot de passe ──────────────────────────────────────────
-        await userService.changePassword({ currentPassword: currentPwd, newPassword: newPwd });
+        await userService.changePassword({
+          currentPassword: currentPwd,
+          newPassword:     newPwd,
+        });
       }
 
       setFormState(prev => ({ ...prev, saved: true }));
@@ -118,6 +136,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
         setFormState(prev => ({ ...prev, saved: false }));
         onClose();
       }, 1200);
+
     } catch (err) {
       const msg = err?.response?.data?.message || "Une erreur est survenue.";
       setFormState(prev => ({ ...prev, apiError: msg }));
@@ -135,6 +154,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
     if (/[^A-Za-z0-9]/.test(newPwd)) s++;
     return s;
   })();
+
   const strengthMeta = [null,
     { label: "Faible", color: "#EF4444" },
     { label: "Moyen",  color: "#F59E0B" },
@@ -145,12 +165,15 @@ export default function AccountSettingsModal({ open, onClose, user }) {
   const togglePwd = (field) => setShowPwd(p => ({ ...p, [field]: !p[field] }));
 
   const role     = ROLE_META[user?.role] || ROLE_META.employee;
-  const initials = user?.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+  // ✅ Fix : user.nom au lieu de user.name pour les initiales
+  const displayName = user?.nom || user?.name || "";
+  const initials    = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: "14px", boxShadow: "0 20px 60px rgba(15,23,42,0.15)", overflow: "hidden" } }}>
 
+      {/* Header */}
       <Box sx={{ background: `linear-gradient(135deg, ${T.accent} 0%, #1d4ed8 100%)`, px: 3, pt: 3, pb: 2.5, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Avatar sx={{ width: 52, height: 52, fontSize: 18, fontWeight: 700, backgroundColor: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", color: "#fff" }}>
@@ -169,9 +192,11 @@ export default function AccountSettingsModal({ open, onClose, user }) {
         </IconButton>
       </Box>
 
+      {/* Tabs */}
       <Box sx={{ display: "flex", borderBottom: `1px solid ${T.border}`, backgroundColor: T.sidebar }}>
         {[{ id: "profile", label: "Profil", icon: Ico.user }, { id: "password", label: "Mot de passe", icon: Ico.lock }].map(t => (
-          <Box key={t.id} onClick={() => setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false, apiError: "" }))}
+          <Box key={t.id}
+            onClick={() => setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false, apiError: "" }))}
             sx={{ display: "flex", alignItems: "center", gap: 1, px: 2.5, py: 1.5, cursor: "pointer", borderBottom: tab === t.id ? `2px solid ${T.accent}` : "2px solid transparent", color: tab === t.id ? T.accent : T.textMuted, fontWeight: tab === t.id ? 600 : 400, fontSize: 13.5, transition: "all 0.15s", "&:hover": { color: T.accent } }}>
             <Box sx={{ display: "flex", alignItems: "center", color: tab === t.id ? T.accent : T.textMuted }}>{t.icon}</Box>
             {t.label}
@@ -190,58 +215,80 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
         {tab === "profile" && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField label="Nom complet" value={name}
+            <TextField
+              label="Nom complet" value={name}
               onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
               error={!!errors.name} helperText={errors.name} fullWidth size="small"
               InputProps={{ startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.user}</Box></InputAdornment> }}
-              sx={fieldSx} />
-            <TextField label="Adresse e-mail" type="email" value={email}
+              sx={fieldSx}
+            />
+            <TextField
+              label="Adresse e-mail" type="email" value={email}
               onChange={e => setFormState(prev => ({ ...prev, email: e.target.value }))}
-              error={!!errors.email} helperText={errors.email} fullWidth size="small" sx={fieldSx} />
-            <TextField label="Rôle" value={role.label} fullWidth size="small" disabled
-              helperText="Le rôle est géré par l'administrateur." sx={fieldSx} />
+              error={!!errors.email} helperText={errors.email} fullWidth size="small"
+              sx={fieldSx}
+            />
+            <TextField
+              label="Rôle" value={role.label} fullWidth size="small" disabled
+              helperText="Le rôle est géré par l'administrateur."
+              sx={fieldSx}
+            />
           </Box>
         )}
 
         {tab === "password" && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField label="Mot de passe actuel" type={showPwd.current ? "text" : "password"} value={currentPwd}
+            <TextField
+              label="Mot de passe actuel"
+              type={showPwd.current ? "text" : "password"} value={currentPwd}
               onChange={e => setFormState(prev => ({ ...prev, currentPwd: e.target.value }))}
               error={!!errors.currentPwd} helperText={errors.currentPwd} fullWidth size="small"
               InputProps={{
                 startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.lock}</Box></InputAdornment>,
-                endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>{showPwd.current ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment>,
-              }} sx={fieldSx} />
+                endAdornment:   <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>{showPwd.current ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment>,
+              }}
+              sx={fieldSx}
+            />
 
-            <TextField label="Nouveau mot de passe" type={showPwd.new ? "text" : "password"} value={newPwd}
+            <TextField
+              label="Nouveau mot de passe"
+              type={showPwd.new ? "text" : "password"} value={newPwd}
               onChange={e => setFormState(prev => ({ ...prev, newPwd: e.target.value }))}
               error={!!errors.newPwd} helperText={errors.newPwd} fullWidth size="small"
               InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("new")} sx={{ color: T.textMuted }}>{showPwd.new ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
-              sx={fieldSx} />
+              sx={fieldSx}
+            />
 
             {newPwd && (
               <Box>
                 <Box sx={{ display: "flex", gap: 0.5, mb: 0.5 }}>
-                  {[1,2,3,4].map(i => <Box key={i} sx={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= pwdStrength ? strengthMeta?.color : T.border, transition: "background-color 0.2s" }} />)}
+                  {[1,2,3,4].map(i => (
+                    <Box key={i} sx={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= pwdStrength ? strengthMeta?.color : T.border, transition: "background-color 0.2s" }} />
+                  ))}
                 </Box>
                 {strengthMeta && <Typography sx={{ fontSize: 11, color: strengthMeta.color, fontWeight: 600 }}>{strengthMeta.label}</Typography>}
               </Box>
             )}
 
-            <TextField label="Confirmer le nouveau mot de passe" type={showPwd.confirm ? "text" : "password"} value={confirmPwd}
+            <TextField
+              label="Confirmer le nouveau mot de passe"
+              type={showPwd.confirm ? "text" : "password"} value={confirmPwd}
               onChange={e => setFormState(prev => ({ ...prev, confirmPwd: e.target.value }))}
               error={!!errors.confirmPwd} helperText={errors.confirmPwd} fullWidth size="small"
               InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("confirm")} sx={{ color: T.textMuted }}>{showPwd.confirm ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
-              sx={fieldSx} />
+              sx={fieldSx}
+            />
           </Box>
         )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${T.border}`, backgroundColor: T.sidebar, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 500, borderColor: T.border, color: T.textSub, "&:hover": { borderColor: T.textMuted, backgroundColor: T.borderLight } }}>
+        <Button onClick={onClose} variant="outlined"
+          sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 500, borderColor: T.border, color: T.textSub, "&:hover": { borderColor: T.textMuted, backgroundColor: T.borderLight } }}>
           Annuler
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving || saved} startIcon={saved ? Ico.check : null}
+        <Button onClick={handleSave} variant="contained" disabled={saving || saved}
+          startIcon={saved ? Ico.check : null}
           sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600, minWidth: 140, backgroundColor: saved ? "#22C55E" : T.accent, boxShadow: saved ? "0 2px 8px rgba(34,197,94,0.35)" : `0 2px 8px ${alpha(T.accent, 0.3)}`, "&:hover": { backgroundColor: saved ? "#16A34A" : T.accentHover }, transition: "background-color 0.2s" }}>
           {saving ? "Enregistrement…" : saved ? "Enregistré !" : "Enregistrer"}
         </Button>
