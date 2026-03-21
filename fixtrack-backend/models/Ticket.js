@@ -58,7 +58,7 @@ const ticketSchema = new Schema(
       required: [true, "La localisation est requise"],
       trim: true,
     },
-    machineId: { type: Schema.Types.ObjectId, ref: "Machine", default: null },
+
     auteurId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     auteurTel: { type: String, default: null },
     technicienId: { type: Schema.Types.ObjectId, ref: "User", default: null },
