@@ -28,7 +28,7 @@ router.get(
 );
 
 // ── Routes admin ─────────────────────────────────────────────────────────────
-router.get("/", auth, roleCheck(["admin"]), getAllUsers);
+router.get("/", auth, roleCheck(["admin", "manager"]), getAllUsers);
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);
 router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);
