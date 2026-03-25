@@ -24,7 +24,6 @@ const resolveId = (val) => {
   return String(val);
 };
 
-// ✅ Calcule les 6 derniers mois dynamiquement depuis les tickets réels
 function buildMonthlyData(tickets) {
   const now = new Date();
   const months = [];
@@ -33,24 +32,20 @@ function buildMonthlyData(tickets) {
     const year  = d.getFullYear();
     const month = d.getMonth();
     const label = d.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "");
-
     const created  = tickets.filter(t => {
       const td = new Date(t.createdAt || t.dateCreation);
       return td.getFullYear() === year && td.getMonth() === month;
     }).length;
-
     const resolved = tickets.filter(t => {
       const td = new Date(t.updatedAt || t.createdAt || t.dateCreation);
       return td.getFullYear() === year && td.getMonth() === month
         && (t.statut === "resolved" || t.statut === "closed");
     }).length;
-
     months.push({ label, created, resolved });
   }
   return months;
 }
 
-// ✅ Calcule les spark (mini graphe) depuis les tickets réels — 5 points + valeur actuelle
 function buildSpark(tickets, filterFn) {
   const now = new Date();
   const points = [];
@@ -64,12 +59,62 @@ function buildSpark(tickets, filterFn) {
   return points;
 }
 
+function mapLog(log, index) {
+  const actor =
+    (log.userId && typeof log.userId === "object" ? log.userId.nom : null) ||
+    log.actor || "Système";
+  const action = log.details
+    ? `${log.action} — ${log.details}`
+    : log.action || "Action système";
+  const iconMap = { error: "shield", warning: "settings", info: "check" };
+  return {
+    id:     log._id || log.id || index,
+    actor,
+    action,
+    time:   formatRelativeTime(log.createdAt || log.date),
+    // On garde aussi la date ISO pour l'export CSV
+    dateISO: log.createdAt || log.date || null,
+    icon:   iconMap[log.type] || "shield",
+    type:   log.type || "info",
+  };
+}
+
+// ✅ Génère et télécharge un fichier CSV depuis les logs
+function downloadLogsCSV(logs, allLogs) {
+  // On utilise allLogs (données brutes complètes) si disponibles, sinon logs affichés
+  const rows = (allLogs.length > 0 ? allLogs : logs).map(log => {
+    const actor  = (log.userId && typeof log.userId === "object" ? log.userId.nom : null) || log.actor || "Système";
+    const action = log.details ? `${log.action} — ${log.details}` : (log.action || "");
+    const type   = log.type || "info";
+    const date   = log.createdAt || log.date
+      ? new Date(log.createdAt || log.date).toLocaleString("fr-FR")
+      : "—";
+    // Échappe les guillemets dans les champs
+    const escape = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    return [escape(date), escape(actor), escape(type.toUpperCase()), escape(action)].join(";");
+  });
+
+  const header = ["Date", "Acteur", "Type", "Action"].map(h => `"${h}"`).join(";");
+  const csv    = "\uFEFF" + [header, ...rows].join("\n"); // \uFEFF = BOM pour Excel UTF-8
+  const blob   = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url    = URL.createObjectURL(blob);
+  const link   = document.createElement("a");
+  link.href     = url;
+  link.download = `journal_activite_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminDashboard() {
   const { user: authUser } = useAuth();
 
-  const [tickets, setTickets] = useState([]);
-  const [users,   setUsers]   = useState([]);
-  const [logs,    setLogs]    = useState([]);
+  const [tickets,  setTickets]  = useState([]);
+  const [users,    setUsers]    = useState([]);
+  const [logs,     setLogs]     = useState([]);      // logs mappés pour affichage
+  const [rawLogs,  setRawLogs]  = useState([]);      // logs bruts pour export complet
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     Promise.all([ticketService.getAll(), userService.getAll()])
@@ -79,28 +124,29 @@ export default function AdminDashboard() {
       })
       .catch(console.error);
 
-    // ✅ Charge les vrais logs si la route existe, sinon fallback vide
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/logs`, {
-      headers: {
-        Authorization: `Bearer ${JSON.parse(localStorage.getItem("currentUser") || "{}")?.token}`,
-      },
+    const token = (() => {
+      try { return JSON.parse(localStorage.getItem("currentUser") || "{}")?.token || ""; }
+      catch { return ""; }
+    })();
+
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/logs?limit=500`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     })
-      .then(r => r.ok ? r.json() : [])
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
-        const logsArray = Array.isArray(data) ? data : data.logs || [];
-        setLogs(logsArray.slice(0, 4).map((l, i) => ({
-          id:     l._id || i,
-          actor:  l.userId?.nom || l.actor || "Système",
-          action: l.action || l.message || "Action système",
-          time:   formatRelativeTime(l.createdAt || l.date),
-          icon:   l.type === "USER_UPDATED" ? "user" : l.type?.includes("CONFIG") ? "settings" : "shield",
-        })));
+        const raw = Array.isArray(data) ? data
+          : Array.isArray(data.logs) ? data.logs
+          : Array.isArray(data.data) ? data.data : [];
+        const sorted = [...raw].sort(
+          (a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)
+        );
+        setRawLogs(sorted);                          // garde tous les logs pour export
+        setLogs(sorted.slice(0, 6).map(mapLog));     // affiche les 6 plus récents
       })
-      .catch(() => setLogs([]));
+      .catch(() => { setLogs([]); setRawLogs([]); });
   }, []);
 
-  // ── Stats calculées depuis les vraies données ─────────────────────────────
-
+  // ── Stats ─────────────────────────────────────────────────────────────────
   const totalTickets    = tickets.length;
   const openTickets     = tickets.filter(t => t.statut === "open").length;
   const criticalTickets = tickets.filter(t => t.priorite === "critical").length;
@@ -118,39 +164,27 @@ export default function AdminDashboard() {
   const totalUsers  = users.length;
   const technicians = users.filter(u => u.role === "technician");
 
-  // ✅ techWorkload avec resolveId pour technicienId populé
   const techWorkload = useMemo(() => technicians.map(tech => {
     const tid      = String(tech._id || tech.id || "");
-    const assigned = tickets.filter(t =>
-      resolveId(t.technicienId) === tid &&
-      (t.statut === "assigned" || t.statut === "in_progress")
-    ).length;
+    const assigned = tickets.filter(t => resolveId(t.technicienId) === tid && (t.statut === "assigned" || t.statut === "in_progress")).length;
     const total    = tickets.filter(t => resolveId(t.technicienId) === tid).length;
-    const resolved = tickets.filter(t =>
-      resolveId(t.technicienId) === tid &&
-      (t.statut === "resolved" || t.statut === "closed")
-    ).length;
+    const resolved = tickets.filter(t => resolveId(t.technicienId) === tid && (t.statut === "resolved" || t.statut === "closed")).length;
     return { ...tech, assigned, total, resolved };
   }), [technicians, tickets]);
 
-  // ✅ Données mensuelles réelles
   const monthly = useMemo(() => buildMonthlyData(tickets), [tickets]);
 
-  // ✅ Tickets urgents réels
   const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
   const urgentTickets = useMemo(() =>
-    tickets
-      .filter(t => t.statut === "open" || t.priorite === "critical")
-      .sort((a, b) => pOrder[a.priorite] - pOrder[b.priorite])
-      .slice(0, 4),
+    tickets.filter(t => t.statut === "open" || t.priorite === "critical")
+      .sort((a, b) => pOrder[a.priorite] - pOrder[b.priorite]).slice(0, 4),
     [tickets]
   );
 
-  // ✅ Spark data réelles
-  const sparkTickets  = useMemo(() => [...buildSpark(tickets, () => true), totalTickets],                                                       [tickets, totalTickets]);
-  const sparkCritical = useMemo(() => [...buildSpark(tickets, t => t.priorite === "critical"), criticalTickets],                                  [tickets, criticalTickets]);
-  const sparkUsers    = useMemo(() => [totalUsers, totalUsers, totalUsers, totalUsers, totalUsers, totalUsers],                                   [totalUsers]);
-  const sparkResolved = useMemo(() => [...buildSpark(tickets, t => t.statut === "resolved" || t.statut === "closed"), pctResolution],             [tickets, pctResolution]);
+  const sparkTickets  = useMemo(() => [...buildSpark(tickets, () => true), totalTickets], [tickets, totalTickets]);
+  const sparkCritical = useMemo(() => [...buildSpark(tickets, t => t.priorite === "critical"), criticalTickets], [tickets, criticalTickets]);
+  const sparkUsers    = useMemo(() => [totalUsers, totalUsers, totalUsers, totalUsers, totalUsers, totalUsers], [totalUsers]);
+  const sparkResolved = useMemo(() => [...buildSpark(tickets, t => t.statut === "resolved" || t.statut === "closed"), pctResolution], [tickets, pctResolution]);
 
   const donutSegments = [
     { value: openTickets,     color: "#3B82F6" },
@@ -158,16 +192,32 @@ export default function AdminDashboard() {
     { value: resolvedTickets, color: "#22C55E" },
   ].filter(s => s.value > 0);
 
-  // ✅ Trend calculé depuis le mois précédent
   const prevMonthTickets  = monthly[monthly.length - 2]?.created  || 0;
   const currMonthTickets  = monthly[monthly.length - 1]?.created  || 0;
   const trendTickets      = prevMonthTickets > 0 ? Math.round(((currMonthTickets - prevMonthTickets) / prevMonthTickets) * 100) : 0;
-
   const prevMonthResolved = monthly[monthly.length - 2]?.resolved || 0;
   const currMonthResolved = monthly[monthly.length - 1]?.resolved || 0;
   const trendResolved     = prevMonthResolved > 0 ? Math.round(((currMonthResolved - prevMonthResolved) / prevMonthResolved) * 100) : 0;
 
   const firstName = (authUser?.nom || authUser?.name || "Admin").split(" ")[0];
+
+  const fallbackLogs = [
+    { id: "f1", actor: "Système", action: `${totalTickets} tickets au total`,              time: "maintenant", icon: "shield",   type: "info" },
+    { id: "f2", actor: "Système", action: `${resolvedTickets} tickets résolus/clôturés`,   time: "maintenant", icon: "check",    type: "info" },
+    { id: "f3", actor: "Système", action: `${criticalTickets} tickets critiques actifs`,   time: "maintenant", icon: "settings", type: criticalTickets > 0 ? "warning" : "info" },
+    { id: "f4", actor: "Système", action: `${technicians.length} techniciens enregistrés`, time: "maintenant", icon: "user",     type: "info" },
+  ];
+  const displayedLogs = logs.length > 0 ? logs : fallbackLogs;
+
+  // ✅ Handler téléchargement CSV
+  const handleDownload = () => {
+    setDownloading(true);
+    try {
+      downloadLogsCSV(displayedLogs, rawLogs);
+    } finally {
+      setTimeout(() => setDownloading(false), 1000);
+    }
+  };
 
   return (
     <Box sx={{ pb: "80px" }}>
@@ -186,10 +236,10 @@ export default function AdminDashboard() {
 
       {/* ── KPI Cards ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", mb: "18px" }}>
-        <KpiCardSpark icon={DashboardIcon.ticket}        label="Total tickets"     count={totalTickets}        color="#2563EB" bgColor="#EFF6FF" description="Tous statuts confondus"          sparkData={sparkTickets}  trend={trendTickets}  />
-        <KpiCardSpark icon={DashboardIcon.alertTriangle} label="Tickets critiques" count={criticalTickets}     color="#EF4444" bgColor="#FEF2F2" description="Nécessitent attention"            sparkData={sparkCritical} trend={criticalTickets > 0 ? -5 : 0} />
-        <KpiCardSpark icon={DashboardIcon.users}         label="Utilisateurs"      count={totalUsers}          color="#8B5CF6" bgColor="#F5F3FF" description="Comptes enregistrés"             sparkData={sparkUsers}    trend={0}             />
-        <KpiCardSpark icon={DashboardIcon.check}         label="Taux résolution"   count={`${pctResolution}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedTickets} clôturés`}   sparkData={sparkResolved} trend={trendResolved} />
+        <KpiCardSpark icon={DashboardIcon.ticket}        label="Total tickets"     count={totalTickets}        color="#2563EB" bgColor="#EFF6FF" description="Tous statuts confondus"        sparkData={sparkTickets}  trend={trendTickets}  />
+        <KpiCardSpark icon={DashboardIcon.alertTriangle} label="Tickets critiques" count={criticalTickets}     color="#EF4444" bgColor="#FEF2F2" description="Nécessitent attention"          sparkData={sparkCritical} trend={criticalTickets > 0 ? -5 : 0} />
+        <KpiCardSpark icon={DashboardIcon.users}         label="Utilisateurs"      count={totalUsers}          color="#8B5CF6" bgColor="#F5F3FF" description="Comptes enregistrés"           sparkData={sparkUsers}    trend={0}             />
+        <KpiCardSpark icon={DashboardIcon.check}         label="Taux résolution"   count={`${pctResolution}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedTickets} clôturés`} sparkData={sparkResolved} trend={trendResolved} />
       </Box>
 
       {/* ── Graphes mensuels ── */}
@@ -209,7 +259,6 @@ export default function AdminDashboard() {
       {/* ── Stats + Urgents ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1.1fr 1.2fr", gap: "16px", mb: "16px" }}>
 
-        {/* Donut statuts */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", padding: "20px" }}>
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "16px" }}>Répartition statuts</Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -237,22 +286,18 @@ export default function AdminDashboard() {
           </Box>
         </Paper>
 
-        {/* Priorités */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", padding: "20px" }}>
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "16px" }}>Répartition priorités</Typography>
           <StackedPriorityBar counts={priorityCounts} total={totalTickets} />
         </Paper>
 
-        {/* Tickets urgents réels */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
           <SectionHeader title="Tickets urgents" subtitle="Ouverts et critiques"
             right={<Box sx={{ display: "flex", alignItems: "center", gap: "5px", backgroundColor: "#FEF2F2", borderRadius: "8px", padding: "3px 9px" }}><Box sx={{ color: "#EF4444", display: "flex" }}>{DashboardIcon.alertTriangle}</Box><Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#EF4444" }}>{openTickets} ouverts</Typography></Box>}
           />
           <Box sx={{ padding: "6px 6px 8px" }}>
             {urgentTickets.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: "24px", color: "#9CA3AF", fontSize: "13px" }}>
-                Aucun ticket urgent
-              </Box>
+              <Box sx={{ textAlign: "center", py: "24px", color: "#9CA3AF", fontSize: "13px" }}>Aucun ticket urgent</Box>
             ) : (
               urgentTickets.map((t, i) => (
                 <UrgentRow key={t.id || t._id} ticket={t} isLast={i === urgentTickets.length - 1} />
@@ -272,7 +317,6 @@ export default function AdminDashboard() {
       {/* ── Utilisateurs + Charge + Logs ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "16px" }}>
 
-        {/* Utilisateurs réels */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
           <SectionHeader title="Utilisateurs" subtitle={`${totalUsers} comptes enregistrés`}
             right={<Link to="/admin/users" style={{ textDecoration: "none" }}><Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB" }}>Gérer →</Typography></Link>}
@@ -284,14 +328,11 @@ export default function AdminDashboard() {
           </Box>
         </Paper>
 
-        {/* Charge techniciens réelle */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
           <SectionHeader title="Charge techniciens" subtitle="Taux d'activité en temps réel" />
           <Box sx={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {techWorkload.length === 0 ? (
-              <Typography sx={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", py: "16px" }}>
-                Aucun technicien
-              </Typography>
+              <Typography sx={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", py: "16px" }}>Aucun technicien</Typography>
             ) : (
               techWorkload.map(tech => (
                 <TechGauge key={tech.id || tech._id} tech={tech} assigned={tech.assigned} total={tech.total} resolved={tech.resolved} />
@@ -307,26 +348,46 @@ export default function AdminDashboard() {
           </Box>
         </Paper>
 
-        {/* Journal d'activité — logs réels si disponibles */}
+        {/* ✅ Journal d'activité avec téléchargement CSV fonctionnel */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader title="Journal d'activité" subtitle="Actions système récentes" />
+          <SectionHeader
+            title="Journal d'activité"
+            subtitle={logs.length > 0 ? `${rawLogs.length} entrées au total` : "Statistiques système"}
+          />
           <Box>
-            {logs.length === 0 ? (
-              // Fallback affichage stats réelles si pas de logs
-              [
-                { id: 1, actor: "Système", action: `${totalTickets} tickets au total`,              time: "maintenant", icon: "shield"   },
-                { id: 2, actor: "Système", action: `${resolvedTickets} tickets résolus/clôturés`,   time: "maintenant", icon: "check"    },
-                { id: 3, actor: "Système", action: `${criticalTickets} tickets critiques actifs`,   time: "maintenant", icon: "settings" },
-                { id: 4, actor: "Système", action: `${technicians.length} techniciens enregistrés`, time: "maintenant", icon: "user"     },
-              ].map((e, i, arr) => <AuditRow key={e.id} entry={e} isLast={i === arr.length - 1} />)
-            ) : (
-              logs.map((e, i) => <AuditRow key={e.id} entry={e} isLast={i === logs.length - 1} />)
-            )}
+            {displayedLogs.map((e, i) => (
+              <AuditRow key={e.id} entry={e} isLast={i === displayedLogs.length - 1} />
+            ))}
           </Box>
           <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
-            <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
-              Télécharger le journal complet →
-            </Typography>
+            {/* ✅ Bouton téléchargement CSV — déclenche downloadLogsCSV() */}
+            <Box
+              onClick={handleDownload}
+              sx={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                fontSize: "12px", fontWeight: 600, color: downloading ? "#9CA3AF" : "#2563EB",
+                cursor: downloading ? "not-allowed" : "pointer",
+                transition: "color 0.15s",
+                "&:hover": { textDecoration: downloading ? "none" : "underline" },
+              }}
+            >
+              {downloading ? (
+                <>
+                  <Box component="span" sx={{ display: "inline-block", width: 12, height: 12, border: "2px solid #D1D5DB", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.6s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }} />
+                  Téléchargement…
+                </>
+              ) : (
+                <>
+                  {/* Icône download */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Télécharger le journal complet (.csv)
+                </>
+              )}
+            </Box>
           </Box>
         </Paper>
       </Box>
@@ -335,10 +396,9 @@ export default function AdminDashboard() {
   );
 }
 
-// ── Helper : temps relatif ────────────────────────────────────────────────────
 function formatRelativeTime(dateStr) {
   if (!dateStr) return "—";
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff  = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);

@@ -272,8 +272,8 @@ export default function Layout({ children }) {
 
         {/* Footer */}
         <Box sx={{ px: 3, py: 1.5, borderTop: `1px solid ${T.borderLight}`, display: "flex", justifyContent: "space-between" }}>
-          <Typography sx={{ fontSize: 11, color: T.textMuted }}>© 2025 FixTrack</Typography>
-          <Typography sx={{ fontSize: 11, color: T.textMuted }}>v1.0</Typography>
+          <Typography sx={{ fontSize: 11, color: T.textMuted }}>© 2026 FixTrack</Typography>
+        
         </Box>
       </Box>
 
