@@ -1,5 +1,4 @@
 // src/pages/admin/tickets/AllTickets.jsx
-// Fix: resolveUser inline dans useMemo pour éviter le warning de dépendances
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Box, Typography, Paper, Divider, TextField, Tooltip } from "@mui/material";
 import Badge from "../../../components/common/badge/Badge";
@@ -65,7 +64,10 @@ function TicketRow({ ticket, employee, technician, isLast, onEdit, onDelete }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: "12px", mb: "4px", flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "#9CA3AF" }}>
               {DashboardIcon.calendar}
-              <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>{formatDate(ticket.dateCreation || ticket.createdAt)}</Typography>
+              {/* _createdAt est figé au chargement initial, jamais écrasé par les mises à jour */}
+              <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>
+                {formatDate(ticket._createdAt)}
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "#9CA3AF" }}>
               {DashboardIcon.pin}
@@ -145,7 +147,14 @@ export default function Tickets() {
       .then(([tRes, uRes]) => {
         const t = tRes.data || tRes;
         const u = uRes.data || uRes;
-        setRawTickets(t.map(x => ({ ...x, id: x._id || x.id })));
+        setRawTickets(t.map(x => ({
+          ...x,
+          id: x._id || x.id,
+          // On lit "createdAt" en priorité (champ réel généré par Mongoose timestamps:true)
+          // Le virtual "dateCreation" n'est disponible que si toJSON:{virtuals:true} fonctionne
+          // On stocke dans "_createdAt" : un champ privé qui ne sera JAMAIS écrasé par handleSave
+          _createdAt: x.createdAt || x.dateCreation || null,
+        })));
         setAllUsers(u.map(x => ({ ...x, id: x._id || x.id })));
       })
       .catch(console.error);
@@ -156,16 +165,12 @@ export default function Tickets() {
     setTimeout(() => setToast(null), 3200);
   };
 
-  // Fix: resolveUser défini avec useCallback pour être stable
-  // et inclus directement dans les dépendances de useMemo
   const resolveUser = useCallback((id) => {
     if (!id) return null;
     const uid = typeof id === "object" ? (id._id || id.id) : id;
     return allUsers.find(u => u.id === uid || u._id === uid) || null;
   }, [allUsers]);
 
-  // Fix: dépendances [rawTickets, resolveUser] — resolveUser dépend de allUsers
-  // Le compilateur React est satisfait car resolveUser est stable via useCallback
   const enrichedTickets = useMemo(() =>
     rawTickets.map(t => ({
       ...t,
@@ -186,7 +191,7 @@ export default function Tickets() {
 
   const filteredTickets = useMemo(() => {
     let result = [...enrichedTickets].sort((a, b) =>
-      new Date(b.dateCreation || b.createdAt) - new Date(a.dateCreation || a.createdAt)
+      new Date(b._createdAt) - new Date(a._createdAt)
     );
     if (activeFilter !== "all") result = result.filter(t => t.statut === activeFilter);
     if (search.trim()) {
@@ -205,9 +210,11 @@ export default function Tickets() {
   const handleSave = async (updated) => {
     try {
       await ticketService.update(updated.id || updated._id, updated);
-      setRawTickets(prev => prev.map(t =>
-        t.id === (updated.id || updated._id) ? { ...t, ...updated } : t
-      ));
+      setRawTickets(prev => prev.map(t => {
+        if (t.id !== (updated.id || updated._id)) return t;
+        // On préserve _createdAt du ticket original — la date de création ne change jamais
+        return { ...t, ...updated, _createdAt: t._createdAt };
+      }));
       setEditTarget(null);
       showToast("Ticket mis à jour avec succès.", "success");
     } catch {
