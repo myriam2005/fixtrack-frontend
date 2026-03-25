@@ -1,19 +1,22 @@
 // src/pages/employee/CreateTicket/CreateTicket.jsx
-// ✅ VERSION BACKEND — même design, soumission via API réelle
+// ✅ VERSION BACKEND — IA dynamique avec analyse réelle
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { ticketService } from "../../../services/api";
 
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
-import { CSS }                                         from "./Wizardstyles";
-import { STEPS, validateStep, Icon }                   from "./Wizardconstants";
+import { CSS } from "./Wizardstyles";
+import { STEPS, validateStep, Icon } from "./Wizardconstants";
 import {
   MobileProgress,
-  StepProbleme, StepLocalisation, StepUrgence,
-  StepContact,  StepRecap,
+  StepProbleme,
+  StepLocalisation,
+  StepUrgence,
+  StepContact,
+  StepRecap,
 } from "./Wizardsteps";
 
 // ── Horizontal stepper ────────────────────────────────────────────────────────
@@ -48,48 +51,149 @@ function HorizontalStepper({ current }) {
   );
 }
 
-// ── Icônes déplacées EN DEHORS de AIPanel ─────────────────────────────────────
+// ── Icônes ────────────────────────────────────────────────────────────────────
 const IcoSparkle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
+    <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z" />
   </svg>
 );
 const IcoPin = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
   </svg>
 );
 const IcoInfo = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
   </svg>
 );
 const IcoExternal = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+const IcoLoading = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
 
-// ── AI Panel ──────────────────────────────────────────────────────────────────
+// ── AI Panel avec analyse dynamique ───────────────────────────────────────────
 function AIPanel({ form }) {
+  const [iaScore, setIaScore] = useState(42);
+  const [iaPriority, setIaPriority] = useState("medium");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState(false);
+  const analysisTimeout = useRef(null);
+
   const hasContent = form.titre.length > 4 || form.description.length > 10;
-  const scoreMap = { critical: 88, high: 65, medium: 42, low: 20 };
-  const score    = scoreMap[form.urgence] || 42;
+
+  // Fonction d'analyse IA locale (ne dépend pas du backend)
+  const analyzeLocally = useCallback(() => {
+    let score = 0;
+    const text = (form.titre + " " + form.description).toLowerCase();
+    const locLower = form.localisation.toLowerCase();
+    const catLower = (form.categorie === "Autre" ? form.categorieAutre : form.categorie || "").toLowerCase();
+
+    // 1. Mots-clés critiques (+40)
+    const criticalKeywords = [
+      "incendie", "feu", "fumée", "fuite gaz", "gaz", "explosion",
+      "électrocution", "blessé", "accident", "coincé", "bloqué",
+      "danger", "urgence", "immédiat", "critique", "panne totale",
+      "arrêt complet", "plus rien"
+    ];
+    if (criticalKeywords.some(kw => text.includes(kw))) {
+      score += 40;
+    }
+
+    // 2. Mots-clés haute priorité (+20)
+    const highKeywords = [
+      "panne", "arrêt", "ne fonctionne pas", "urgent", "important",
+      "rapidement", "aujourd'hui"
+    ];
+    if (highKeywords.some(kw => text.includes(kw))) {
+      score += 20;
+    }
+
+    // 3. Catégories critiques (+30)
+    const criticalCategories = ["sécurité", "électrique", "incendie", "gaz", "ascenseur"];
+    if (criticalCategories.some(cat => catLower.includes(cat))) {
+      score += 30;
+    }
+
+    // 4. Localisation importante (+20)
+    const importantLocations = [
+      "amphi", "salle", "classe", "labo", "bibliothèque",
+      "réfectoire", "cantine", "accueil", "bureau", "cuisine",
+      "open space", "hall", "lobby"
+    ];
+    if (importantLocations.some(loc => locLower.includes(loc))) {
+      score += 20;
+    }
+
+    // 5. Urgence sélectionnée
+    const urgencyBonus = { critical: 25, high: 15, medium: 8, low: 2 };
+    score += urgencyBonus[form.urgence] || 0;
+
+    // 6. Limiter et normaliser
+    score = Math.min(100, Math.max(0, score));
+
+    // Déterminer priorité
+    let priorite = "medium";
+    if (score >= 80) priorite = "critical";
+    else if (score >= 60) priorite = "high";
+    else if (score >= 35) priorite = "medium";
+    else priorite = "low";
+
+    setIaScore(score);
+    setIaPriority(priorite);
+  }, [form.titre, form.description, form.localisation, form.categorie, form.categorieAutre, form.urgence]);
+
+  // Déclencher l'analyse après un délai (debounce)
+  useEffect(() => {
+    if (analysisTimeout.current) clearTimeout(analysisTimeout.current);
+    analysisTimeout.current = setTimeout(() => {
+      if (hasContent) {
+        setAnalyzing(true);
+        setAnalysisError(false);
+        analyzeLocally();
+        setAnalyzing(false);
+      }
+    }, 600);
+    return () => {
+      if (analysisTimeout.current) clearTimeout(analysisTimeout.current);
+    };
+  }, [form.titre, form.description, form.localisation, form.categorie, form.categorieAutre, form.urgence, hasContent, analyzeLocally]);
+
+  const score = iaScore;
   const scoreColor = score >= 70 ? "#EF4444" : score >= 45 ? "#F97316" : score >= 25 ? "#F59E0B" : "#6B7280";
 
-  const timeMap = { critical: "< 1 heure", high: "2 – 4 heures", medium: "1 – 2 jours", low: "Cette semaine" };
+  const timeMap = {
+    critical: "< 1 heure",
+    high: "2 – 4 heures",
+    medium: "1 – 2 jours",
+    low: "Cette semaine",
+  };
+
   const priorityMap = {
     critical: { label: "CRITIQUE", bg: "#FEF2F2", color: "#B91C1C", border: "#FECACA" },
-    high:     { label: "HAUTE",    bg: "#FFF7ED", color: "#C2410C", border: "#FED7AA" },
-    medium:   { label: "MOYENNE",  bg: "#FFFBEB", color: "#B45309", border: "#FDE68A" },
-    low:      { label: "BASSE",    bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
+    high: { label: "HAUTE", bg: "#FFF7ED", color: "#C2410C", border: "#FED7AA" },
+    medium: { label: "MOYENNE", bg: "#FFFBEB", color: "#B45309", border: "#FDE68A" },
+    low: { label: "BASSE", bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
   };
-  const prio = priorityMap[form.urgence] || priorityMap.medium;
+
+  const prio = priorityMap[iaPriority] || priorityMap.medium;
+
   const suggestions = {
-    critical: "Signalez immédiatement à votre responsable. Le technicien sera prévenu en urgence.",
-    high:     "Pensez à vérifier le disjoncteur ou les connexions locales avant l'arrivée du technicien.",
-    medium:   "Notez l'heure d'apparition du problème pour faciliter le diagnostic.",
-    low:      "Un technicien passera lors de sa prochaine tournée dans votre bâtiment.",
+    critical: "⚠️ URGENCE ABSOLUE ! Signalez immédiatement à votre responsable. Le technicien sera prévenu en urgence.",
+    high: "🚨 Intervention rapide requise. Pensez à vérifier le disjoncteur ou les connexions locales avant l'arrivée du technicien.",
+    medium: "📋 À traiter prochainement. Notez l'heure d'apparition du problème pour faciliter le diagnostic.",
+    low: "🔧 Intervention programmée. Un technicien passera lors de sa prochaine tournée dans votre bâtiment.",
   };
 
   return (
@@ -97,8 +201,8 @@ function AIPanel({ form }) {
       <div className="wz-ai-card">
         <div className="wz-ai-card-head">
           <div className="wz-ai-badge">
-            <span className="wz-ai-badge-dot" />
-            Analyse IA en direct
+            <span className="wz-ai-badge-dot" style={{ background: analyzing ? "#F59E0B" : "#6366F1" }} />
+            Analyse IA {analyzing && "(calcul...)"}
           </div>
         </div>
 
@@ -118,19 +222,27 @@ function AIPanel({ form }) {
               </span>
             </div>
             <div className="wz-ai-score">
-              <span className="wz-ai-score-num" style={{ color: scoreColor }}>{score}</span>
+              <span className="wz-ai-score-num" style={{ color: scoreColor }}>
+                {analyzing ? "..." : score}
+              </span>
               <span className="wz-ai-score-max">/ 100</span>
+              {analyzing && (
+                <span style={{ marginLeft: 8, fontSize: 10, color: "#F59E0B" }}>
+                  <IcoLoading /> analyse...
+                </span>
+              )}
             </div>
             <div className="wz-ai-bar">
               <div className="wz-ai-bar-fill" style={{
-                width: `${score}%`,
+                width: analyzing ? "50%" : `${score}%`,
                 background: score >= 70 ? "linear-gradient(90deg,#EF4444,#DC2626)" : score >= 45 ? "linear-gradient(90deg,#F97316,#EA580C)" : "linear-gradient(90deg,#F59E0B,#D97706)",
+                transition: "width 0.3s ease",
               }} />
             </div>
             <div className="wz-ai-metrics">
               <div className="wz-ai-metric">
                 <div className="wz-ai-metric-lbl">Temps d'intervention</div>
-                <div className="wz-ai-metric-val">{timeMap[form.urgence]}</div>
+                <div className="wz-ai-metric-val">{timeMap[iaPriority]}</div>
               </div>
               <div className="wz-ai-metric">
                 <div className="wz-ai-metric-lbl">Catégorie</div>
@@ -139,14 +251,19 @@ function AIPanel({ form }) {
             </div>
             <div className="wz-ai-suggestion">
               <span className="wz-ai-suggestion-ico"><IcoPin /></span>
-              <p className="wz-ai-suggestion-text">{suggestions[form.urgence]}</p>
+              <p className="wz-ai-suggestion-text">{suggestions[iaPriority]}</p>
             </div>
+            {analysisError && (
+              <div style={{ fontSize: 10, color: "#F59E0B", marginTop: 8, textAlign: "center" }}>
+                ⚠️ Analyse locale active
+              </div>
+            )}
           </div>
         )}
 
         <div className="wz-ai-footer">
           <IcoInfo />
-          {hasContent ? "Priorité calculée par IA — serveur backend" : "L'IA analysera votre demande en temps réel"}
+          {hasContent ? "Priorité calculée par analyse IA locale" : "L'IA analysera votre demande en temps réel"}
         </div>
       </div>
 
@@ -202,70 +319,87 @@ function SuccessScreen({ navigate, ticketId }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function CreateTicket() {
   const navigate = useNavigate();
-  const { user }  = useAuth();
+  const { user } = useAuth();
 
-  const [step,     setStep]     = useState(0);
-  const [dir,      setDir]      = useState("next");
-  const [form,     setForm]     = useState({
-    titre: "", description: "",
-    localisation: "", categorie: "", categorieAutre: "",
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState("next");
+  const [form, setForm] = useState({
+    titre: "",
+    description: "",
+    localisation: "",
+    categorie: "",
+    categorieAutre: "",
     urgence: "medium",
-    telephone: "", photos: [],
+    telephone: "",
+    photos: [],
   });
-  const [errors,   setErrors]   = useState({});
-  const [focused,  setFocused]  = useState("");
+  const [errors, setErrors] = useState({});
+  const [focused, setFocused] = useState("");
   const [showSugg, setShowSugg] = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [apiError, setApiError] = useState("");
   const [createdId, setCreatedId] = useState(null);
 
   const set = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field])
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[field];
+        return n;
+      });
   };
 
   const goNext = () => {
     const errs = validateStep(step, form);
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
     setErrors({});
     setDir("next");
-    setStep(prev => prev + 1);
+    setStep((prev) => prev + 1);
   };
 
-  const goBack = () => { setDir("back"); setStep(prev => prev - 1); };
+  const goBack = () => {
+    setDir("back");
+    setStep((prev) => prev - 1);
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     setApiError("");
 
-    const cat = form.categorie === "Autre"
-      ? `Autre — ${form.categorieAutre.trim()}`
-      : form.categorie;
+    const cat =
+      form.categorie === "Autre"
+        ? `Autre — ${form.categorieAutre.trim()}`
+        : form.categorie;
 
     try {
       const payload = {
-        titre:        form.titre.trim(),
-        description:  form.description.trim(),
-        categorie:    cat,
+        titre: form.titre.trim(),
+        description: form.description.trim(),
+        categorie: cat,
         localisation: form.localisation.trim(),
-        urgence:      form.urgence,
-        auteurTel:    form.telephone.trim() || null,
+        urgence: form.urgence,
+        auteurTel: form.telephone.trim() || null,
       };
       const ticket = await ticketService.create(payload);
       setCreatedId(ticket._id);
       setSuccess(true);
     } catch (err) {
-      const msg = err.response?.data?.message
-        || err.response?.data?.errors?.[0]?.msg
-        || "Erreur lors de la soumission. Réessayez.";
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.[0]?.msg ||
+        "Erreur lors de la soumission. Réessayez.";
       setApiError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const animCls   = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
+  const animCls = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
   const stepProps = { form, errors, set, animCls };
 
   if (loading) return <LoadingSpinner size={48} />;
@@ -273,12 +407,38 @@ export default function CreateTicket() {
 
   const renderStep = () => {
     switch (step) {
-      case 0: return <StepProbleme    {...stepProps} />;
-      case 1: return <StepLocalisation {...stepProps} showSugg={showSugg} setShowSugg={setShowSugg} />;
-      case 2: return <StepUrgence     {...stepProps} />;
-      case 3: return <StepContact     {...stepProps} focused={focused} setFocused={setFocused} user={user} />;
-      case 4: return <StepRecap       {...stepProps} user={user} setStep={setStep} setDir={setDir} />;
-      default: return null;
+      case 0:
+        return <StepProbleme {...stepProps} />;
+      case 1:
+        return (
+          <StepLocalisation
+            {...stepProps}
+            showSugg={showSugg}
+            setShowSugg={setShowSugg}
+          />
+        );
+      case 2:
+        return <StepUrgence {...stepProps} />;
+      case 3:
+        return (
+          <StepContact
+            {...stepProps}
+            focused={focused}
+            setFocused={setFocused}
+            user={user}
+          />
+        );
+      case 4:
+        return (
+          <StepRecap
+            {...stepProps}
+            user={user}
+            setStep={setStep}
+            setDir={setDir}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -291,11 +451,17 @@ export default function CreateTicket() {
           <MobileProgress current={step} />
 
           {apiError && (
-            <div style={{
-              padding: "10px 14px", marginBottom: 16,
-              background: "#FEF2F2", border: "1px solid #FECACA",
-              borderRadius: 10, fontSize: 13, color: "#DC2626",
-            }}>
+            <div
+              style={{
+                padding: "10px 14px",
+                marginBottom: 16,
+                background: "#FEF2F2",
+                border: "1px solid #FECACA",
+                borderRadius: 10,
+                fontSize: 13,
+                color: "#DC2626",
+              }}
+            >
               ⚠ {apiError}
             </div>
           )}
