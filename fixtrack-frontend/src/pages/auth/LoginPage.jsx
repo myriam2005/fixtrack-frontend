@@ -71,6 +71,46 @@ function ParticleCanvas() {
   );
 }
 
+// Icône clé anglaise — identique à celle du Layout
+function WrenchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+  );
+}
+
+// Logo identique au sidebar du Layout
+function AppLogo() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 24 }}>
+      {/* Carré bleu gradient avec icône clé — copie exacte du Layout */}
+      <div style={{
+        width: 40, height: 40,
+        borderRadius: 11,
+        flexShrink: 0,
+        background: "linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 2px 14px rgba(37,99,235,0.45)",
+        border: "1px solid rgba(255,255,255,0.15)",
+      }}>
+        <div style={{ color: "#fff", display: "flex", transform: "scale(0.82)" }}>
+          <WrenchIcon />
+        </div>
+      </div>
+      {/* Texte "FixTrack" + sous-titre "Maintenance" — copie exacte du Layout */}
+      <div>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, letterSpacing: "-0.4px", lineHeight: 1.1 }}>
+          Fix<span style={{ color: "black" }}>Track</span>
+        </div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.5px", textTransform: "uppercase", lineHeight: 1, marginTop: 2 }}>
+          Maintenance
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage({ onLoginSuccess }) {
   const { loginWithBackend } = useAuth();
 
@@ -188,12 +228,9 @@ export default function LoginPage({ onLoginSuccess }) {
 
             {/* LEFT — Section WELCOME */}
             <div className="ft-left" style={{ flex: "0 0 auto", maxWidth: 380, position: "relative", zIndex: 2 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}>🔧</div>
-                <div>
-                  <div style={{ color: "#fff", fontWeight: 800, fontSize: 19, letterSpacing: "-0.3px" }}>FixTrack</div>
-                </div>
-              </div>
+
+              {/* ← Logo mis à jour : identique au Layout sidebar */}
+              <AppLogo />
 
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 26, lineHeight: 1.25, letterSpacing: "-0.4px", marginBottom: 10 }}>Bienvenue</div>
               <div style={{ color: "rgba(255,255,255,0.75)", fontWeight: 400, fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
@@ -328,7 +365,7 @@ export default function LoginPage({ onLoginSuccess }) {
         </div>
 
         <div style={{ position: "relative", zIndex: 10, marginTop: 18, fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: ".3px" }}>
-          © 2025 FixTrack
+          © 2026 FixTrack
         </div>
       </div>
     </>
