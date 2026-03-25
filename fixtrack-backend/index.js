@@ -27,13 +27,13 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-const authLimiter = rateLimit({
+/*const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { message: "Trop de tentatives. Réessayez dans 15 minutes." },
 });
-
-app.use("/api/auth", authLimiter, require("./routes/authRoutes"));
+*/
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/tickets", require("./routes/ticketRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
