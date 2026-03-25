@@ -1,10 +1,6 @@
 // utils/createLog.js
 const Log = require("../models/Log");
 
-/**
- * createLog(action, details, userId, type, targetId, targetType)
- * Crée un log automatiquement dans la BDD
- */
 const createLog = async (
   action,
   details = "",
@@ -16,7 +12,6 @@ const createLog = async (
   try {
     await Log.create({ action, details, userId, type, targetId, targetType });
   } catch (error) {
-    // On ne veut pas que les erreurs de log bloquent le serveur
     console.error("❌ Erreur création log:", error.message);
   }
 };
