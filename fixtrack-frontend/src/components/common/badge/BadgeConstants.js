@@ -1,5 +1,4 @@
 // src/components/common/BadgeConstants.js
-
 export const TOKENS = {
   // ── Statuts tickets ────────────────────────────────────────────────────────
   open: { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
