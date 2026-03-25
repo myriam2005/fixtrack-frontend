@@ -1,5 +1,6 @@
 // src/pages/ticketDetails.jsx
-// Fix: suppression de 'user' non utilisé depuis useAuth
+// Fix: note.texte (champ réel Mongoose) + jamais de JSON.stringify affiché
+// Fix: chaque note utilise sa propre date (note.date) et non la date du ticket
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ticketService } from "../services/api";
@@ -19,43 +20,86 @@ const STATUS = {
   closed:      { label: "Clôturé",  dot: "#9ca3af", color: "#374151", bg: "#f9fafb" },
 };
 
+// Icône selon le type de note Mongoose : "note" | "solution" | "validation"
+function noteIcon(type) {
+  if (type === "solution")   return "🔧";
+  if (type === "validation") return "✅";
+  return "📝";
+}
+function noteLabel(type) {
+  if (type === "solution")   return "Solution ajoutée";
+  if (type === "validation") return "Validation";
+  return "Note ajoutée";
+}
+
 function buildTimeline(ticket) {
   const tech   = ticket.technicienId;
   const auteur = ticket.auteurId;
   const lines  = [];
 
+  // Création
   lines.push({
-    icon: "📋", titre: "Ticket créé",
-    date: ticket.dateCreation || ticket.createdAt,
+    icon: "📋",
+    titre: "Ticket créé",
+    date: ticket.createdAt || ticket.dateCreation,
     desc: `Signalé par ${auteur?.nom ?? "un employé"}`,
   });
 
+  // Assignation
   if (tech) {
     lines.push({
-      icon: "👤", titre: "Technicien assigné",
-      date: ticket.dateCreation || ticket.createdAt,
+      icon: "👤",
+      titre: "Technicien assigné",
+      date: ticket.createdAt || ticket.dateCreation,
       desc: `Assigné à ${tech.nom ?? tech}`,
     });
   }
 
+  // Prise en charge
   if (["in_progress", "resolved", "closed"].includes(ticket.statut)) {
     lines.push({
-      icon: "🔧", titre: "Prise en charge",
-      date: ticket.dateCreation || ticket.createdAt,
+      icon: "🔧",
+      titre: "Prise en charge",
+      date: ticket.createdAt || ticket.dateCreation,
       desc: "Intervention débutée par le technicien.",
     });
   }
 
-  ticket.notes?.forEach((note) => {
-    const noteText = typeof note === "string" ? note : note.contenu || note.text || JSON.stringify(note);
-    lines.push({ icon: "📝", titre: "Note ajoutée", date: ticket.dateCreation || ticket.createdAt, desc: noteText });
+  // Notes — Fix: utilise note.texte (champ Mongoose réel)
+  // et note.date pour la date propre à chaque note
+  // On n'affiche JAMAIS de JSON brut
+  (ticket.notes ?? []).forEach((note) => {
+    if (!note || typeof note !== "object") return; // ignore les notes malformées
+
+    const texte = note.texte || note.text || note.contenu || null;
+    if (!texte) return; // note vide → on ignore plutôt que d'afficher du JSON
+
+    lines.push({
+      icon:  noteIcon(note.type),
+      titre: noteLabel(note.type),
+      date:  note.date || ticket.createdAt || ticket.dateCreation,
+      desc:  texte,
+    });
   });
 
+  // Résolu
   if (ticket.statut === "resolved") {
-    lines.push({ icon: "✅", titre: "Résolu", date: ticket.dateCreation || ticket.createdAt, desc: "En attente de votre validation." });
+    lines.push({
+      icon: "✅",
+      titre: "Résolu",
+      date: ticket.createdAt || ticket.dateCreation,
+      desc: "En attente de votre validation.",
+    });
   }
+
+  // Clôturé
   if (ticket.statut === "closed") {
-    lines.push({ icon: "🔒", titre: "Clôturé", date: ticket.dateCreation || ticket.createdAt, desc: "Ticket fermé après validation." });
+    lines.push({
+      icon: "🔒",
+      titre: "Clôturé",
+      date: ticket.createdAt || ticket.dateCreation,
+      desc: "Ticket fermé après validation.",
+    });
   }
 
   return lines;
@@ -77,7 +121,6 @@ if (typeof document !== "undefined" && !document.getElementById("dt-kf")) {
 export default function DetailTicket({ ticketId: propId, onClose: propClose } = {}) {
   const params   = useParams();
   const navigate = useNavigate();
-  // Fix: 'user' supprimé — non utilisé dans ce composant
 
   const id      = propId ?? params.id;
   const onClose = propClose ?? (() => navigate(-1));
@@ -145,11 +188,11 @@ export default function DetailTicket({ ticketId: propId, onClose: propClose } = 
   }
 
   function renderModal() {
-    const p    = PRIORITY[ticket.priorite] ?? PRIORITY.medium;
-    const s    = STATUS[ticket.statut]     ?? STATUS.open;
+    const p      = PRIORITY[ticket.priorite] ?? PRIORITY.medium;
+    const s      = STATUS[ticket.statut]     ?? STATUS.open;
     const tech   = ticket.technicienId && typeof ticket.technicienId === "object" ? ticket.technicienId : null;
-    const auteur = ticket.auteurId && typeof ticket.auteurId === "object" ? ticket.auteurId : null;
-    const tl   = buildTimeline(ticket);
+    const auteur = ticket.auteurId     && typeof ticket.auteurId     === "object" ? ticket.auteurId     : null;
+    const tl     = buildTimeline(ticket);
 
     return (
       <div style={S.box}>
@@ -166,7 +209,7 @@ export default function DetailTicket({ ticketId: propId, onClose: propClose } = 
             <div style={S.badgeRow}>
               <PillBadge label={p.label} dot={p.dot} color={p.color} bg={p.bg} />
               <PillBadge label={s.label} dot={s.dot} color={s.color} bg={s.bg} />
-              <span style={S.dateText}>{formatDate(ticket.dateCreation || ticket.createdAt)}</span>
+              <span style={S.dateText}>{formatDate(ticket.createdAt || ticket.dateCreation)}</span>
             </div>
 
             <h3 style={S.ticketTitle}>{ticket.titre}</h3>
