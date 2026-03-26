@@ -8,6 +8,7 @@ const {
   getAllUsers,
   getTechnicians,
   getUserById,
+  createUser, // ← nouveau
   updateUser,
   updateRole,
   deleteUser,
@@ -19,7 +20,7 @@ const {
 router.put("/profile", auth, updateProfile); // ← AVANT /:id
 router.put("/password", auth, changePassword); // ← AVANT /:id
 
-// ── Routes publiques (pour la liste des techniciens — manager/admin) ─────────
+// ── Techniciens (manager/admin — liste pour assignation) ─────────────────────
 router.get(
   "/technicians",
   auth,
@@ -27,8 +28,10 @@ router.get(
   getTechnicians,
 );
 
-// ── Routes admin ─────────────────────────────────────────────────────────────
+// ── CRUD admin ────────────────────────────────────────────────────────────────
+// FIX : POST / → createUser (admin) au lieu de passer par /auth/register
 router.get("/", auth, roleCheck(["admin", "manager"]), getAllUsers);
+router.post("/", auth, roleCheck(["admin"]), createUser); // ← nouveau
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);
 router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);

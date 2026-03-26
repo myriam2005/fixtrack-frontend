@@ -14,11 +14,14 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // ── GET /api/users/technicians ────────────────────────────────────────────────
+// FIX : actif: true strict excluait les users créés sans le champ explicite.
+// On accepte actif: true ET actif absent (undefined/null) via $ne: false.
 exports.getTechnicians = async (req, res) => {
   try {
-    const techs = await User.find({ role: "technician", actif: true }).select(
-      "-password",
-    );
+    const techs = await User.find({
+      role: "technician",
+      actif: { $ne: false }, // ← accepte true ET undefined
+    }).select("-password");
     res.json(techs);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -37,7 +40,61 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// ── PUT /api/users/:id (admin — modifier un user) ─────────────────────────────
+// ── POST /api/users (admin — créer un utilisateur) ───────────────────────────
+// FIX : création via l'interface admin, séparée de /auth/register.
+// Garantit que tous les champs sont bien initialisés et retourne un objet complet.
+exports.createUser = async (req, res) => {
+  try {
+    const { nom, email, password, role } = req.body;
+
+    // Validation minimale
+    if (!nom || !email || !password)
+      return res
+        .status(400)
+        .json({ message: "Nom, email et mot de passe requis" });
+
+    const VALID_ROLES = ["employee", "technician", "manager", "admin"];
+    if (role && !VALID_ROLES.includes(role))
+      return res.status(400).json({ message: "Rôle invalide" });
+
+    // Vérifier unicité email
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existing)
+      return res.status(400).json({ message: "Cet email est déjà utilisé" });
+
+    // FIX : on crée le document directement via le model, ce qui garantit
+    // que le hook pre('save') hash le mot de passe et que tous les champs
+    // par défaut (actif: true, competences: [], etc.) sont bien appliqués.
+    const user = new User({
+      nom: nom.trim(),
+      email: email.toLowerCase().trim(),
+      password, // sera hashé par le hook pre('save')
+      role: role || "employee",
+      actif: true, // explicite — évite les undefined en DB
+      avatar: "",
+      telephone: null,
+      competences: [],
+    });
+
+    await user.save();
+
+    // FIX : on relit le document depuis la DB pour retourner exactement
+    // le même shape que getAllUsers (timestamps inclus, pas de password).
+    const created = await User.findById(user._id).select("-password");
+
+    await createLog(
+      "USER_CREATED",
+      `Compte créé par admin : ${created.email} (${created.role})`,
+      req.user.id,
+    );
+
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  }
+};
+
+// ── PUT /api/users/:id (admin — modifier un user) ────────────────────────────
 exports.updateUser = async (req, res) => {
   try {
     const { nom, email, telephone, actif } = req.body;
@@ -116,14 +173,12 @@ exports.deleteUser = async (req, res) => {
 };
 
 // ── PUT /api/users/profile (utilisateur connecté) ────────────────────────────
-// NOTE : cette route DOIT être déclarée AVANT /:id dans userRoutes.js
 exports.updateProfile = async (req, res) => {
   try {
     const { nom, email, telephone } = req.body;
     if (!nom && !email && !telephone)
       return res.status(400).json({ message: "Aucune donnée à mettre à jour" });
 
-    // Vérifier unicité email si modifié
     if (email) {
       const existing = await User.findOne({ email, _id: { $ne: req.user.id } });
       if (existing)
@@ -155,7 +210,6 @@ exports.updateProfile = async (req, res) => {
 };
 
 // ── PUT /api/users/password (utilisateur connecté) ───────────────────────────
-// NOTE : cette route DOIT être déclarée AVANT /:id dans userRoutes.js
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -178,7 +232,7 @@ exports.changePassword = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Mot de passe actuel incorrect" });
 
-    user.password = newPassword; // le hook pre('save') va hasher automatiquement
+    user.password = newPassword; // hook pre('save') hash automatiquement
     await user.save();
 
     await createLog(

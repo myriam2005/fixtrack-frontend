@@ -167,6 +167,7 @@ const CATEGORY_ZONE_SYNERGIES = {
     "stockage gaz",
     "chambre froide",
     "brasserie",
+    "jardin",
   ],
   Gaz: ["cuisine", "chaufferie", "stockage gaz", "brasserie"],
   HVAC: ["bloc", "urgences", "salle serveur", "datacenter"],

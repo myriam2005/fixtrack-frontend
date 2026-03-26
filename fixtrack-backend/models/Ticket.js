@@ -44,9 +44,11 @@ const ticketSchema = new Schema(
       enum: ["low", "medium", "high", "critical"],
       default: "medium",
     },
+
+    // Score brut calculé par l'IA (0–100)
     scoreIA: { type: Number, default: 0 },
 
-    // ← PAS d'enum : accepte toute catégorie dynamique + "Autre"
+    // PAS d'enum : accepte toute catégorie dynamique + "Autre"
     categorie: {
       type: String,
       required: [true, "La catégorie est requise"],
