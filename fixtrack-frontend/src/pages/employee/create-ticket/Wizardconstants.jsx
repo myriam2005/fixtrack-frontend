@@ -138,8 +138,6 @@ const DEFAULT_CATEGORIES = [
   { value: "Plomberie",         IcoComp: Icon.Droplet   },
   { value: "HVAC",              IcoComp: Icon.Wind      },
   { value: "Informatique",      IcoComp: Icon.Monitor   },
-  { value: "Menuiserie/Mobilier", IcoComp: Icon.Armchair },
-  { value: "Hygiène/Nettoyage", IcoComp: Icon.Sparkles  },
   { value: "Sécurité",          IcoComp: Icon.Shield    },
   { value: "Mécanique",         IcoComp: Icon.Settings  },
   { value: "Autre",             IcoComp: Icon.MoreCircle },

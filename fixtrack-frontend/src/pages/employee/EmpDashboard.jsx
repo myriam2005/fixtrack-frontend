@@ -17,7 +17,7 @@ const PRIORITY_CONFIG = {
   critical: { label: "Critique", color: "#EF4444", bg: "#FEF2F2" },
   high:     { label: "Haute",    color: "#F59E0B", bg: "#FFFBEB" },
   medium:   { label: "Moyenne",  color: "#3B82F6", bg: "#EFF6FF" },
-  low:      { label: "Faible",   color: "#6B7280", bg: "#F3F4F6" },
+  low:      { label: "Basse",   color: "#6B7280", bg: "#F3F4F6" },
 };
 
 const FILTER_TABS = [
