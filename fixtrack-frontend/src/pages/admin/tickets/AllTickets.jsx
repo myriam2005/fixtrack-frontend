@@ -17,6 +17,38 @@ const FILTER_TABS = [
   { key: "closed",      label: "Clôturés" },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Extrait la vraie date de création depuis n'importe quel ticket brut.
+// Ordre de priorité :
+//   1. createdAt       → champ réel MongoDB (timestamps:true)
+//   2. dateCreation    → virtual Mongoose (présent si toJSON:{virtuals:true})
+//   3. _id timestamp   → l'ObjectId MongoDB encode la date de création !
+//      C'est le fallback ultime — fonctionne TOUJOURS même sans populate
+// ─────────────────────────────────────────────────────────────────────────────
+function extractCreatedAt(ticket) {
+  // 1. createdAt réel
+  if (ticket.createdAt) {
+    const d = new Date(ticket.createdAt);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  // 2. virtual dateCreation
+  if (ticket.dateCreation) {
+    const d = new Date(ticket.dateCreation);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  // 3. Fallback : extraire la date depuis l'ObjectId MongoDB
+  // Les 4 premiers octets de l'_id encodent le timestamp Unix en secondes
+  const rawId = ticket._id || ticket.id || "";
+  if (rawId && typeof rawId === "string" && rawId.length >= 8) {
+    try {
+      const timestamp = parseInt(rawId.substring(0, 8), 16) * 1000;
+      const d = new Date(timestamp);
+      if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d.toISOString();
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -64,9 +96,9 @@ function TicketRow({ ticket, employee, technician, isLast, onEdit, onDelete }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: "12px", mb: "4px", flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "#9CA3AF" }}>
               {DashboardIcon.calendar}
-              {/* _createdAt est figé au chargement initial, jamais écrasé par les mises à jour */}
+              {/* _createdAt figé au chargement, jamais écrasé, extrait via ObjectId en fallback */}
               <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>
-                {formatDate(ticket._createdAt)}
+                {ticket._createdAt ? formatDate(ticket._createdAt) : "—"}
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "#9CA3AF" }}>
@@ -150,10 +182,9 @@ export default function Tickets() {
         setRawTickets(t.map(x => ({
           ...x,
           id: x._id || x.id,
-          // On lit "createdAt" en priorité (champ réel généré par Mongoose timestamps:true)
-          // Le virtual "dateCreation" n'est disponible que si toJSON:{virtuals:true} fonctionne
-          // On stocke dans "_createdAt" : un champ privé qui ne sera JAMAIS écrasé par handleSave
-          _createdAt: x.createdAt || x.dateCreation || null,
+          // extractCreatedAt tente createdAt → dateCreation → ObjectId timestamp
+          // Résultat figé dans _createdAt, jamais écrasé par handleSave
+          _createdAt: extractCreatedAt(x),
         })));
         setAllUsers(u.map(x => ({ ...x, id: x._id || x.id })));
       })
@@ -191,7 +222,7 @@ export default function Tickets() {
 
   const filteredTickets = useMemo(() => {
     let result = [...enrichedTickets].sort((a, b) =>
-      new Date(b._createdAt) - new Date(a._createdAt)
+      new Date(b._createdAt || 0) - new Date(a._createdAt || 0)
     );
     if (activeFilter !== "all") result = result.filter(t => t.statut === activeFilter);
     if (search.trim()) {
@@ -212,7 +243,7 @@ export default function Tickets() {
       await ticketService.update(updated.id || updated._id, updated);
       setRawTickets(prev => prev.map(t => {
         if (t.id !== (updated.id || updated._id)) return t;
-        // On préserve _createdAt du ticket original — la date de création ne change jamais
+        // _createdAt préservé — la date de création ne change JAMAIS
         return { ...t, ...updated, _createdAt: t._createdAt };
       }));
       setEditTarget(null);
