@@ -98,7 +98,7 @@ exports.createTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notifie managers + admins
+    // Notifie managers + admins
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -114,7 +114,6 @@ exports.createTicket = async (req, res) => {
       ),
     );
 
-    // ✅ Double notif si critique
     if (priorite === "critical") {
       await Promise.all(
         managers.map((m) =>
@@ -171,16 +170,51 @@ exports.updateTicket = async (req, res) => {
 };
 
 // ── DELETE /api/tickets/:id ───────────────────────────────────────────────────
+// ✅ Notifie l'auteur et le technicien assigné avant suppression
 exports.deleteTicket = async (req, res) => {
   try {
-    const ticket = await Ticket.findByIdAndDelete(req.params.id);
+    // Charge le ticket AVANT suppression pour avoir auteurId et technicienId
+    const ticket = await Ticket.findById(req.params.id)
+      .populate("auteurId", "nom email")
+      .populate("technicienId", "nom email");
+
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
+
+    const titre = ticket.titre;
+    const auteurId = ticket.auteurId?._id || ticket.auteurId;
+    const techId = ticket.technicienId?._id || ticket.technicienId;
+    const supprimePar = req.user?.nom || req.user?.email || "un administrateur";
+
+    // Suppression effective
+    await Ticket.findByIdAndDelete(req.params.id);
+
     await createLog(
       "TICKET_DELETED",
-      `Supprimé: ${ticket.titre}`,
+      `Supprimé: "${titre}" par ${supprimePar}`,
       req.user.id,
       "warning",
     );
+
+    // ✅ Notifie l'auteur du ticket (s'il existe et n'est pas l'admin lui-même)
+    if (auteurId && String(auteurId) !== String(req.user.id)) {
+      await sendNotification({
+        userId: auteurId,
+        message: `🗑️ Votre ticket "${titre}" a été supprimé par ${supprimePar}.`,
+        type: "ticket_deleted",
+        ticketId: null, // ticket n'existe plus en base
+      });
+    }
+
+    // ✅ Notifie le technicien assigné (s'il y en avait un)
+    if (techId && String(techId) !== String(req.user.id)) {
+      await sendNotification({
+        userId: techId,
+        message: `🗑️ Le ticket "${titre}" qui vous était assigné a été supprimé par ${supprimePar}.`,
+        type: "ticket_deleted",
+        ticketId: null,
+      });
+    }
+
     res.json({ message: "Ticket supprimé" });
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -211,7 +245,6 @@ exports.updateStatus = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notifie l'auteur si le statut avance
     if (["in_progress", "resolved", "closed"].includes(statut)) {
       await sendNotification({
         userId: ticket.auteurId,
@@ -253,7 +286,6 @@ exports.assignTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notifie le technicien
     await sendNotification({
       userId: technicienId,
       message: `Nouveau ticket assigné: "${ticket.titre}"`,
@@ -261,7 +293,6 @@ exports.assignTicket = async (req, res) => {
       ticketId: ticket._id,
     });
 
-    // ✅ Notifie l'auteur
     await sendNotification({
       userId: ticket.auteurId,
       message: `Votre ticket "${ticket.titre}" a été assigné à ${tech.nom}`,
@@ -385,7 +416,6 @@ exports.resolveTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notifie l'auteur
     await sendNotification({
       userId: ticket.auteurId,
       message: `Votre ticket "${ticket.titre}" a été résolu. En attente de validation.`,
@@ -393,7 +423,6 @@ exports.resolveTicket = async (req, res) => {
       ticketId: ticket._id,
     });
 
-    // ✅ Notifie managers + admins
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -441,7 +470,6 @@ exports.validateTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notifie le technicien
     if (ticket.technicienId) {
       await sendNotification({
         userId: ticket.technicienId,
@@ -451,7 +479,6 @@ exports.validateTicket = async (req, res) => {
       });
     }
 
-    // ✅ Notifie l'auteur
     if (ticket.auteurId) {
       await sendNotification({
         userId: ticket.auteurId,
@@ -461,7 +488,6 @@ exports.validateTicket = async (req, res) => {
       });
     }
 
-    // ✅ Notifie les admins
     const admins = await User.find({ role: "admin", actif: true });
     await Promise.all(
       admins.map((a) =>

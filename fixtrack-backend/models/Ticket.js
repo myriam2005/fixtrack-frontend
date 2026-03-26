@@ -41,8 +41,8 @@ const ticketSchema = new Schema(
     },
     priorite: {
       type: String,
-      enum: ["low", "medium", "high", "critical"],
-      default: "medium",
+      enum: ["basse", "moyenne", "haute", "critique"],
+      default: "moyenne",
     },
 
     // Score brut calculé par l'IA (0–100)

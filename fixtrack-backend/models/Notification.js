@@ -15,14 +15,14 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: [
-        "ticket_created", // ✅ ajout — notif managers à la création
+        "ticket_created",
         "ticket_assigned",
-        "ticket_critical", // ✅ ajout — ticket priorité critique
-        "status_changed",
         "ticket_resolved",
         "ticket_validated",
-        "alert",
-        "note_added", // ✅ ajout — note ajoutée sur un ticket
+        "ticket_critical",
+        "status_changed",
+        // notifie auteur + technicien quand un admin supprime un ticket
+        "ticket_deleted",
       ],
       default: "status_changed",
     },
@@ -30,6 +30,7 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // ticketId est nullable : le ticket peut ne plus exister (cas suppression)
     ticketId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Ticket",
@@ -38,9 +39,5 @@ const notificationSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
-// Index pour charger rapidement les notifs d'un user
-notificationSchema.index({ userId: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, lu: 1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);
