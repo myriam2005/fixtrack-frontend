@@ -1,119 +1,27 @@
 // routes/configRoutes.js
-// Routes : GET/POST/PUT/DELETE /api/config/categories
-// Modèle simple — stocke les catégories dans MongoDB
-// Si vous préférez ne pas créer un nouveau modèle, les catégories
-// sont automatiquement lues depuis localStorage côté frontend (fallback).
-
 const express = require("express");
 const router = express.Router();
-const mongoose = require("mongoose");
 const auth = require("../middleware/auth");
 const roleCheck = require("../middleware/roleCheck");
-const createLog = require("../utils/createLog");
+const {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} = require("../controllers/configController");
 
-// ── Schéma inline (léger, pas besoin d'un fichier séparé) ────────────────────
-const categorySchema = new mongoose.Schema(
-  { nom: { type: String, required: true, unique: true, trim: true } },
-  { timestamps: true },
-);
-const Category =
-  mongoose.models.Category || mongoose.model("Category", categorySchema);
+// GET    /api/config/categories          — tous les rôles authentifiés
+router.get("/categories", auth, getCategories);
 
-// ── GET /api/config/categories ───────────────────────────────────────────────
-// ── GET /api/config/categories ───────────────────────────────────────────────
-router.get("/categories", auth, async (req, res) => {
-  try {
-    // ✅ Import direct sans destructuring
-    const Ticket = require("../models/Ticket");
-    const cats = await Category.find().sort({ nom: 1 });
+// POST   /api/config/categories          — admin seulement
+router.post("/categories", auth, roleCheck(["admin"]), createCategory);
 
-    const enriched = await Promise.all(
-      cats.map(async (cat) => {
-        const nombreTickets = await Ticket.countDocuments({
-          categorie: cat.nom,
-        });
-        return { ...cat.toObject(), _id: cat._id, nombreTickets };
-      }),
-    );
+// PUT    /api/config/categories/:id      — admin seulement
+// ✅ Renomme la catégorie ET met à jour tous les tickets liés
+router.put("/categories/:id", auth, roleCheck(["admin"]), updateCategory);
 
-    res.json(enriched);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-});
-
-// ── POST /api/config/categories (admin) ──────────────────────────────────────
-router.post("/categories", auth, roleCheck(["admin"]), async (req, res) => {
-  try {
-    const { nom } = req.body;
-    if (!nom || !nom.trim())
-      return res
-        .status(400)
-        .json({ message: "Le nom de la catégorie est requis" });
-
-    const existing = await Category.findOne({ nom: nom.trim() });
-    if (existing)
-      return res.status(400).json({ message: "Cette catégorie existe déjà" });
-
-    const cat = await new Category({ nom: nom.trim() }).save();
-    await createLog(
-      "CATEGORY_CREATED",
-      `Catégorie créée : ${nom}`,
-      req.user.id,
-    );
-    res.status(201).json({ ...cat.toObject(), nombreTickets: 0 });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-});
-
-// ── PUT /api/config/categories/:id (admin) ───────────────────────────────────
-router.put("/categories/:id", auth, roleCheck(["admin"]), async (req, res) => {
-  try {
-    const { nom } = req.body;
-    if (!nom || !nom.trim())
-      return res.status(400).json({ message: "Le nom est requis" });
-
-    const cat = await Category.findByIdAndUpdate(
-      req.params.id,
-      { nom: nom.trim() },
-      { new: true },
-    );
-    if (!cat) return res.status(404).json({ message: "Catégorie introuvable" });
-
-    await createLog(
-      "CATEGORY_UPDATED",
-      `Catégorie modifiée : ${nom}`,
-      req.user.id,
-    );
-    res.json(cat);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-});
-
-// ── DELETE /api/config/categories/:id (admin) ────────────────────────────────
-router.delete(
-  "/categories/:id",
-  auth,
-  roleCheck(["admin"]),
-  async (req, res) => {
-    try {
-      const cat = await Category.findByIdAndDelete(req.params.id);
-      if (!cat)
-        return res.status(404).json({ message: "Catégorie introuvable" });
-
-      await createLog(
-        "CATEGORY_DELETED",
-        `Catégorie supprimée : ${cat.nom}`,
-        req.user.id,
-        "warning",
-      );
-      res.json({ message: "Catégorie supprimée" });
-    } catch (err) {
-      res.status(500).json({ message: "Erreur serveur", error: err.message });
-    }
-  },
-);
+// DELETE /api/config/categories/:id      — admin seulement
+// ✅ Supprime la catégorie ET bascule les tickets vers "Non classé"
+router.delete("/categories/:id", auth, roleCheck(["admin"]), deleteCategory);
 
 module.exports = router;
