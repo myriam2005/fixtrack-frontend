@@ -1,16 +1,11 @@
 // routes/logsRoutes.js
 const express = require("express");
 const router = express.Router();
-const { getLogs } = require("../controllers/logsController");
 const auth = require("../middleware/auth");
+const roleCheck = require("../middleware/roleCheck");
+const { getLogs, deleteLogs } = require("../controllers/logsController");
 
-const adminOnly = (req, res, next) => {
-  if (req.user?.role !== "admin") {
-    return res.status(403).json({ message: "Accès refusé — admin uniquement" });
-  }
-  next();
-};
-
-router.get("/", auth, adminOnly, getLogs);
+router.get("/", auth, roleCheck(["admin"]), getLogs);
+router.delete("/", auth, roleCheck(["admin"]), deleteLogs);
 
 module.exports = router;

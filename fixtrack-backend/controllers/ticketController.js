@@ -64,15 +64,14 @@ exports.createTicket = async (req, res) => {
       urgence,
     } = req.body;
 
-    if (!titre || !titre.trim())
+    if (!titre?.trim())
       return res.status(400).json({ message: "Le titre est requis" });
-    if (!localisation || !localisation.trim())
+    if (!localisation?.trim())
       return res.status(400).json({ message: "La localisation est requise" });
 
-    if (!categorie || !categorie.trim()) categorie = "Autre";
-    if (categorie === "Autre" && categorieAutre && categorieAutre.trim()) {
+    if (!categorie?.trim()) categorie = "Autre";
+    if (categorie === "Autre" && categorieAutre?.trim())
       categorie = `Autre — ${categorieAutre.trim()}`;
-    }
 
     const { priorite, score } = await calculatePriority({
       categorie,
@@ -99,11 +98,11 @@ exports.createTicket = async (req, res) => {
       req.user.id,
     );
 
+    // ✅ Notifie managers + admins
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
     });
-
     await Promise.all(
       managers.map((m) =>
         sendNotification({
@@ -115,6 +114,7 @@ exports.createTicket = async (req, res) => {
       ),
     );
 
+    // ✅ Double notif si critique
     if (priorite === "critical") {
       await Promise.all(
         managers.map((m) =>
@@ -187,7 +187,7 @@ exports.deleteTicket = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tickets/:id/status ────────────────────────────────────────────
+// ── PATCH /api/tickets/:id/status ─────────────────────────────────────────────
 exports.updateStatus = async (req, res) => {
   try {
     const { statut } = req.body;
@@ -211,6 +211,7 @@ exports.updateStatus = async (req, res) => {
       req.user.id,
     );
 
+    // ✅ Notifie l'auteur si le statut avance
     if (["in_progress", "resolved", "closed"].includes(statut)) {
       await sendNotification({
         userId: ticket.auteurId,
@@ -229,7 +230,7 @@ exports.updateStatus = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tickets/:id/assign ────────────────────────────────────────────
+// ── PATCH /api/tickets/:id/assign ─────────────────────────────────────────────
 exports.assignTicket = async (req, res) => {
   try {
     const { technicienId } = req.body;
@@ -251,12 +252,23 @@ exports.assignTicket = async (req, res) => {
       `"${ticket.titre}" → ${tech.nom}`,
       req.user.id,
     );
+
+    // ✅ Notifie le technicien
     await sendNotification({
       userId: technicienId,
-      message: `Nouveau ticket: ${ticket.titre}`,
+      message: `Nouveau ticket assigné: "${ticket.titre}"`,
       type: "ticket_assigned",
       ticketId: ticket._id,
     });
+
+    // ✅ Notifie l'auteur
+    await sendNotification({
+      userId: ticket.auteurId,
+      message: `Votre ticket "${ticket.titre}" a été assigné à ${tech.nom}`,
+      type: "status_changed",
+      ticketId: ticket._id,
+    });
+
     res.json(ticket);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -326,13 +338,18 @@ exports.suggestTechnician = async (req, res) => {
 // ── POST /api/tickets/:id/notes ───────────────────────────────────────────────
 exports.addNote = async (req, res) => {
   try {
-    const { texte } = req.body;
+    const { texte, type } = req.body;
     if (!texte) return res.status(400).json({ message: "Le texte est requis" });
 
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
-    ticket.notes.push({ auteur: req.user.id, texte, date: new Date() });
+    ticket.notes.push({
+      auteur: req.user.id,
+      texte,
+      type: type || "note",
+      date: new Date(),
+    });
     await ticket.save();
     await createLog("NOTE_ADDED", `Note sur "${ticket.titre}"`, req.user.id);
 
@@ -345,7 +362,7 @@ exports.addNote = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tickets/:id/resolve ───────────────────────────────────────────
+// ── PATCH /api/tickets/:id/resolve ────────────────────────────────────────────
 exports.resolveTicket = async (req, res) => {
   try {
     const { solution } = req.body;
@@ -367,13 +384,16 @@ exports.resolveTicket = async (req, res) => {
       `Résolu: "${ticket.titre}"`,
       req.user.id,
     );
+
+    // ✅ Notifie l'auteur
     await sendNotification({
       userId: ticket.auteurId,
-      message: `Ticket "${ticket.titre}" résolu.`,
+      message: `Votre ticket "${ticket.titre}" a été résolu. En attente de validation.`,
       type: "ticket_resolved",
       ticketId: ticket._id,
     });
 
+    // ✅ Notifie managers + admins
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -382,7 +402,7 @@ exports.resolveTicket = async (req, res) => {
       managers.map((m) =>
         sendNotification({
           userId: m._id,
-          message: `Ticket "${ticket.titre}" résolu — attente validation`,
+          message: `Ticket "${ticket.titre}" résolu — en attente de validation`,
           type: "ticket_resolved",
           ticketId: ticket._id,
         }),
@@ -398,7 +418,7 @@ exports.resolveTicket = async (req, res) => {
   }
 };
 
-// ── PATCH /api/tickets/:id/validate ──────────────────────────────────────────
+// ── PATCH /api/tickets/:id/validate ───────────────────────────────────────────
 exports.validateTicket = async (req, res) => {
   try {
     const { commentaire } = req.body;
@@ -431,7 +451,7 @@ exports.validateTicket = async (req, res) => {
       });
     }
 
-    // ✅ Notifie l'auteur du ticket (employé)
+    // ✅ Notifie l'auteur
     if (ticket.auteurId) {
       await sendNotification({
         userId: ticket.auteurId,
