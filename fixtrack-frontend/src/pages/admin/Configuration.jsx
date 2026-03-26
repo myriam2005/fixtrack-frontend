@@ -1,6 +1,6 @@
 // src/pages/admin/Configuration.jsx
-// ✅ MÊME DESIGN MUI — backend branché via /api/config/categories
-// Fallback localStorage automatique si la route API n'existe pas encore.
+// ✅ Cascade : renommage → tous les tickets suivent
+//              suppression → tickets → "Non classé"
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Box, Typography, Paper, Dialog, Tooltip, TextField, CircularProgress } from '@mui/material';
 import { Add as AddIcon, WarningAmber as WarningIcon } from '@mui/icons-material';
@@ -84,7 +84,6 @@ export default function Configuration() {
   const [toast,      setToast]      = useState(null);
   const [search,     setSearch]     = useState('');
 
-  // ✅ Fetch — essaie l'API, fallback LS
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
@@ -108,9 +107,12 @@ export default function Configuration() {
     return q ? categories.filter(c => c.nom.toLowerCase().includes(q)) : categories;
   }, [categories, search]);
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
-  // ✅ Ajouter
+  // ── Ajouter ──────────────────────────────────────────────────────────────
   const handleAdd = async () => {
     if (!inputName.trim()) return;
     setSaving(true);
@@ -126,36 +128,75 @@ export default function Configuration() {
       }
       setInputName(''); setOpenAdd(false);
       showToast('Catégorie ajoutée avec succès');
-    } catch (e) { showToast(e.response?.data?.message || 'Erreur lors de l\'ajout', 'error'); }
-    finally { setSaving(false); }
+    } catch (e) {
+      showToast(e.response?.data?.message || 'Erreur lors de l\'ajout', 'error');
+    } finally { setSaving(false); }
   };
 
-  // ✅ Modifier
+  // ── Modifier ─────────────────────────────────────────────────────────────
+  // ✅ Le backend renomme aussi tous les tickets liés (cascade)
   const handleEdit = async () => {
     if (!inputName.trim() || !selected) return;
     setSaving(true);
     try {
-      if (useApi) await api.put(`/config/categories/${selected._id}`, { nom: inputName.trim() });
-      const updated = categories.map(c => c._id === selected._id ? { ...c, nom: inputName.trim() } : c);
-      setCategories(updated); if (!useApi) toLS(updated);
-      setOpenEdit(false); setSelected(null); setInputName('');
-      showToast('Catégorie modifiée avec succès');
-    } catch (e) { showToast(e.response?.data?.message || 'Erreur lors de la modification', 'error'); }
-    finally { setSaving(false); }
+      if (useApi) {
+        const res = await api.put(`/config/categories/${selected._id}`, { nom: inputName.trim() });
+        const { ticketsUpdated = 0 } = res.data;
+
+        // Met à jour la liste locale avec le nouveau nom + nouveau count
+        setCategories(prev =>
+          prev.map(c =>
+            c._id === selected._id
+              ? { ...c, nom: inputName.trim(), nombreTickets: res.data.nombreTickets }
+              : c,
+          ),
+        );
+
+        setOpenEdit(false); setSelected(null); setInputName('');
+        const cascade = ticketsUpdated > 0
+          ? ` (${ticketsUpdated} ticket${ticketsUpdated > 1 ? 's' : ''} mis à jour)`
+          : '';
+        showToast(`Catégorie renommée${cascade}`);
+      } else {
+        // Fallback localStorage — cascade locale uniquement sur l'affichage
+        const updated = categories.map(c =>
+          c._id === selected._id ? { ...c, nom: inputName.trim() } : c,
+        );
+        setCategories(updated); toLS(updated);
+        setOpenEdit(false); setSelected(null); setInputName('');
+        showToast('Catégorie modifiée (mode local)');
+      }
+    } catch (e) {
+      showToast(e.response?.data?.message || 'Erreur lors de la modification', 'error');
+    } finally { setSaving(false); }
   };
 
-  // ✅ Supprimer
+  // ── Supprimer ─────────────────────────────────────────────────────────────
+  // ✅ Le backend bascule les tickets associés vers "Non classé" (cascade)
   const handleDelete = async () => {
     if (!selected) return;
     setSaving(true);
     try {
-      if (useApi) await api.delete(`/config/categories/${selected._id}`);
-      const updated = categories.filter(c => c._id !== selected._id);
-      setCategories(updated); if (!useApi) toLS(updated);
-      setOpenDelete(false); setSelected(null);
-      showToast('Catégorie supprimée', 'delete');
-    } catch (e) { showToast(e.response?.data?.message || 'Erreur lors de la suppression', 'error'); }
-    finally { setSaving(false); }
+      if (useApi) {
+        const res = await api.delete(`/config/categories/${selected._id}`);
+        const { ticketsReassigned = 0 } = res.data;
+
+        setCategories(prev => prev.filter(c => c._id !== selected._id));
+        setOpenDelete(false); setSelected(null);
+
+        const cascade = ticketsReassigned > 0
+          ? ` — ${ticketsReassigned} ticket${ticketsReassigned > 1 ? 's' : ''} → "Non classé"`
+          : '';
+        showToast(`Catégorie supprimée${cascade}`, 'delete');
+      } else {
+        const updated = categories.filter(c => c._id !== selected._id);
+        setCategories(updated); toLS(updated);
+        setOpenDelete(false); setSelected(null);
+        showToast('Catégorie supprimée (mode local)', 'delete');
+      }
+    } catch (e) {
+      showToast(e.response?.data?.message || 'Erreur lors de la suppression', 'error');
+    } finally { setSaving(false); }
   };
 
   const openEditModal   = (cat) => { setSelected(cat); setInputName(cat.nom); setOpenEdit(true); };
@@ -183,7 +224,6 @@ export default function Configuration() {
             <Typography sx={{ fontSize: '32px', fontWeight: 800, color: '#111827', fontFamily: "'Playfair Display', Georgia, serif", lineHeight: 1.15, letterSpacing: '-0.3px', mb: '6px' }}>Configuration</Typography>
             <Typography sx={{ fontSize: '13px', color: '#9CA3AF' }}>Gérez les catégories de pannes et consultez les règles de priorité IA</Typography>
           </Box>
-          {/* Mode badge */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', px: '12px', py: '5px', borderRadius: '20px', background: useApi ? '#F0FDF4' : '#FFFBEB', border: `1px solid ${useApi ? '#BBF7D0' : '#FDE68A'}` }}>
             <Box sx={{ width: 7, height: 7, borderRadius: '50%', background: useApi ? '#22C55E' : '#F59E0B' }} />
             <Typography sx={{ fontSize: '11px', fontWeight: 600, color: useApi ? '#15803D' : '#92400E' }}>
@@ -329,6 +369,15 @@ export default function Configuration() {
 
       {/* MODAL Modifier */}
       <FTDialog open={openEdit} onClose={() => { setOpenEdit(false); setInputName(''); }} title="Modifier la catégorie" subtitle={selected ? `Édition de « ${selected.nom} »` : ''}>
+        {/* ✅ Avertissement si des tickets seront impactés */}
+        {(selected?.nombreTickets || 0) > 0 && (
+          <Box sx={{ mb: '16px', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Box sx={{ fontSize: '14px' }}>ℹ️</Box>
+            <Typography sx={{ fontSize: '12px', color: '#1D4ED8' }}>
+              <strong>{selected.nombreTickets} ticket(s)</strong> seront automatiquement mis à jour avec le nouveau nom.
+            </Typography>
+          </Box>
+        )}
         <TextField autoFocus fullWidth label="Nouveau nom" value={inputName} onChange={e => setInputName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleEdit()} sx={{ ...fieldSx, mb: '20px' }} />
         <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <Box component="button" onClick={() => { setOpenEdit(false); setInputName(''); }} sx={{ ...btn, padding: '9px 18px', borderRadius: '9px', border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', fontSize: '13px', fontWeight: 600, color: '#374151', '&:hover': { backgroundColor: '#F3F4F6' } }}>Annuler</Box>
@@ -346,10 +395,13 @@ export default function Configuration() {
           <Typography sx={{ fontSize: '13.5px', color: '#374151', lineHeight: 1.6 }}>
             Vous êtes sur le point de supprimer la catégorie <Box component="span" sx={{ fontWeight: 700, color: '#111827' }}>«&nbsp;{selected?.nom}&nbsp;»</Box>. Cette action est irréversible.
           </Typography>
+          {/* ✅ Avertissement cascade vers "Non classé" */}
           {(selected?.nombreTickets || 0) > 0 && (
             <Box sx={{ mt: '12px', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <WarningIcon sx={{ fontSize: 15, color: '#F59E0B', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: '12px', color: '#92400E' }}><strong>{selected.nombreTickets} ticket(s)</strong> seront déplacés vers «&nbsp;Non classé&nbsp;».</Typography>
+              <Typography sx={{ fontSize: '12px', color: '#92400E' }}>
+                <strong>{selected.nombreTickets} ticket(s)</strong> seront automatiquement déplacés vers <strong>«&nbsp;Non classé&nbsp;»</strong>.
+              </Typography>
             </Box>
           )}
         </Box>
