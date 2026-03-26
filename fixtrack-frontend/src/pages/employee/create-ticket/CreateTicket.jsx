@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { ticketService } from "../../../services/api";
-
+import { AIPanel } from './AIPanel';
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
 import { CSS }                                         from "./Wizardstyles";
@@ -70,98 +70,7 @@ const IcoExternal = () => (
   </svg>
 );
 
-// ── AI Panel ──────────────────────────────────────────────────────────────────
-function AIPanel({ form }) {
-  const hasContent = form.titre.length > 4 || form.description.length > 10;
-  const scoreMap = { critical: 88, high: 65, medium: 42, low: 20 };
-  const score    = scoreMap[form.urgence] || 42;
-  const scoreColor = score >= 70 ? "#EF4444" : score >= 45 ? "#F97316" : score >= 25 ? "#F59E0B" : "#6B7280";
 
-  const timeMap = { critical: "< 1 heure", high: "2 – 4 heures", medium: "1 – 2 jours", low: "Cette semaine" };
-  const priorityMap = {
-    critical: { label: "CRITIQUE", bg: "#FEF2F2", color: "#B91C1C", border: "#FECACA" },
-    high:     { label: "HAUTE",    bg: "#FFF7ED", color: "#C2410C", border: "#FED7AA" },
-    medium:   { label: "MOYENNE",  bg: "#FFFBEB", color: "#B45309", border: "#FDE68A" },
-    low:      { label: "BASSE",    bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
-  };
-  const prio = priorityMap[form.urgence] || priorityMap.medium;
-  const suggestions = {
-    critical: "Signalez immédiatement à votre responsable. Le technicien sera prévenu en urgence.",
-    high:     "Pensez à vérifier le disjoncteur ou les connexions locales avant l'arrivée du technicien.",
-    medium:   "Notez l'heure d'apparition du problème pour faciliter le diagnostic.",
-    low:      "Un technicien passera lors de sa prochaine tournée dans votre bâtiment.",
-  };
-
-  return (
-    <div className="wz-ai-panel">
-      <div className="wz-ai-card">
-        <div className="wz-ai-card-head">
-          <div className="wz-ai-badge">
-            <span className="wz-ai-badge-dot" />
-            Analyse IA en direct
-          </div>
-        </div>
-
-        {!hasContent ? (
-          <div className="wz-ai-placeholder">
-            <div className="wz-ai-placeholder-ico"><IcoSparkle /></div>
-            <p className="wz-ai-placeholder-text">
-              Commencez à remplir le formulaire pour voir l'analyse en temps réel.
-            </p>
-          </div>
-        ) : (
-          <div className="wz-ai-card-body">
-            <div className="wz-ai-priority-row">
-              <span className="wz-ai-priority-label">Priorité estimée</span>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6, background: prio.bg, color: prio.color, border: `1px solid ${prio.border}`, letterSpacing: "0.06em" }}>
-                {prio.label}
-              </span>
-            </div>
-            <div className="wz-ai-score">
-              <span className="wz-ai-score-num" style={{ color: scoreColor }}>{score}</span>
-              <span className="wz-ai-score-max">/ 100</span>
-            </div>
-            <div className="wz-ai-bar">
-              <div className="wz-ai-bar-fill" style={{
-                width: `${score}%`,
-                background: score >= 70 ? "linear-gradient(90deg,#EF4444,#DC2626)" : score >= 45 ? "linear-gradient(90deg,#F97316,#EA580C)" : "linear-gradient(90deg,#F59E0B,#D97706)",
-              }} />
-            </div>
-            <div className="wz-ai-metrics">
-              <div className="wz-ai-metric">
-                <div className="wz-ai-metric-lbl">Temps d'intervention</div>
-                <div className="wz-ai-metric-val">{timeMap[form.urgence]}</div>
-              </div>
-              <div className="wz-ai-metric">
-                <div className="wz-ai-metric-lbl">Catégorie</div>
-                <div className="wz-ai-metric-val" style={{ fontSize: 12 }}>{form.categorie || "—"}</div>
-              </div>
-            </div>
-            <div className="wz-ai-suggestion">
-              <span className="wz-ai-suggestion-ico"><IcoPin /></span>
-              <p className="wz-ai-suggestion-text">{suggestions[form.urgence]}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="wz-ai-footer">
-          <IcoInfo />
-          {hasContent ? "Priorité calculée par IA — serveur backend" : "L'IA analysera votre demande en temps réel"}
-        </div>
-      </div>
-
-      <div className="wz-help-card">
-        <div className="wz-help-title">Besoin d'aide ?</div>
-        <p className="wz-help-text">
-          Consultez notre base de connaissances ou contactez le support technique interne.
-        </p>
-        <a href="#" className="wz-help-link">
-          Accéder au centre d'aide <IcoExternal />
-        </a>
-      </div>
-    </div>
-  );
-}
 
 // ── Success screen ────────────────────────────────────────────────────────────
 function SuccessScreen({ navigate, ticketId }) {
