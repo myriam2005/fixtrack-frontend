@@ -212,6 +212,18 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
   );
 }
 
+// ── Helper : récupérer le token depuis le localStorage ───────────────────────
+function getAuthHeader() {
+  try {
+    const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function Users() {
   const [users, setUsers]             = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -219,7 +231,6 @@ export default function Users() {
   const [search, setSearch]           = useState("");
   const [roleFilter, setRoleFilter]   = useState("all");
   const [statFilter, setStatFilter]   = useState("all");
-  // sort utilisé en lecture seule — pas de setter exposé dans l'UI pour l'instant
   const [sort]                        = useState({ col:"createdAt", dir:"desc" });
   const [addOpen, setAddOpen]         = useState(false);
   const [editUser, setEditUser]       = useState(null);
@@ -269,23 +280,26 @@ export default function Users() {
   const resetFilters = () => { setSearch(""); setRoleFilter("all"); setStatFilter("all"); };
   const hasFilters   = search || roleFilter !== "all" || statFilter !== "all";
 
+  // FIX : utilise POST /api/users au lieu de /auth/register
+  // → garantit actif:true, tous les champs initialisés, même shape de retour
   const handleAdd = async (form) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(localStorage.getItem("currentUser"))?.token}` },
-        body: JSON.stringify(form),
+      const res = await fetch(`${API_BASE}/users`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body:    JSON.stringify(form),
       });
-      const newUser = await res.json();
+      const data = await res.json();
       if (res.ok) {
-        setUsers(prev => [newUser.user || newUser, ...prev]);
+        // data est directement le user complet retourné par createUser
+        setUsers(prev => [data, ...prev]);
         setAddOpen(false);
-        notify(`${form.nom} créé avec succès.`);
+        notify(`${data.nom} créé avec succès.`);
       } else {
-        notify(newUser.message || "Erreur lors de la création.", "warn");
+        notify(data.message || "Erreur lors de la création.", "warn");
       }
     } catch {
-      notify("Erreur lors de la création.", "warn");
+      notify("Erreur réseau lors de la création.", "warn");
     }
   };
 

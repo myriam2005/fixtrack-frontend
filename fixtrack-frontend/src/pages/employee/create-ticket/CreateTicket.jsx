@@ -1,5 +1,5 @@
 // src/pages/employee/CreateTicket/CreateTicket.jsx
-// ✅ VERSION BACKEND — même design, soumission via API réelle
+// Affiche la priorité finale IA (priorite + scoreIA) après soumission
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,21 @@ import {
   StepProbleme, StepLocalisation, StepUrgence,
   StepContact,  StepRecap,
 } from "./Wizardsteps";
+
+// ── Priority display config ───────────────────────────────────────────────────
+const PRIO_CONFIG = {
+  critical: { label: "Critique", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", dot: "#EF4444", pillBg: "#FEE2E2", pillColor: "#991B1B" },
+  high:     { label: "Haute",    color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", dot: "#F59E0B", pillBg: "#FEF3C7", pillColor: "#92400E" },
+  medium:   { label: "Moyenne",  color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", dot: "#3B82F6", pillBg: "#DBEAFE", pillColor: "#1E40AF" },
+  low:      { label: "Basse",    color: "#6B7280", bg: "#F9FAFB", border: "#E5E7EB", dot: "#9CA3AF", pillBg: "#F3F4F6", pillColor: "#4B5563" },
+};
+
+const DELAI_MAP = {
+  critical: "< 1 heure",
+  high:     "2 – 4 heures",
+  medium:   "1 – 2 jours",
+  low:      "Cette semaine",
+};
 
 // ── Horizontal stepper ────────────────────────────────────────────────────────
 function HorizontalStepper({ current }) {
@@ -48,32 +63,11 @@ function HorizontalStepper({ current }) {
   );
 }
 
-// ── Icônes déplacées EN DEHORS de AIPanel ─────────────────────────────────────
-const IcoSparkle = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3l1.88 5.76a1 1 0 0 0 .95.69H21l-4.94 3.58a1 1 0 0 0-.36 1.12L17.56 20 12 16.24 6.44 20l1.86-5.85a1 1 0 0 0-.36-1.12L3 9.45h6.17a1 1 0 0 0 .95-.69z"/>
-  </svg>
-);
-const IcoPin = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-  </svg>
-);
-const IcoInfo = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-  </svg>
-);
-const IcoExternal = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-  </svg>
-);
-
-
-
 // ── Success screen ────────────────────────────────────────────────────────────
-function SuccessScreen({ navigate, ticketId }) {
+// Reçoit finalPriority (ex: "critical") et scoreIA (ex: 87) du backend
+function SuccessScreen({ navigate, ticketId, finalPriority, scoreIA }) {
+  const cfg = PRIO_CONFIG[finalPriority] || PRIO_CONFIG.medium;
+
   return (
     <div className="wz">
       <style>{CSS}</style>
@@ -81,26 +75,85 @@ function SuccessScreen({ navigate, ticketId }) {
       <div style={{ maxWidth: 1160, margin: "0 auto", padding: "40px" }}>
         <div className="wz-main">
           <div className="wz-success">
+
+            {/* Checkmark */}
             <div className="wz-success-ring"><Icon.CheckLg /></div>
             <h2 className="wz-success-title">Ticket soumis avec succès !</h2>
             <p className="wz-success-sub">
               Votre signalement a bien été enregistré.<br />
               Un technicien sera assigné dès que possible.
             </p>
+
+            {/* Statut ouvert */}
             <div className="wz-status-pill">
               <span className="wz-status-dot" />
               Statut : Ouvert
             </div>
+
+            {/* ── Priorité finale IA ──────────────────────────────────────── */}
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 14,
+              marginTop: 16,
+              padding: "14px 22px",
+              borderRadius: 16,
+              background: cfg.bg,
+              border: `1.5px solid ${cfg.border}`,
+            }}>
+              {/* Score circle */}
+              <div style={{
+                width: 52, height: 52,
+                borderRadius: "50%",
+                border: `2.5px solid ${cfg.border}`,
+                background: "#fff",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>
+                  {scoreIA ?? "—"}
+                </span>
+                <span style={{ fontSize: 9, color: "#9CA3AF" }}>/100</span>
+              </div>
+
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 11, color: cfg.color, fontWeight: 600, opacity: 0.75, marginBottom: 4 }}>
+                  Priorité calculée par l'IA
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                  <div style={{
+                    width: 9, height: 9, borderRadius: "50%",
+                    backgroundColor: cfg.dot, flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 16, fontWeight: 700,
+                    color: cfg.color,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}>
+                    {cfg.label}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: cfg.pillColor, opacity: 0.85 }}>
+                  Délai d'intervention estimé : <strong>{DELAI_MAP[finalPriority]}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Référence */}
             {ticketId && (
-              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 10 }}>
                 Référence : #{ticketId}
               </p>
             )}
+
             <div style={{ marginTop: 28 }}>
               <button className="wz-nav-btn-next" onClick={() => navigate("/employee/tickets")}>
                 Voir mes tickets <Icon.Next />
               </button>
             </div>
+
           </div>
         </div>
       </div>
@@ -121,13 +174,16 @@ export default function CreateTicket() {
     urgence: "medium",
     telephone: "", photos: [],
   });
-  const [errors,   setErrors]   = useState({});
-  const [focused,  setFocused]  = useState("");
-  const [showSugg, setShowSugg] = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [apiError, setApiError] = useState("");
-  const [createdId, setCreatedId] = useState(null);
+  const [errors,       setErrors]       = useState({});
+  const [focused,      setFocused]      = useState("");
+  const [showSugg,     setShowSugg]     = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [success,      setSuccess]      = useState(false);
+  const [apiError,     setApiError]     = useState("");
+  const [createdId,    setCreatedId]    = useState(null);
+  // Priorité finale + score retournés par le backend (calculatePriority)
+  const [finalPriority, setFinalPriority] = useState("medium");
+  const [scoreIA,       setScoreIA]       = useState(undefined);
 
   const set = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -154,16 +210,23 @@ export default function CreateTicket() {
 
     try {
       const payload = {
-        titre:        form.titre.trim(),
-        description:  form.description.trim(),
-        categorie:    cat,
-        localisation: form.localisation.trim(),
-        urgence:      form.urgence,
-        auteurTel:    form.telephone.trim() || null,
+        titre:           form.titre.trim(),
+        description:     form.description.trim(),
+        categorie:       cat,
+        localisation:    form.localisation.trim(),
+        urgence:         form.urgence,
+        auteurTel:       form.telephone.trim() || null,
       };
+
       const ticket = await ticketService.create(payload);
+
+      // Le backend retourne le ticket avec priorite et scoreIA calculés par l'IA
       setCreatedId(ticket._id);
+      setFinalPriority(ticket.priorite || "medium");
+      // Le controller stocke le score dans scoreIA (pas aiScore)
+      setScoreIA(ticket.scoreIA ?? undefined);
       setSuccess(true);
+
     } catch (err) {
       const msg = err.response?.data?.message
         || err.response?.data?.errors?.[0]?.msg
@@ -178,15 +241,22 @@ export default function CreateTicket() {
   const stepProps = { form, errors, set, animCls };
 
   if (loading) return <LoadingSpinner size={48} />;
-  if (success) return <SuccessScreen navigate={navigate} ticketId={createdId} />;
+  if (success)  return (
+    <SuccessScreen
+      navigate={navigate}
+      ticketId={createdId}
+      finalPriority={finalPriority}
+      scoreIA={scoreIA}
+    />
+  );
 
   const renderStep = () => {
     switch (step) {
-      case 0: return <StepProbleme    {...stepProps} />;
+      case 0: return <StepProbleme     {...stepProps} />;
       case 1: return <StepLocalisation {...stepProps} showSugg={showSugg} setShowSugg={setShowSugg} />;
-      case 2: return <StepUrgence     {...stepProps} />;
-      case 3: return <StepContact     {...stepProps} focused={focused} setFocused={setFocused} user={user} />;
-      case 4: return <StepRecap       {...stepProps} user={user} setStep={setStep} setDir={setDir} />;
+      case 2: return <StepUrgence      {...stepProps} />;
+      case 3: return <StepContact      {...stepProps} focused={focused} setFocused={setFocused} user={user} />;
+      case 4: return <StepRecap        {...stepProps} user={user} setStep={setStep} setDir={setDir} />;
       default: return null;
     }
   };
