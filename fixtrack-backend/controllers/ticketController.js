@@ -604,7 +604,7 @@ exports.validateTicket = async (req, res) => {
     if (ticket.technicienId) {
       await sendNotification({
         userId: ticket.technicienId._id || ticket.technicienId,
-        message: `✅ ${managerNom} a validé et clôturé le ticket "${ticket.titre}". Bon travail !`,
+        message: `${managerNom} a validé et clôturé le ticket "${ticket.titre}". Bon travail !`,
         type: "ticket_validated",
         ticketId: ticket._id,
       });
