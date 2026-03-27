@@ -1,5 +1,6 @@
 // src/pages/manager/ValiderResolutions.jsx
-// ✅ VERSION BACKEND — même design, données réelles via API
+// ✅ VERSION BACKEND
+// ✅ Rejet → notifie le technicien concerné par son nom + remet en in_progress
 
 import { useState, useMemo, useEffect } from "react";
 import { Box, Typography, Paper, Divider, TextField } from "@mui/material";
@@ -123,8 +124,6 @@ export default function ValiderResolutions() {
   const [closedCount,      setClosedCount]      = useState(0);
   const [rejectedCount,    setRejectedCount]    = useState(0);
 
-  // ✅ Fetch tous les tickets puis filtre côté client sur statut "resolved"
-  // (ticketService.getAll() retourne déjà r.data directement)
   useEffect(() => {
     const fetchResolved = async () => {
       setLoading(true);
@@ -158,18 +157,35 @@ export default function ValiderResolutions() {
     }
   };
 
-  // ✅ Rejeter → remettre en in_progress via API
   const handleRejeter = (ticket) => { setSelectedTicket(ticket); setOpenRejectModal(true); };
 
+  // ✅ Rejeter → remet en in_progress + notifie le technicien par son nom
+  // La notification au technicien est gérée côté backend dans updateStatus
+  // (PATCH /status avec resolved → in_progress déclenche la notif tech)
+  // On ajoute aussi une note visible dans l'historique
   const confirmRejeter = async () => {
     if (!raisonRejet.trim()) return;
     setValidating(true);
+
+    const techNom = selectedTicket.technicienId?.nom || "le technicien";
+    const ticketTitre = selectedTicket.titre;
+
     try {
+      // 1. Remet le ticket en in_progress → déclenche notif technicien côté backend
       await ticketService.updateStatus(selectedTicket._id || selectedTicket.id, "in_progress");
-      await ticketService.addNote(selectedTicket._id || selectedTicket.id, { texte: `❌ Rejet : ${raisonRejet}`, type: "note" });
+
+      // 2. Ajoute la note de rejet (visible dans l'historique du ticket)
+      await ticketService.addNote(
+        selectedTicket._id || selectedTicket.id,
+        {
+          texte: `❌ Résolution rejetée par le manager — motif : ${raisonRejet}`,
+          type: "note",
+        }
+      );
+
       setTicketsList(prev => prev.filter(t => (t._id || t.id) !== (selectedTicket._id || selectedTicket.id)));
       setRejectedCount(c => c + 1);
-      showSuccess(`Ticket renvoyé au technicien`);
+      showSuccess(`Résolution de ${techNom} rejetée — ticket renvoyé en cours`);
     } catch (err) {
       console.error(err);
     } finally {
@@ -274,9 +290,31 @@ export default function ValiderResolutions() {
         </Box>
       </Paper>
 
-      <Modal open={openRejectModal} onClose={() => setOpenRejectModal(false)} title="Rejeter la résolution">
+      {/* ✅ Modal rejet — affiche le nom du technicien concerné */}
+      <Modal
+        open={openRejectModal}
+        onClose={() => { setOpenRejectModal(false); setRaisonRejet(""); }}
+        title="Rejeter la résolution"
+      >
+        {selectedTicket && (
+          <Box sx={{ mb: "14px", padding: "10px 14px", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: "10px" }}>
+            <Box sx={{ width: 34, height: 34, borderRadius: "9px", background: "#2563EB", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+              {(selectedTicket.technicienId?.nom || "T")[0].toUpperCase()}
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: "11px", color: "#9CA3AF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Résolu par</Typography>
+              <Typography sx={{ fontSize: "13px", color: "#0F172A", fontWeight: 700 }}>
+                {selectedTicket.technicienId?.nom || "Technicien inconnu"}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         <Typography sx={{ fontSize: "14px", color: "#6B7280", mb: "16px", lineHeight: 1.6 }}>
-          Expliquez pourquoi vous rejetez la résolution. Le ticket sera renvoyé au technicien.
+          Expliquez pourquoi vous rejetez la résolution.
+          {selectedTicket?.technicienId?.nom && (
+            <> <strong style={{ color: "#0F172A" }}>{selectedTicket.technicienId.nom}</strong> sera notifié et devra reprendre l'intervention.</>
+          )}
         </Typography>
         <TextField autoFocus multiline rows={4} fullWidth variant="outlined" label="Raison du rejet"
           placeholder="Ex: La solution n'a pas résolu le problème complètement..."
@@ -286,11 +324,11 @@ export default function ValiderResolutions() {
         <Box sx={{ mb: "20px", padding: "12px 14px", backgroundColor: "#FFFBEB", borderRadius: "8px", border: "1px solid #FDE68A", display: "flex", alignItems: "flex-start", gap: "10px" }}>
           <Box sx={{ color: "#F59E0B", flexShrink: 0, mt: "1px" }}>{Icon.warning}</Box>
           <Typography sx={{ fontSize: "13px", color: "#92400E", lineHeight: 1.6 }}>
-            Le ticket retournera en statut <strong>« En cours »</strong> et le technicien sera notifié.
+            Le ticket retournera en statut <strong>« En cours »</strong> et {selectedTicket?.technicienId?.nom ? <strong>{selectedTicket.technicienId.nom}</strong> : "le technicien"} recevra une notification.
           </Typography>
         </Box>
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <Button label="Annuler" variant="secondary" onClick={() => setOpenRejectModal(false)} />
+          <Button label="Annuler" variant="secondary" onClick={() => { setOpenRejectModal(false); setRaisonRejet(""); }} />
           <Button label="Rejeter & Renvoyer" variant="danger" onClick={confirmRejeter} disabled={!raisonRejet.trim() || validating} />
         </Box>
       </Modal>

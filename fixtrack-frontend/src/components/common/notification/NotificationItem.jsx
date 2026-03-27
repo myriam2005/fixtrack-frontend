@@ -1,7 +1,13 @@
 // src/components/common/notification/NotificationItem.jsx
+// ✅ UX polish :
+//   - Bouton quick-assign simple et lisible, pas encombrant
+//   - Motif refus en italique discret (pas de boîte rouge)
+//   - Couleurs alertes uniquement pour critique/refus non-lu
+//   - Trait gauche coloré pour hiérarchiser visuellement
+
 import { useNavigate } from "react-router-dom";
 
-// ── Icônes SVG ─────────────────────────────────────────────────────────────────
+// ── Icônes SVG inline ─────────────────────────────────────────────────────────
 const IcoTicket = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -10,7 +16,6 @@ const IcoTicket = () => (
     <line x1="9" y1="14" x2="15" y2="14"/>
   </svg>
 );
-
 const IcoAssign = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -18,14 +23,12 @@ const IcoAssign = () => (
     <polyline points="16 11 18 13 22 9"/>
   </svg>
 );
-
 const IcoResolve = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
     <polyline points="22 4 12 14.01 9 11.01"/>
   </svg>
 );
-
 const IcoCritical = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -33,7 +36,6 @@ const IcoCritical = () => (
     <line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>
 );
-
 const IcoRefresh = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="17 1 21 5 17 9"/>
@@ -42,45 +44,38 @@ const IcoRefresh = () => (
     <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
   </svg>
 );
-
 const IcoRefused = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/>
     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
   </svg>
 );
+const IcoArrowRight = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/>
+    <polyline points="12 5 19 12 12 19"/>
+  </svg>
+);
 
-// ── Map type → icône ───────────────────────────────────────────────────────────
-const ICON_MAP = {
-  ticket_created:    IcoTicket,
-  ticket_assigned:   IcoAssign,
-  ticket_reassigned: IcoAssign,
-  ticket_resolved:   IcoResolve,
-  ticket_validated:  IcoResolve,
-  ticket_critical:   IcoCritical,
-  ticket_deleted:    IcoTicket,
-  ticket_refused:    IcoRefused,
-  status_changed:    IcoRefresh,
-  success:           IcoResolve,
-  warning:           IcoCritical,
-  error:             IcoRefused,
-  info:              IcoTicket,
+// ── Config type ───────────────────────────────────────────────────────────────
+const TYPE_MAP = {
+  ticket_created:    { Icon: IcoTicket,   alertColor: null },
+  ticket_assigned:   { Icon: IcoAssign,   alertColor: null },
+  ticket_reassigned: { Icon: IcoAssign,   alertColor: null },
+  ticket_resolved:   { Icon: IcoResolve,  alertColor: null },
+  ticket_validated:  { Icon: IcoResolve,  alertColor: null },
+  ticket_critical:   { Icon: IcoCritical, alertColor: "#DC2626" },
+  ticket_deleted:    { Icon: IcoTicket,   alertColor: null },
+  ticket_refused:    { Icon: IcoRefused,  alertColor: "#DC2626" },
+  status_changed:    { Icon: IcoRefresh,  alertColor: null },
+  warning:           { Icon: IcoCritical, alertColor: "#D97706" },
+  error:             { Icon: IcoRefused,  alertColor: "#DC2626" },
+  info:              { Icon: IcoTicket,   alertColor: null },
 };
-
-// ── Seuls types qui méritent une couleur d'alerte ─────────────────────────────
-const ALERT_TYPES = {
-  ticket_critical: { icon: "#DC2626", iconBg: "#FEF2F2", iconBorder: "#FECACA" },
-  ticket_refused:  { icon: "#DC2626", iconBg: "#FEF2F2", iconBorder: "#FECACA" },
-  warning:         { icon: "#D97706", iconBg: "#FFFBEB", iconBorder: "#FDE68A" },
-  error:           { icon: "#DC2626", iconBg: "#FEF2F2", iconBorder: "#FECACA" },
-};
-
-// Tous les autres types → gris neutre
-const NEUTRAL = { icon: "#64748B", iconBg: "#F8FAFC", iconBorder: "#E2E8F0" };
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
+  const m    = Math.floor(diff / 60000);
   if (m < 1)  return "À l'instant";
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
@@ -89,19 +84,30 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationItem({ notif, onMarkRead }) {
-  const navigate    = useNavigate();
-  const type        = notif.type || "status_changed";
-  const isRead      = !!notif.lu;
-  const IconComp    = ICON_MAP[type] || IcoRefresh;
-  const isRefused   = type === "ticket_refused";
-  const isCritical  = type === "ticket_critical";
-  const isAlert     = !isRead && (isRefused || isCritical);
-  const hasReassign = isRefused && notif.meta?.action === "reassign" && notif.meta?.ticketId;
+  const navigate = useNavigate();
 
-  // Icône : couleur seulement pour alertes non-lues, gris sinon
-  const iconStyle = isRead
-    ? { icon: "#CBD5E1", iconBg: "#F8FAFC", iconBorder: "#F1F5F9" }
-    : (ALERT_TYPES[type] || NEUTRAL);
+  const type       = notif.type || "status_changed";
+  const isRead     = !!notif.lu;
+  const config     = TYPE_MAP[type] || TYPE_MAP.status_changed;
+  const { Icon, alertColor } = config;
+
+  const isRefused  = type === "ticket_refused";
+  const isCritical = type === "ticket_critical";
+  const isAlert    = !isRead && !!alertColor;
+
+  // Bouton quick-assign : uniquement ticket_refused, non-lu, avec meta
+  const hasReassign = isRefused && !isRead &&
+    notif.meta?.action === "reassign" && notif.meta?.ticketId;
+
+  // Couleurs icône
+  const iconColor  = isRead ? "#CBD5E1" : isAlert ? alertColor : "#64748B";
+  const iconBg     = isRead ? "#F8FAFC" : isAlert ? `${alertColor}12` : "#F1F5F9";
+  const iconBorder = isRead ? "#F1F5F9" : isAlert ? `${alertColor}30` : "#E2E8F0";
+
+  // Trait gauche
+  const leftBorder = isRead
+    ? "2.5px solid transparent"
+    : isAlert ? `2.5px solid ${alertColor}60` : "2.5px solid #BFDBFE";
 
   const handleClick = () => {
     if (!isRead && onMarkRead) onMarkRead(notif._id);
@@ -120,32 +126,21 @@ export default function NotificationItem({ notif, onMarkRead }) {
         display: "flex",
         gap: 10,
         padding: "11px 16px 12px",
-        // Fond très légèrement teinté uniquement pour les alertes non-lues
-        background: isRead
-          ? "transparent"
-          : isAlert ? "#FFFCFC" : "#FAFBFF",
+        background: isRead ? "transparent" : isAlert ? `${alertColor}06` : "#FAFBFF",
+        borderLeft: leftBorder,
         cursor: isRead ? "default" : "pointer",
         transition: "background 0.15s",
         position: "relative",
-        // Trait gauche bleu pour non-lu standard, rouge pour alerte
-        borderLeft: `2.5px solid ${
-          isRead    ? "transparent" :
-          isAlert   ? "#FECACA"    : "#BFDBFE"
-        }`,
       }}
     >
-      {/* Icône : neutre par défaut, colorée seulement si alerte */}
+      {/* Icône */}
       <div style={{
-        width: 30, height: 30,
-        borderRadius: 8,
-        backgroundColor: iconStyle.iconBg,
-        border: `1px solid ${iconStyle.iconBorder}`,
+        width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 1,
+        background: iconBg, border: `1px solid ${iconBorder}`,
         display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
-        color: iconStyle.icon,
-        marginTop: 1,
+        color: iconColor, transition: "all 0.15s",
       }}>
-        <IconComp />
+        <Icon />
       </div>
 
       {/* Contenu */}
@@ -163,82 +158,63 @@ export default function NotificationItem({ notif, onMarkRead }) {
           {notif.message}
         </p>
 
-        {/* Timestamp + label type */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: (hasReassign || notif.meta?.reason) ? 8 : 0 }}>
+        {/* Timestamp + label */}
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: (hasReassign || (isRefused && notif.meta?.reason)) ? 8 : 0 }}>
           <span style={{ fontSize: 11, color: "#94A3B8" }}>
             {timeAgo(notif.createdAt)}
           </span>
           {!isRead && (
-            <span style={{
-              fontSize: 10, fontWeight: 600,
-              color: isAlert ? "#B91C1C" : "#3B82F6",
-              letterSpacing: "0.02em",
-            }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: isAlert ? alertColor : "#3B82F6", letterSpacing: "0.02em" }}>
               · {isRefused ? "Refus" : isCritical ? "Critique" : "Nouveau"}
             </span>
           )}
         </div>
 
-        {/* Motif du refus — texte simple, pas de boîte rouge */}
+        {/* Motif du refus — discret, pas de boîte colorée */}
         {isRefused && notif.meta?.reason && (
-          <p style={{
-            margin: "0 0 8px",
-            fontSize: 11.5,
-            color: "#64748B",
-            lineHeight: 1.5,
-            fontStyle: "italic",
-          }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "#64748B", lineHeight: 1.5, fontStyle: "italic" }}>
             "{notif.meta.reason}"
           </p>
         )}
 
-        {/* CTA Réassigner — bouton solide, texte explicite */}
-        {hasReassign && !isRead && (
+        {/* ✅ Bouton quick-assign — sobre, lisible, pas encombrant */}
+        {hasReassign && (
           <button
             onClick={handleReassign}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "5px 11px",
-              borderRadius: 6,
-              border: "1px solid #1D4ED8",
-              backgroundColor: "#1D4ED8",
-              color: "#FFFFFF",
-              fontSize: 11.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.15s",
-              whiteSpace: "nowrap",
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "4px 10px", borderRadius: 6,
+              border: "1px solid #E2E8F0",
+              backgroundColor: "#fff",
+              color: "#374151",
+              fontSize: 11.5, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+              transition: "all 0.15s", whiteSpace: "nowrap",
             }}
             onMouseOver={e => {
-              e.currentTarget.style.backgroundColor = "#1E40AF";
-              e.currentTarget.style.borderColor = "#1E40AF";
+              e.currentTarget.style.borderColor = "#2563EB";
+              e.currentTarget.style.color = "#2563EB";
+              e.currentTarget.style.backgroundColor = "#EFF6FF";
             }}
             onMouseOut={e => {
-              e.currentTarget.style.backgroundColor = "#1D4ED8";
-              e.currentTarget.style.borderColor = "#1D4ED8";
+              e.currentTarget.style.borderColor = "#E2E8F0";
+              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.backgroundColor = "#fff";
             }}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-              <polyline points="16 11 18 13 22 9"/>
-            </svg>
-            Assigner à un autre technicien
+            <IcoAssign />
+            Réassigner
+            <IcoArrowRight />
           </button>
         )}
       </div>
 
-      {/* Point non-lu — bleu standard, rouge si alerte */}
+      {/* Point non-lu */}
       {!isRead && (
         <div style={{
-          position: "absolute",
-          top: 13, right: 14,
-          width: 6, height: 6,
-          borderRadius: "50%",
-          backgroundColor: isAlert ? "#EF4444" : "#3B82F6",
+          position: "absolute", top: 13, right: 14,
+          width: 6, height: 6, borderRadius: "50%",
+          background: isAlert ? alertColor : "#3B82F6",
         }} />
       )}
     </div>

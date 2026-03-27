@@ -1,5 +1,6 @@
 // src/pages/tech/AssignedTicket.jsx
 // ✅ VERSION BACKEND — refuse appelle PATCH /api/tickets/:id/refuse (persisté en DB)
+// ✅ Toast aligné au design du site (même style que AssignerTicket/manager)
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth }            from "../../../context/AuthContext";
@@ -8,9 +9,60 @@ import { useNotifications }   from "../../../context/NotificationContext";
 import { CSS, FILTERS, PRIORITY_FILTERS } from "./ticketsUtils";
 import TicketCard             from "./TicketCard";
 
+// Injection des keyframes toast si pas déjà présentes
+if (typeof document !== "undefined" && !document.getElementById("tech-toast-styles")) {
+  const s = document.createElement("style");
+  s.id = "tech-toast-styles";
+  s.textContent = `
+    @keyframes tech-toast-in  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes tech-toast-out { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(16px)} }
+  `;
+  document.head.appendChild(s);
+}
+
 const IcoInbox  = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
 const IcoSearch = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const IcoFilter = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>;
+
+// ── Toast — design identique à AssignerTicket (manager) ──────────────────────
+function Toast({ toast }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 2700);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!toast) return null;
+
+  const isError = toast.type === "error";
+  const isWarn  = toast.type === "warn";
+
+  // Couleur du point indicateur selon le type
+  const dotColor = isError ? "#FCA5A5" : isWarn ? "#FCD34D" : "#22C55E";
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 28, right: 28, zIndex: 2000,
+      display: "flex", alignItems: "center", gap: 10,
+      background: isError ? "#DC2626" : isWarn ? "#D97706" : "#111827",
+      color: "#fff", borderRadius: 12, padding: "12px 18px",
+      boxShadow: "0 8px 30px rgba(0,0,0,0.22)",
+      fontSize: 13.5, fontWeight: 500,
+      animation: visible
+        ? "tech-toast-in 0.22s cubic-bezier(.22,1,.36,1)"
+        : "tech-toast-out 0.2s ease forwards",
+      pointerEvents: "none",
+      maxWidth: 360,
+    }}>
+      <span style={{
+        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+        background: dotColor,
+      }} />
+      {toast.msg}
+    </div>
+  );
+}
 
 export default function AssignedTicket() {
   const { user }         = useAuth();
@@ -23,10 +75,13 @@ export default function AssignedTicket() {
   const [priority, setPriority] = useState("all");
   const [search,   setSearch]   = useState("");
   const [toast,    setToast]    = useState(null);
+  const toastTimer              = useState(null);
 
   const showToast = (msg, type = "ok") => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3200);
+    const t = setTimeout(() => setToast(null), 3200);
+    toastTimer.current = t;
   };
 
   const fetchTickets = useCallback(async () => {
@@ -65,7 +120,7 @@ export default function AssignedTicket() {
       await ticketService.updateStatus(id, "in_progress");
       setTickets(prev => prev.map(t => t.id === id ? { ...t, statut: "in_progress" } : t));
       triggerEvent("ticket_in_progress", { id });
-      showToast("Intervention démarrée ✓");
+      showToast("Intervention démarrée ✓", "ok");
     } catch {
       showToast("Erreur lors de la mise à jour", "warn");
     }
@@ -75,7 +130,7 @@ export default function AssignedTicket() {
     try {
       await ticketService.updateStatus(id, "assigned");
       setTickets(prev => prev.map(t => t.id === id ? { ...t, statut: "assigned" } : t));
-      showToast("Ticket mis en attente");
+      showToast("Ticket mis en attente", "ok");
     } catch {
       showToast("Erreur lors de la mise à jour", "warn");
     }
@@ -88,14 +143,13 @@ export default function AssignedTicket() {
         t.id === id ? { ...t, statut: "resolved", notes: [...(t.notes || []), solution] } : t
       ));
       triggerEvent("ticket_resolved", { id });
-      showToast("Ticket marqué comme résolu ✓");
+      showToast("Ticket marqué comme résolu ✓", "ok");
     } catch {
       showToast("Erreur lors de la résolution", "warn");
     }
   };
 
   // ✅ Appelle PATCH /api/tickets/:id/refuse — persisté en DB, statut "refused"
-  // Le manager reçoit une notification avec bouton quick-assign
   const handleRefuse = async (id, reason) => {
     try {
       const updated = await ticketService.refuse(id, reason);
@@ -108,7 +162,7 @@ export default function AssignedTicket() {
       showToast("Ticket refusé — le manager sera notifié", "warn");
     } catch (err) {
       const msg = err.response?.data?.message || "Erreur lors du refus";
-      showToast(msg, "warn");
+      showToast(msg, "error");
     }
   };
 
@@ -131,18 +185,8 @@ export default function AssignedTicket() {
     <div className="ta">
       <style>{CSS}</style>
 
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 28, right: 28, zIndex: 2000,
-          background: toast.type === "warn" ? "#D97706" : "#111827",
-          color: "#fff", borderRadius: 12, padding: "12px 18px",
-          fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-        }}>
-          {toast.type === "warn" ? "⚠" : "✅"} {toast.msg}
-        </div>
-      )}
+      {/* ✅ Toast — design unifié avec le reste du site */}
+      {toast && <Toast toast={toast} />}
 
       {/* En-tête */}
       <div className="ta-header">
