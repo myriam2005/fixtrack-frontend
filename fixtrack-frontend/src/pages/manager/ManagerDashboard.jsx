@@ -455,15 +455,6 @@ export default function MgrDashboard() {
           }
         </Box>
       </Paper>
-
-      <Paper elevation={0} sx={{ borderRadius: "16px", padding: "20px 22px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
-        <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>Incidents par catégorie</Typography>
-        <Typography sx={{ fontSize: "12px", color: "#6B7280", mt: "2px" }}>Volume et répartition actifs / résolus</Typography>
-        {loading
-          ? <Box sx={{ mt: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3,4].map(i => <Skeleton key={i} h={40} />)}</Box>
-          : <CategoryHeatmap allTickets={allTickets} />
-        }
-      </Paper>
     </Box>
   );
 }
