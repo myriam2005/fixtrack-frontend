@@ -1,12 +1,12 @@
 // src/pages/manager/AssignerTicket.jsx
-// ✅ VERSION BACKEND — même design, données réelles via API
+// ✅ Ajout : badge "Refusé" dans la liste + bandeau motif + réassignation directe
 
 import { useState, useEffect } from "react";
-import { Box, Divider } from "@mui/material";
-import Badge from "../../components/common/badge/Badge";
-import Button from "../../components/common/Button";
+import { Box, Divider }        from "@mui/material";
+import Badge                   from "../../components/common/badge/Badge";
+import Button                  from "../../components/common/Button";
 import { ticketService, userService } from "../../services/api";
-import styles from "../employee/my-ticket/MyTickets.module.css";
+import styles                  from "../employee/my-ticket/MyTickets.module.css";
 
 const PRIORITY_LEFT_COLOR = {
   critical: "#EF4444", high: "#F59E0B", medium: "#3B82F6", low: "#9CA3AF",
@@ -28,42 +28,72 @@ if (typeof document !== "undefined" && !document.getElementById("at-modal-styles
     .at-tc:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(37,99,235,0.10) !important; }
     .at-row { transition: background 0.15s, padding-left 0.15s; }
     .at-row:hover { background: #F8FAFF !important; }
+    .at-row.refused-row { background: #FFF5F5 !important; border-left-color: #EF4444 !important; }
+    .at-row.refused-row:hover { background: #FFF0F0 !important; }
     .at-assign-btn { transition: background 0.15s, transform 0.12s, box-shadow 0.12s !important; }
     .at-assign-btn:hover { transform: scale(1.04) !important; box-shadow: 0 4px 14px rgba(37,99,235,0.25) !important; }
     .at-assign-btn:active { transform: scale(0.97) !important; }
     .at-tab { transition: color 0.15s, border-color 0.15s !important; }
     .at-tab:hover { color: #2563EB !important; }
+    .refused-reason-inline { font-size:11px; color:#991B1B; background:#FEF2F2; border:1px solid #FECACA; border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:4px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   `;
   document.head.appendChild(s);
 }
 
+// ── Badge statut pour le tableau ─────────────────────────────────────────────
+function StatusBadge({ statut }) {
+  const map = {
+    open:        { label: "Ouvert",      bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" },
+    assigned:    { label: "Assigné",     bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
+    in_progress: { label: "En cours",    bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
+    resolved:    { label: "Résolu",      bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
+    closed:      { label: "Clôturé",     bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
+    refused:     { label: "Refusé",  bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+  };
+  const cfg = map[statut] || map.open;
+  return (
+    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, whiteSpace: "nowrap" }}>
+      {cfg.label}
+    </span>
+  );
+}
+
 function TicketRow({ ticket, tech, isLast, onAssign, index }) {
-  const leftColor = PRIORITY_LEFT_COLOR[ticket.priorite] || "#E2E8F0";
-  const techName  = tech?.nom || null;
+  const leftColor  = PRIORITY_LEFT_COLOR[ticket.priorite] || "#E2E8F0";
+  const techName   = tech?.nom || null;
+  const isRefused  = ticket.statut === "refused";
 
   return (
     <>
-      <Box className="at-row" sx={{
+      <Box className={`at-row${isRefused ? " refused-row" : ""}`} sx={{
         display: "flex", alignItems: { xs: "flex-start", md: "center" },
         gap: { xs: "10px", md: "14px" }, padding: { xs: "14px 12px 14px 10px", md: "13px 18px 13px 16px" },
-        borderLeft: `3px solid ${leftColor}`, borderRadius: "0 10px 10px 0",
+        borderLeft: `3px solid ${isRefused ? "#EF4444" : leftColor}`,
+        borderRadius: "0 10px 10px 0",
         animation: `at-rowIn 0.3s ease ${index * 0.04}s both`, flexWrap: { xs: "wrap", md: "nowrap" },
       }}>
-        <Box sx={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, backgroundColor: leftColor, boxShadow: `0 0 0 3px ${leftColor}22`, display: { xs: "none", md: "block" } }} />
+        <Box sx={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, backgroundColor: isRefused ? "#EF4444" : leftColor, boxShadow: `0 0 0 3px ${isRefused ? "#EF444422" : leftColor + "22"}`, display: { xs: "none", md: "block" } }} />
         <Box sx={{ width: { xs: "auto", md: 44 }, flexShrink: 0 }}>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#64748B", fontWeight: 600 }}>
             {(ticket._id || ticket.id || "").toString().slice(-6).toUpperCase()}
           </span>
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: isRefused ? "#991B1B" : "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>
             {ticket.titre}
           </div>
-          <div style={{ fontSize: 11.5, color: "#94A3B8", display: "flex", alignItems: "center", gap: 3 }}>
+          <div style={{ fontSize: 11.5, color: "#94A3B8", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             📍 {ticket.localisation}
+            {/* ✅ Motif du refus affiché inline */}
+            {isRefused && ticket.refusedReason && (
+              <span className="refused-reason-inline" title={ticket.refusedReason}>
+                {ticket.refusedReason}
+              </span>
+            )}
           </div>
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: "6px", mt: "6px", flexWrap: "wrap" }}>
             <Badge status={ticket.priorite} />
+            <StatusBadge statut={ticket.statut} />
             <span style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</span>
           </Box>
         </Box>
@@ -73,25 +103,31 @@ function TicketRow({ ticket, tech, isLast, onAssign, index }) {
         <Box sx={{ width: 100, flexShrink: 0, display: { xs: "none", md: "block" } }}>
           <Badge status={ticket.priorite} />
         </Box>
+        {/* ✅ Colonne statut */}
+        <Box sx={{ width: 110, flexShrink: 0, display: { xs: "none", md: "block" } }}>
+          <StatusBadge statut={ticket.statut} />
+        </Box>
         <Box sx={{ width: 90, flexShrink: 0, display: { xs: "none", md: "block" } }}>
           <span className={styles.date}>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</span>
         </Box>
         <Box sx={{ width: { xs: "auto", md: 150 }, flexShrink: 0 }}>
           {techName ? (
             <div className={styles.techWrap}>
-              <div className={styles.avatar} style={{ background: AVATAR_COLORS[0] }}>{techName[0].toUpperCase()}</div>
-              <span className={styles.techName}>{techName}</span>
+              <div className={styles.avatar} style={{ background: isRefused ? "#EF4444" : AVATAR_COLORS[0] }}>{techName[0].toUpperCase()}</div>
+              <span className={styles.techName} style={{ color: isRefused ? "#991B1B" : undefined }}>{techName}</span>
             </div>
           ) : <span className={styles.unassigned}>Non assigné</span>}
         </Box>
         <Box sx={{ flexShrink: 0, width: { xs: "100%", md: 130 }, display: "flex", justifyContent: { xs: "flex-end", md: "center" } }}>
           <button className="at-assign-btn" onClick={() => onAssign(ticket)} style={{
             padding: "7px 18px", borderRadius: "999px", border: "none",
-            background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
+            background: isRefused
+              ? "linear-gradient(135deg, #DC2626, #B91C1C)"
+              : "linear-gradient(135deg, #2563EB, #1D4ED8)",
             color: "#fff", fontWeight: 700, fontSize: "13px", cursor: "pointer",
-            whiteSpace: "nowrap", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.2)",
+            whiteSpace: "nowrap", fontFamily: "inherit", boxShadow: isRefused ? "0 2px 8px rgba(220,38,38,0.3)" : "0 2px 8px rgba(37,99,235,0.2)",
           }}>
-            {ticket.technicienId ? "Réassigner" : "Assigner"}
+            {isRefused ? "Réassigner" : ticket.technicienId ? "Réassigner" : "Assigner"}
           </button>
         </Box>
       </Box>
@@ -122,13 +158,29 @@ export default function AssignTicket() {
         setTickets(ticketsData || []);
         setTechs(techs || []);
       } catch {
-        // erreur silencieuse — les tableaux restent vides
+        // erreur silencieuse
       } finally {
         setLoading(false);
       }
     };
     fetchAll();
   }, []);
+
+  // ✅ Écoute le paramètre URL ?ticketId=xxx pour ouvrir le modal directement
+  // (utilisé par le bouton quick-assign dans les notifications)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tid    = params.get("ticketId");
+    if (tid && tickets.length > 0) {
+      const ticket = tickets.find(t => (t._id || t.id) === tid);
+      if (ticket) {
+        setModal(ticket);
+        setSel(ticket.technicienId?._id || ticket.technicienId || null);
+        // Nettoie l'URL sans recharger
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, [tickets]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -148,10 +200,15 @@ export default function AssignTicket() {
     }
   };
 
+  // ✅ Onglets incluant "refused"
   const TABS = [
-    { key: "all", label: "Tous" }, { key: "open", label: "Ouverts" },
-    { key: "assigned", label: "Assignés" }, { key: "in_progress", label: "En cours" },
-    { key: "resolved", label: "Résolus" }, { key: "closed", label: "Clôturés" },
+    { key: "all",         label: "Tous"      },
+    { key: "open",        label: "Ouverts"   },
+    { key: "assigned",    label: "Assignés"  },
+    { key: "in_progress", label: "En cours"  },
+    { key: "refused",     label: "Refusés" },
+    { key: "resolved",    label: "Résolus"   },
+    { key: "closed",      label: "Clôturés"  },
   ];
 
   const tabCounts = {};
@@ -170,6 +227,8 @@ export default function AssignTicket() {
     return techId ? techniciens.find(u => (u._id || u.id) === techId) : null;
   };
 
+  const refusedCount = tickets.filter(t => t.statut === "refused").length;
+
   return (
     <div className={styles.root} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className={styles.pageHeader}>
@@ -180,6 +239,12 @@ export default function AssignTicket() {
             <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 20, background: "#F1F5F9", color: "#64748B", fontSize: 13, fontWeight: 500 }}>
               {loading ? "Chargement…" : `${tickets.length} ticket(s)`}
             </span>
+            {/* ✅ Badge d'alerte si des tickets sont refusés */}
+            {!loading && refusedCount > 0 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 12px", borderRadius: 20, background: "#FEF2F2", color: "#DC2626", fontSize: 13, fontWeight: 700, border: "1px solid #FECACA" }}>
+                 {refusedCount} refusé{refusedCount > 1 ? "s" : ""} — à réassigner
+              </span>
+            )}
           </Box>
         </div>
       </div>
@@ -197,20 +262,23 @@ export default function AssignTicket() {
           </Box>
         </Box>
 
+        {/* Onglets */}
         <Box sx={{ display: "flex", padding: { xs: "0 12px", md: "0 24px" }, borderBottom: "1px solid #F1F5F9", overflowX: "auto", "&::-webkit-scrollbar": { display: "none" } }}>
           {TABS.map(tab => {
             const count    = tabCounts[tab.key];
             const isActive = activeTab === tab.key;
+            const isRefTab = tab.key === "refused";
             return (
               <button key={tab.key} className="at-tab" onClick={() => setActiveTab(tab.key)} style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "11px 12px",
                 border: "none", background: "transparent", cursor: "pointer", fontSize: 13,
-                fontWeight: isActive ? 700 : 500, color: isActive ? "#2563EB" : "#64748B",
-                borderBottom: isActive ? "2.5px solid #2563EB" : "2.5px solid transparent",
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? (isRefTab ? "#DC2626" : "#2563EB") : isRefTab && count > 0 ? "#DC2626" : "#64748B",
+                borderBottom: isActive ? `2.5px solid ${isRefTab ? "#DC2626" : "#2563EB"}` : "2.5px solid transparent",
                 marginBottom: -1, whiteSpace: "nowrap", fontFamily: "inherit",
               }}>
                 {tab.label}
-                <span style={{ background: isActive ? "#2563EB" : "#E2E8F0", color: isActive ? "#fff" : "#64748B", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 99 }}>
+                <span style={{ background: isActive ? (isRefTab ? "#DC2626" : "#2563EB") : isRefTab && count > 0 ? "#FEF2F2" : "#E2E8F0", color: isActive ? "#fff" : isRefTab && count > 0 ? "#DC2626" : "#64748B", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 99, border: isRefTab && count > 0 && !isActive ? "1px solid #FECACA" : "none" }}>
                   {count}
                 </span>
               </button>
@@ -218,9 +286,10 @@ export default function AssignTicket() {
           })}
         </Box>
 
+        {/* En-têtes de colonnes */}
         <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: "14px", padding: "10px 18px 10px 16px", borderBottom: "1px solid #F1F5F9", background: "#FAFBFC" }}>
-          {["", "ID", "Ticket", "Catégorie", "Priorité", "Date", "Assigné à", "Action"].map((col, i) => (
-            <Box key={i} sx={{ flex: i === 2 ? 1 : undefined, width: [7,44,undefined,110,100,90,150,130][i], flexShrink: i !== 2 ? 0 : undefined, display: i === 3 ? { xs: "none", lg: "block" } : "block", textAlign: i === 7 ? "center" : "left", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+          {["", "ID", "Ticket", "Catégorie", "Priorité", "Statut", "Date", "Assigné à", "Action"].map((col, i) => (
+            <Box key={i} sx={{ flex: i === 2 ? 1 : undefined, width: [7,44,undefined,110,100,110,90,150,130][i], flexShrink: i !== 2 ? 0 : undefined, display: i === 3 ? { xs: "none", lg: "block" } : "block", textAlign: i === 8 ? "center" : "left", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>
               {col}
             </Box>
           ))}
@@ -242,36 +311,57 @@ export default function AssignTicket() {
         </Box>
       </div>
 
+      {/* Modal assignation */}
       {modal && (
         <div onClick={e => e.target === e.currentTarget && (setModal(null), setSel(null))} style={{ position: "fixed", inset: 0, background: "rgba(10,12,30,0.5)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, animation: "at-fadeIn .18s ease", padding: "16px" }}>
           <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 100px rgba(0,0,0,0.22)", overflow: "hidden", animation: "at-slideUp .24s cubic-bezier(.22,1,.36,1)" }}>
             <div style={{ padding: "22px 24px 18px", borderBottom: "1.5px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Assignation</p>
+                <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                  {modal.statut === "refused" ? "Réassignation" : "Assignation"}
+                </p>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0F172A" }}>Choisir un technicien</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#64748B", fontWeight: 600 }}>{(modal._id || modal.id || "").toString().slice(-6).toUpperCase()}</span>
                   <span style={{ fontSize: 13, color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "200px" }}>{modal.titre}</span>
                   <Badge status={modal.priorite} />
+                  <StatusBadge statut={modal.statut} />
                 </div>
+                {/* ✅ Motif du refus dans le modal */}
+                {modal.statut === "refused" && modal.refusedReason && (
+                  <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, fontSize: 12, color: "#991B1B", lineHeight: 1.5 }}>
+                     <strong>Motif du refus :</strong> {modal.refusedReason}
+                  </div>
+                )}
               </div>
               <button onClick={() => { setModal(null); setSel(null); }} style={{ border: "1.5px solid #E2E8F0", background: "#fff", borderRadius: "50%", width: 34, height: 34, cursor: "pointer", fontSize: 14, color: "#64748B", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ overflowY: "auto", padding: "14px 20px", display: "flex", flexDirection: "column", gap: 8, flexGrow: 1 }}>
               {techniciens.map((tech, i) => {
-                const techId = tech._id || tech.id;
-                const charge = chargeOf(techId, tickets);
-                const isSel  = selectedTech === techId;
-                const dispo  = charge <= 3;
+                const techId    = tech._id || tech.id;
+                const charge    = chargeOf(techId, tickets);
+                const isSel     = selectedTech === techId;
+                const dispo     = charge <= 3;
+                // ✅ Signale le technicien qui vient de refuser
+                const isRefuser = modal.refusedBy && (modal.refusedBy?._id || modal.refusedBy)?.toString() === techId?.toString();
                 return (
-                  <div key={techId} className="at-tc" onClick={() => setSel(techId)} style={{ border: `2px solid ${isSel ? "#2563EB" : "#E2E8F0"}`, background: isSel ? "#EFF6FF" : "#F8FAFC", animationDelay: `${i * 0.05}s` }}>
+                  <div key={techId} className="at-tc" onClick={() => !isRefuser && setSel(techId)} style={{
+                    border: `2px solid ${isRefuser ? "#FECACA" : isSel ? "#2563EB" : "#E2E8F0"}`,
+                    background: isRefuser ? "#FFF5F5" : isSel ? "#EFF6FF" : "#F8FAFC",
+                    opacity: isRefuser ? 0.65 : 1,
+                    cursor: isRefuser ? "not-allowed" : "pointer",
+                    animationDelay: `${i * 0.05}s`,
+                  }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div className={styles.avatar} style={{ width: 42, height: 42, fontSize: 15, flexShrink: 0, background: isSel ? "#2563EB" : (AVATAR_COLORS[i % AVATAR_COLORS.length]), transition: "background 0.2s" }}>
+                      <div className={styles.avatar} style={{ width: 42, height: 42, fontSize: 15, flexShrink: 0, background: isRefuser ? "#EF4444" : isSel ? "#2563EB" : (AVATAR_COLORS[i % AVATAR_COLORS.length]), transition: "background 0.2s" }}>
                         {tech.nom[0].toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{tech.nom}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A", display: "flex", alignItems: "center", gap: 6 }}>
+                          {tech.nom}
+                          {isRefuser && <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 4, padding: "1px 5px" }}>A refusé</span>}
+                        </div>
                         <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{tech.competences?.join(", ") ?? "Maintenance"}</div>
                       </div>
                     </div>
@@ -282,7 +372,7 @@ export default function AssignTicket() {
                       </div>
                       <span style={{ width: 12, height: 12, borderRadius: "50%", display: "inline-block", flexShrink: 0, background: dispo ? "#22C55E" : "#EF4444", boxShadow: dispo ? "0 0 0 3px #DCFCE7" : "0 0 0 3px #FEE2E2" }} />
                     </div>
-                    {isSel && <div style={{ position: "absolute", top: 10, right: 14, width: 20, height: 20, borderRadius: "50%", background: "#2563EB", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</div>}
+                    {isSel && !isRefuser && <div style={{ position: "absolute", top: 10, right: 14, width: 20, height: 20, borderRadius: "50%", background: "#2563EB", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</div>}
                   </div>
                 );
               })}
@@ -290,7 +380,7 @@ export default function AssignTicket() {
 
             <div style={{ padding: "14px 24px 22px", borderTop: "1.5px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <Button label="Annuler" variant="secondary" onClick={() => { setModal(null); setSel(null); }} />
-              <Button label={assigning ? "Assignation…" : "Confirmer l'assignation"} variant="primary" onClick={confirmer} disabled={!selectedTech || assigning} />
+              <Button label={assigning ? "Assignation…" : modal.statut === "refused" ? "⚡ Confirmer la réassignation" : "Confirmer l'assignation"} variant="primary" onClick={confirmer} disabled={!selectedTech || assigning} />
             </div>
           </div>
         </div>

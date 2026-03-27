@@ -1,11 +1,12 @@
 // src/pages/tech/AssignedTicket.jsx
-// ✅ VERSION BACKEND — même architecture cards/grid, données réelles via API
+// ✅ VERSION BACKEND — refuse appelle PATCH /api/tickets/:id/refuse (persisté en DB)
+
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "../../../context/AuthContext";
-import { ticketService } from "../../../services/api";
-import { useNotifications } from "../../../context/NotificationContext";
+import { useAuth }            from "../../../context/AuthContext";
+import { ticketService }      from "../../../services/api";
+import { useNotifications }   from "../../../context/NotificationContext";
 import { CSS, FILTERS, PRIORITY_FILTERS } from "./ticketsUtils";
-import TicketCard from "./TicketCard";
+import TicketCard             from "./TicketCard";
 
 const IcoInbox  = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
 const IcoSearch = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
@@ -28,16 +29,14 @@ export default function AssignedTicket() {
     setTimeout(() => setToast(null), 3200);
   };
 
-  // ✅ Fetch depuis le backend
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const data = await ticketService.getAll();
-      // Le backend filtre déjà par technicienId pour le rôle "technician"
       setTickets((data || []).map(t => ({
         ...t,
-        id: t._id || t.id,                         // compatibilité avec TicketCard
+        id:           t._id || t.id,
         technicienId: t.technicienId?._id || t.technicienId,
         auteurId:     t.auteurId?._id     || t.auteurId,
       })));
@@ -50,7 +49,6 @@ export default function AssignedTicket() {
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
-  // ── Filtrage local ────────────────────────────────────────────────────────
   const filtered = tickets.filter(t => {
     const matchStatut   = filter   === "all" || t.statut   === filter;
     const matchPriority = priority === "all" || t.priorite === priority;
@@ -62,9 +60,6 @@ export default function AssignedTicket() {
     return matchStatut && matchPriority && matchSearch;
   });
 
-  // ── Handlers — wrappent l'API puis mettent à jour le state local ──────────
-
-  // Démarrer l'intervention
   const handleAccept = async (id) => {
     try {
       await ticketService.updateStatus(id, "in_progress");
@@ -76,7 +71,6 @@ export default function AssignedTicket() {
     }
   };
 
-  // Mettre en attente (pending)
   const handleHold = async (id) => {
     try {
       await ticketService.updateStatus(id, "assigned");
@@ -87,7 +81,6 @@ export default function AssignedTicket() {
     }
   };
 
-  // Résoudre avec solution
   const handleResolve = async (id, solution) => {
     try {
       await ticketService.resolve(id, solution);
@@ -101,17 +94,21 @@ export default function AssignedTicket() {
     }
   };
 
-  // Refuser — ajoute une note avec la raison + repasse à "open" pour reassignation
+  // ✅ Appelle PATCH /api/tickets/:id/refuse — persisté en DB, statut "refused"
+  // Le manager reçoit une notification avec bouton quick-assign
   const handleRefuse = async (id, reason) => {
     try {
-      await ticketService.addNote(id, { texte: `⛔ REFUS : ${reason}` });
-      await ticketService.updateStatus(id, "open");
+      const updated = await ticketService.refuse(id, reason);
       setTickets(prev => prev.map(t =>
-        t.id === id ? { ...t, statut: "refused", refuseReason: reason } : t
+        t.id === id
+          ? { ...t, statut: "refused", refusedReason: updated.refusedReason || reason }
+          : t
       ));
+      triggerEvent("ticket_refused", { id });
       showToast("Ticket refusé — le manager sera notifié", "warn");
-    } catch {
-      showToast("Erreur lors du refus", "warn");
+    } catch (err) {
+      const msg = err.response?.data?.message || "Erreur lors du refus";
+      showToast(msg, "warn");
     }
   };
 
@@ -170,7 +167,6 @@ export default function AssignedTicket() {
         </p>
       </div>
 
-      {/* Erreur API */}
       {error && (
         <div style={{ padding: "12px 16px", marginBottom: 16, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, fontSize: 13, color: "#DC2626" }}>
           ⚠ {error}
@@ -184,33 +180,21 @@ export default function AssignedTicket() {
       <div className="ta-toolbar">
         <div className="ta-search-wrap">
           <span className="ta-search-ico"><IcoSearch /></span>
-          <input
-            className="ta-search"
-            placeholder="Rechercher par ID, titre ou localisation…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <input className="ta-search" placeholder="Rechercher par ID, titre ou localisation…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-
         <div className="ta-select-wrap">
           <span className="ta-select-label">STATUT :</span>
           <select className="ta-select" value={filter} onChange={e => setFilter(e.target.value)}>
             {FILTERS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
           </select>
         </div>
-
         <div className="ta-select-wrap">
           <span className="ta-select-label">PRIORITÉ :</span>
           <select className="ta-select" value={priority} onChange={e => setPriority(e.target.value)}>
             {PRIORITY_FILTERS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
           </select>
         </div>
-
-        <button
-          className="ta-filter-icon-btn"
-          title="Réinitialiser les filtres"
-          onClick={() => { setFilter("all"); setPriority("all"); setSearch(""); }}
-        >
+        <button className="ta-filter-icon-btn" title="Réinitialiser les filtres" onClick={() => { setFilter("all"); setPriority("all"); setSearch(""); }}>
           <IcoFilter />
         </button>
       </div>
@@ -229,15 +213,12 @@ export default function AssignedTicket() {
         </div>
       )}
 
-      {/* Résultats */}
       {!loading && filtered.length === 0 && (
         <div className="ta-empty">
           <div className="ta-empty-icon"><IcoInbox /></div>
           <p style={{ margin: 0, fontWeight: 600, color: "#64748B" }}>Aucun ticket dans cette catégorie</p>
           <p style={{ margin: "6px 0 0", fontSize: 13 }}>
-            {tickets.length === 0
-              ? "Les tickets vous seront assignés par le manager."
-              : "Essayez de modifier vos filtres."}
+            {tickets.length === 0 ? "Les tickets vous seront assignés par le manager." : "Essayez de modifier vos filtres."}
           </p>
         </div>
       )}

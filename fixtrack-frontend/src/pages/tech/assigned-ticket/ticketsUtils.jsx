@@ -1,4 +1,5 @@
 // src/pages/tech/ticketsUtils.jsx
+// ✅ Ajout du statut "refused" dans les filtres et les styles
 
 export const FILTERS = [
   { key: "all",         label: "Tous"       },
@@ -109,13 +110,24 @@ export const CSS = `
 }
 .ta-card:hover { box-shadow: 0 8px 32px rgba(15,23,42,0.10); transform: translateY(-2px); }
 
-/* Refused card — visually muted */
-.ta-card.refused { opacity: 0.6; }
-.ta-card.refused:hover { transform: none; box-shadow: 0 2px 12px rgba(15,23,42,0.05); }
+/* ✅ Refused card — shadow rouge distinctive + opacité légère */
+.ta-card.refused {
+  border-color: #FECACA;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.18), 0 0 0 1px rgba(220,38,38,0.12);
+  opacity: 0.88;
+}
+.ta-card.refused:hover {
+  box-shadow: 0 8px 28px rgba(220, 38, 38, 0.24), 0 0 0 1px rgba(220,38,38,0.18);
+  transform: translateY(-1px);
+}
 
 .ta-card-banner { height: 72px; position: relative; overflow: hidden; flex-shrink: 0; display: flex; align-items: flex-end; padding: 10px 14px; }
 .ta-card-banner-bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(0.55); }
 .ta-card-banner-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.55) 100%); }
+
+/* ✅ Overlay rouge sur le banner quand refused */
+.ta-card.refused .ta-card-banner-bg { filter: brightness(0.4) sepia(1) hue-rotate(320deg) saturate(2); }
+
 .ta-card-banner-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .ta-card-ticket-id { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.05em; text-transform: uppercase; }
 
@@ -131,6 +143,9 @@ export const CSS = `
 .stripe-medium   { background: linear-gradient(90deg, #3B82F6, #2563EB); }
 .stripe-low      { background: linear-gradient(90deg, #94A3B8, #6B7280); }
 
+/* ✅ Stripe rouge quand refused */
+.ta-card.refused .ta-card-stripe { background: linear-gradient(90deg, #EF4444, #B91C1C); }
+
 .ta-card-body  { padding: 16px 18px 12px; flex: 1; }
 .ta-card-title { font-size: 15px; font-weight: 700; color: #0F172A; line-height: 1.35; }
 .ta-card-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 10px; }
@@ -140,10 +155,14 @@ export const CSS = `
 .ta-card-date  { font-size: 11px; color: #CBD5E1; font-weight: 500; }
 
 .ta-card-footer { padding: 12px 18px; background: #F8FAFC; border-top: 1px solid #F1F5F9; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ✅ Footer rouge discret sur refused */
+.ta-card.refused .ta-card-footer { background: #FFF5F5; border-top-color: #FECACA; }
+
 .ta-card-status-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748B; font-weight: 500; }
 .ta-card-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-/* Refused reason banner inside card */
+/* ✅ Bandeau motif refus */
 .ta-refused-note {
   display: flex; align-items: flex-start; gap: 8px;
   margin: 0 18px 12px; padding: 10px 14px;

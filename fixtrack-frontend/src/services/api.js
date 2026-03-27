@@ -56,6 +56,8 @@ export const ticketService = {
   resolve: (id, solution) => api.patch(`/tickets/${id}/resolve`, { solution }),
   validate: (id, commentaire) =>
     api.patch(`/tickets/${id}/validate`, { commentaire }),
+  refuse: (id, reason) =>
+    api.patch(`/tickets/${id}/refuse`, { reason }).then((r) => r.data),
 };
 
 export const userService = {
