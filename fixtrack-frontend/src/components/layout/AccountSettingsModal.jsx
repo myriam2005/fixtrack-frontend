@@ -18,7 +18,7 @@ const Ico = {
 };
 
 const ROLE_META = {
-  employee:   { label: "utilisateur",      color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  employee:   { label: "Employé",        color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
@@ -48,9 +48,9 @@ const fieldSx = {
 };
 
 export default function AccountSettingsModal({ open, onClose, user }) {
-  const { login } = useAuth();
+  // ✅ FIX : on utilise refreshUser pour recharger les données fraîches depuis /api/auth/me
+  const { login, refreshUser } = useAuth();
 
-  // ✅ Fix : user.nom (backend) pas user.name
   const [formState, setFormState] = useState({
     tab: "profile",
     name: "", email: "",
@@ -62,13 +62,13 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
   const { tab, name, email, currentPwd, newPwd, confirmPwd, errors, saved, apiError } = formState;
 
-  // ✅ Fix : user.nom au lieu de user.name
+  // ✅ FIX : initialise avec user.nom (backend) — user.name est un alias de compatibilité
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       setFormState({
-        tab: "profile",
-        name:  user?.nom  || user?.name  || "",
-        email: user?.email || "",
+        tab:        "profile",
+        name:       user.nom   || user.name  || "",
+        email:      user.email || "",
         currentPwd: "", newPwd: "", confirmPwd: "",
         errors: {}, saved: false, apiError: "",
       });
@@ -79,7 +79,8 @@ export default function AccountSettingsModal({ open, onClose, user }) {
     const errs = {};
     if (!name.trim())  errs.name  = "Le nom est requis.";
     if (!email.trim()) errs.email = "L'e-mail est requis.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Format d'e-mail invalide.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      errs.email = "Format d'e-mail invalide.";
     return errs;
   };
 
@@ -102,29 +103,32 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
     try {
       if (tab === "profile") {
-        // ✅ Fix : envoie { nom, email } — le backend attend "nom" pas "name"
-        const result = await userService.updateProfile({ nom: name.trim(), email: email.trim() });
+        // ✅ FIX : envoie { nom, email } — le backend attend "nom" (pas "name")
+        await userService.updateProfile({
+          nom:   name.trim(),
+          email: email.trim().toLowerCase(),
+        });
 
-        // ✅ Fix : récupère le user mis à jour depuis la réponse API
-        // updateProfile retourne { message, user } ou directement le user
-        const updatedUser = result?.user || result;
-        const newNom      = updatedUser?.nom || name.trim();
-        const newEmail    = updatedUser?.email || email.trim();
-
-        // ✅ Fix : met à jour localStorage avec les bonnes clés
-        const stored = JSON.parse(localStorage.getItem("currentUser") || "{}");
-        const newStored = {
-          ...stored,
-          nom:   newNom,
-          name:  newNom,   // compatibilité si certains endroits utilisent .name
-          email: newEmail,
-        };
-        localStorage.setItem("currentUser", JSON.stringify(newStored));
-
-        // ✅ Fix : sync AuthContext pour que l'UI se mette à jour immédiatement
-        login(newStored);
+        // ✅ FIX PRINCIPAL : après la modif en DB, on recharge les données fraîches
+        // via GET /api/auth/me → le contexte ET le localStorage sont mis à jour
+        // avec le VRAI email stocké en DB (pas une valeur locale potentiellement stale)
+        if (refreshUser) {
+          await refreshUser();
+        } else {
+          // Fallback si refreshUser n'est pas disponible
+          const stored    = JSON.parse(localStorage.getItem("currentUser") || "{}");
+          const newStored = {
+            ...stored,
+            nom:   name.trim(),
+            name:  name.trim(),   // alias de compatibilité
+            email: email.trim().toLowerCase(),
+          };
+          localStorage.setItem("currentUser", JSON.stringify(newStored));
+          login(newStored);
+        }
 
       } else {
+        // Changement de mot de passe
         await userService.changePassword({
           currentPassword: currentPwd,
           newPassword:     newPwd,
@@ -138,6 +142,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
       }, 1200);
 
     } catch (err) {
+      // ✅ FIX : affiche le message d'erreur du backend (ex: "Email déjà utilisé")
       const msg = err?.response?.data?.message || "Une erreur est survenue.";
       setFormState(prev => ({ ...prev, apiError: msg }));
     } finally {
@@ -164,8 +169,8 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
   const togglePwd = (field) => setShowPwd(p => ({ ...p, [field]: !p[field] }));
 
-  const role     = ROLE_META[user?.role] || ROLE_META.employee;
-  // ✅ Fix : user.nom au lieu de user.name pour les initiales
+  const role        = ROLE_META[user?.role] || ROLE_META.employee;
+  // ✅ FIX : user.nom est la clé canonique du backend
   const displayName = user?.nom || user?.name || "";
   const initials    = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
@@ -180,10 +185,14 @@ export default function AccountSettingsModal({ open, onClose, user }) {
             {initials}
           </Avatar>
           <Box>
-            <Typography sx={{ fontSize: 17, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>Paramètres du compte</Typography>
+            <Typography sx={{ fontSize: 17, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+              Paramètres du compte
+            </Typography>
             <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, px: 0.9, py: 0.3, mt: 0.6, borderRadius: "5px", backgroundColor: "rgba(255,255,255,0.18)" }}>
               <Box sx={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#fff", opacity: 0.9 }} />
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{role.label}</Typography>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                {role.label}
+              </Typography>
             </Box>
           </Box>
         </Box>
@@ -198,7 +207,9 @@ export default function AccountSettingsModal({ open, onClose, user }) {
           <Box key={t.id}
             onClick={() => setFormState(prev => ({ ...prev, tab: t.id, errors: {}, saved: false, apiError: "" }))}
             sx={{ display: "flex", alignItems: "center", gap: 1, px: 2.5, py: 1.5, cursor: "pointer", borderBottom: tab === t.id ? `2px solid ${T.accent}` : "2px solid transparent", color: tab === t.id ? T.accent : T.textMuted, fontWeight: tab === t.id ? 600 : 400, fontSize: 13.5, transition: "all 0.15s", "&:hover": { color: T.accent } }}>
-            <Box sx={{ display: "flex", alignItems: "center", color: tab === t.id ? T.accent : T.textMuted }}>{t.icon}</Box>
+            <Box sx={{ display: "flex", alignItems: "center", color: tab === t.id ? T.accent : T.textMuted }}>
+              {t.icon}
+            </Box>
             {t.label}
           </Box>
         ))}
@@ -216,20 +227,36 @@ export default function AccountSettingsModal({ open, onClose, user }) {
         {tab === "profile" && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
-              label="Nom complet" value={name}
+              label="Nom complet"
+              value={name}
               onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
-              error={!!errors.name} helperText={errors.name} fullWidth size="small"
-              InputProps={{ startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.user}</Box></InputAdornment> }}
+              error={!!errors.name}
+              helperText={errors.name}
+              fullWidth size="small"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.user}</Box>
+                  </InputAdornment>
+                ),
+              }}
               sx={fieldSx}
             />
             <TextField
-              label="Adresse e-mail" type="email" value={email}
+              label="Adresse e-mail"
+              type="email"
+              value={email}
               onChange={e => setFormState(prev => ({ ...prev, email: e.target.value }))}
-              error={!!errors.email} helperText={errors.email} fullWidth size="small"
+              error={!!errors.email}
+              helperText={errors.email || "Vous devrez utiliser ce nouvel email pour vous connecter."}
+              fullWidth size="small"
               sx={fieldSx}
             />
             <TextField
-              label="Rôle" value={role.label} fullWidth size="small" disabled
+              label="Rôle"
+              value={role.label}
+              fullWidth size="small"
+              disabled
               helperText="Le rôle est géré par l'administrateur."
               sx={fieldSx}
             />
@@ -240,22 +267,46 @@ export default function AccountSettingsModal({ open, onClose, user }) {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               label="Mot de passe actuel"
-              type={showPwd.current ? "text" : "password"} value={currentPwd}
+              type={showPwd.current ? "text" : "password"}
+              value={currentPwd}
               onChange={e => setFormState(prev => ({ ...prev, currentPwd: e.target.value }))}
-              error={!!errors.currentPwd} helperText={errors.currentPwd} fullWidth size="small"
+              error={!!errors.currentPwd}
+              helperText={errors.currentPwd}
+              fullWidth size="small"
               InputProps={{
-                startAdornment: <InputAdornment position="start"><Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.lock}</Box></InputAdornment>,
-                endAdornment:   <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>{showPwd.current ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment>,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Box sx={{ color: T.textMuted, display: "flex" }}>{Ico.lock}</Box>
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => togglePwd("current")} sx={{ color: T.textMuted }}>
+                      {showPwd.current ? Ico.eyeOff : Ico.eye}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
               sx={fieldSx}
             />
 
             <TextField
               label="Nouveau mot de passe"
-              type={showPwd.new ? "text" : "password"} value={newPwd}
+              type={showPwd.new ? "text" : "password"}
+              value={newPwd}
               onChange={e => setFormState(prev => ({ ...prev, newPwd: e.target.value }))}
-              error={!!errors.newPwd} helperText={errors.newPwd} fullWidth size="small"
-              InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("new")} sx={{ color: T.textMuted }}>{showPwd.new ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
+              error={!!errors.newPwd}
+              helperText={errors.newPwd}
+              fullWidth size="small"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => togglePwd("new")} sx={{ color: T.textMuted }}>
+                      {showPwd.new ? Ico.eyeOff : Ico.eye}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={fieldSx}
             />
 
@@ -266,16 +317,31 @@ export default function AccountSettingsModal({ open, onClose, user }) {
                     <Box key={i} sx={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= pwdStrength ? strengthMeta?.color : T.border, transition: "background-color 0.2s" }} />
                   ))}
                 </Box>
-                {strengthMeta && <Typography sx={{ fontSize: 11, color: strengthMeta.color, fontWeight: 600 }}>{strengthMeta.label}</Typography>}
+                {strengthMeta && (
+                  <Typography sx={{ fontSize: 11, color: strengthMeta.color, fontWeight: 600 }}>
+                    {strengthMeta.label}
+                  </Typography>
+                )}
               </Box>
             )}
 
             <TextField
               label="Confirmer le nouveau mot de passe"
-              type={showPwd.confirm ? "text" : "password"} value={confirmPwd}
+              type={showPwd.confirm ? "text" : "password"}
+              value={confirmPwd}
               onChange={e => setFormState(prev => ({ ...prev, confirmPwd: e.target.value }))}
-              error={!!errors.confirmPwd} helperText={errors.confirmPwd} fullWidth size="small"
-              InputProps={{ endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => togglePwd("confirm")} sx={{ color: T.textMuted }}>{showPwd.confirm ? Ico.eyeOff : Ico.eye}</IconButton></InputAdornment> }}
+              error={!!errors.confirmPwd}
+              helperText={errors.confirmPwd}
+              fullWidth size="small"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => togglePwd("confirm")} sx={{ color: T.textMuted }}>
+                      {showPwd.confirm ? Ico.eyeOff : Ico.eye}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={fieldSx}
             />
           </Box>
@@ -283,11 +349,16 @@ export default function AccountSettingsModal({ open, onClose, user }) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${T.border}`, backgroundColor: T.sidebar, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined"
+        <Button
+          onClick={onClose}
+          variant="outlined"
           sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 500, borderColor: T.border, color: T.textSub, "&:hover": { borderColor: T.textMuted, backgroundColor: T.borderLight } }}>
           Annuler
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving || saved}
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={saving || saved}
           startIcon={saved ? Ico.check : null}
           sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600, minWidth: 140, backgroundColor: saved ? "#22C55E" : T.accent, boxShadow: saved ? "0 2px 8px rgba(34,197,94,0.35)" : `0 2px 8px ${alpha(T.accent, 0.3)}`, "&:hover": { backgroundColor: saved ? "#16A34A" : T.accentHover }, transition: "background-color 0.2s" }}>
           {saving ? "Enregistrement…" : saved ? "Enregistré !" : "Enregistrer"}

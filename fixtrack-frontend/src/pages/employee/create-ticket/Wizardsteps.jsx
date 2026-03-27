@@ -289,7 +289,7 @@ export function StepContact({ form, errors, set, focused, setFocused, user, anim
               <div className="wz-av-n">{user.nom || user.email}</div>
               <div className="wz-av-e">{user.email}</div>
             </div>
-            <span className="wz-role">{user.role || "employé"}</span>
+            <span className="wz-role">{"utilisateur"}</span>
           </div>
         )}
 

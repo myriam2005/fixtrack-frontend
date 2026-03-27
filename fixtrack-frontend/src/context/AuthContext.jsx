@@ -1,4 +1,4 @@
-// src/context/AuthContext.jsx — VERSION FINALE BACKEND
+// src/context/AuthContext.jsx
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 export const AuthContext = createContext(null);
@@ -12,15 +12,14 @@ export const useAuth = () => {
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export function AuthProvider({ children }) {
-
   const [user,        setUser]        = useState(null);
-  const [loading,     setLoading]     = useState(true); // true au démarrage — on vérifie le token
+  const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // ✅ Vérification du token au démarrage (tâche Ola manquante)
-  // Si un token existe dans localStorage → GET /api/auth/me pour vérifier qu'il est encore valide
-  // Si invalide ou expiré → déconnexion automatique
+  // ✅ FIX : verifyToken recharge les données FRAÎCHES depuis /api/auth/me
+  // → si l'email a été modifié, le user en contexte reflétera le nouvel email
+  // → le localStorage est mis à jour avec les données fraîches (pas l'inverse)
   useEffect(() => {
     const verifyToken = async () => {
       try {
@@ -39,19 +38,29 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // ✅ Appelle GET /api/auth/me pour valider le token
+        // Appelle GET /api/auth/me avec le token existant
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${parsed.token}` },
         });
 
         if (response.ok) {
-          const data = await response.json();
-          // ✅ Met à jour le user avec les données fraîches du backend
+          const freshData = await response.json();
+
+          // ✅ FIX CRITIQUE : les données fraîches du backend écrasent le localStorage
+          // (et non l'inverse) → email modifié reflété immédiatement
           const freshUser = {
-            ...parsed,
-            ...(data.user || data),
-            token: parsed.token, // garde le token
+            token: parsed.token, // on garde le token (inchangé)
+            // Données fraîches en priorité sur le localStorage
+            id:          freshData.id          || freshData._id || parsed.id,
+            nom:         freshData.nom         || parsed.nom,
+            email:       freshData.email       || parsed.email,  // ← email frais de la DB
+            role:        freshData.role        || parsed.role,
+            avatar:      freshData.avatar      || parsed.avatar,
+            competences: freshData.competences || parsed.competences || [],
+            telephone:   freshData.telephone   ?? parsed.telephone ?? null,
           };
+
+          // Met à jour localStorage avec les données fraîches
           localStorage.setItem("currentUser", JSON.stringify(freshUser));
           setUser(freshUser);
         } else {
@@ -60,8 +69,8 @@ export function AuthProvider({ children }) {
           setUser(null);
         }
       } catch {
-        // Erreur réseau → on garde l'utilisateur connecté en mode dégradé
-        // (ne pas déconnecter si c'est juste le backend qui est down)
+        // Erreur réseau → mode dégradé : on garde le localStorage tel quel
+        // (ne pas déconnecter si le backend est temporairement down)
         try {
           const stored = localStorage.getItem("currentUser");
           if (stored) setUser(JSON.parse(stored));
@@ -80,7 +89,7 @@ export function AuthProvider({ children }) {
   /**
    * loginWithBackend({ email, password })
    * ✅ Appelle POST /api/auth/login
-   * ✅ Retourne { success, role, user } ou { success: false, error }
+   * ✅ Stocke les données fraîches de la DB (email à jour inclus)
    */
   const loginWithBackend = useCallback(async ({ email, password }) => {
     setLoading(true);
@@ -88,9 +97,9 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -101,7 +110,7 @@ export function AuthProvider({ children }) {
         return { success: false, error: msg };
       }
 
-      // ✅ data = { token, user: { id, nom, email, role, ... } }
+      // ✅ data.user contient les données fraîches de la DB
       const userData = {
         ...data.user,
         token: data.token,
@@ -122,7 +131,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * login(userData) — version directe sans API (compatibilité AccountSettingsModal)
+   * login(userData) — mise à jour directe du contexte (utilisé par AccountSettingsModal)
+   * ✅ FIX : met à jour à la fois le state ET le localStorage de façon cohérente
    */
   const login = useCallback((userData) => {
     localStorage.setItem("currentUser", JSON.stringify(userData));
@@ -144,15 +154,53 @@ export function AuthProvider({ children }) {
     return user?.token || null;
   }, [user]);
 
+  /**
+   * refreshUser()
+   * ✅ Recharge les données fraîches depuis /api/auth/me
+   * → utile après une modification de profil pour synchroniser immédiatement l'UI
+   */
+  const refreshUser = useCallback(async () => {
+    const stored = localStorage.getItem("currentUser");
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      if (!parsed?.token) return;
+
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${parsed.token}` },
+      });
+
+      if (response.ok) {
+        const freshData = await response.json();
+        const freshUser = {
+          token:       parsed.token,
+          id:          freshData.id          || freshData._id || parsed.id,
+          nom:         freshData.nom         || parsed.nom,
+          email:       freshData.email       || parsed.email,
+          role:        freshData.role        || parsed.role,
+          avatar:      freshData.avatar      || parsed.avatar,
+          competences: freshData.competences || parsed.competences || [],
+          telephone:   freshData.telephone   ?? parsed.telephone ?? null,
+        };
+        localStorage.setItem("currentUser", JSON.stringify(freshUser));
+        setUser(freshUser);
+        return freshUser;
+      }
+    } catch {
+      // silencieux
+    }
+  }, []);
+
   const value = {
     user,
     login,
     loginWithBackend,
     logout,
     getToken,
+    refreshUser,    // ← nouveau : pour forcer un refresh après modif profil
     isAuth:      !!user,
     loading,
-    authChecked, // ← utile pour ProtectedRoute (attendre la vérification avant de rediriger)
+    authChecked,
     error,
     clearError: () => setError(null),
   };
