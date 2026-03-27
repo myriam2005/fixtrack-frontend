@@ -101,7 +101,7 @@ exports.createTicket = async (req, res) => {
       req.user.id,
     );
 
-    const auteurNom = req.user?.nom || req.user?.email || "Un employé";
+    const auteurNom = req.user?.nom || req.user?.email || "Un utilisateur";
 
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },

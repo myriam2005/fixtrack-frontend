@@ -5,6 +5,7 @@ const User = require("../models/User");
 const createLog = require("../utils/createLog");
 
 // ── Generate JWT Token ────────────────────────────────────────────────────────
+// ✅ Le token encode l'ID MongoDB (stable), PAS l'email (qui peut changer)
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
@@ -12,7 +13,6 @@ const generateToken = (id, role) => {
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 const register = async (req, res) => {
   try {
-    // Validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -20,13 +20,13 @@ const register = async (req, res) => {
 
     const { nom, email, password, role, telephone, competences } = req.body;
 
-    // Vérifie si l'email existe déjà
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
     if (existingUser) {
       return res.status(400).json({ message: "Cet email est déjà utilisé" });
     }
 
-    // Crée l'avatar à partir des initiales
     const initials = nom
       .split(" ")
       .map((n) => n[0])
@@ -34,10 +34,9 @@ const register = async (req, res) => {
       .toUpperCase()
       .slice(0, 2);
 
-    // Crée le nouvel utilisateur
     const user = await User.create({
       nom,
-      email: email.toLowerCase(),
+      email: email.toLowerCase().trim(),
       password,
       role: role || "employee",
       avatar: initials,
@@ -45,10 +44,7 @@ const register = async (req, res) => {
       competences: competences || [],
     });
 
-    // Génère le token JWT
     const token = generateToken(user._id, user.role);
-
-    // Log
     await createLog("REGISTER", `Nouveau compte créé : ${email}`, user._id);
 
     res.status(201).json({
@@ -60,6 +56,7 @@ const register = async (req, res) => {
         role: user.role,
         avatar: user.avatar,
         competences: user.competences,
+        telephone: user.telephone,
       },
     });
   } catch (error) {
@@ -68,6 +65,8 @@ const register = async (req, res) => {
 };
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
+// ✅ FIX PRINCIPAL : cherche toujours en DB par email normalisé
+// → si l'email a été modifié via updateProfile, la connexion fonctionne avec le NOUVEL email
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -77,22 +76,20 @@ const login = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Cherche l'utilisateur
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Cherche par email normalisé — toujours frais depuis la DB
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res
         .status(401)
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Vérifie que le compte est actif
     if (!user.actif) {
       return res
         .status(401)
         .json({ message: "Compte désactivé — contactez l'administrateur" });
     }
 
-    // Vérifie le mot de passe
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res
@@ -100,12 +97,11 @@ const login = async (req, res) => {
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Génère le token
+    // Token avec _id → résistant aux changements d'email futurs
     const token = generateToken(user._id, user.role);
-
-    // Log
     await createLog("LOGIN", `Connexion de ${user.email}`, user._id);
 
+    // ✅ Retourne les données FRAÎCHES de la DB (nom, email, rôle à jour)
     res.json({
       token,
       user: {
@@ -124,12 +120,26 @@ const login = async (req, res) => {
 };
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
+// ✅ FIX : findById (par _id du token) → données toujours fraîches même après modif email
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    if (!user)
+    if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
-    res.json(user);
+    }
+    if (!user.actif) {
+      return res.status(401).json({ message: "Compte désactivé" });
+    }
+    res.json({
+      id: user._id,
+      nom: user.nom,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      competences: user.competences,
+      telephone: user.telephone,
+      actif: user.actif,
+    });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
