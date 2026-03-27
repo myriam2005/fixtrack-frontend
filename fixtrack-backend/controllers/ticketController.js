@@ -7,10 +7,11 @@ const calculatePriority = require("../utils/priorityAI");
 
 const VALID_TRANSITIONS = {
   open: ["assigned", "in_progress", "closed"],
-  assigned: ["in_progress", "open", "closed"],
+  assigned: ["in_progress", "open", "closed", "refused"], // ✅ refused ajouté
   in_progress: ["resolved", "assigned", "closed"],
   pending: ["assigned", "in_progress", "open"],
   resolved: ["closed", "in_progress"],
+  refused: ["open", "assigned"], // ✅ peut être réassigné
   closed: [],
 };
 
@@ -30,6 +31,7 @@ exports.getAllTickets = async (req, res) => {
     const tickets = await Ticket.find(filter)
       .populate("auteurId", "nom email avatar telephone")
       .populate("technicienId", "nom email avatar competences")
+      .populate("refusedBy", "nom email")
       .sort({ createdAt: -1 });
 
     res.json(tickets);
@@ -43,7 +45,8 @@ exports.getTicketById = async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id)
       .populate("auteurId", "nom email avatar telephone")
-      .populate("technicienId", "nom email avatar competences");
+      .populate("technicienId", "nom email avatar competences")
+      .populate("refusedBy", "nom email");
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
     res.json(ticket);
   } catch (err) {
@@ -98,7 +101,6 @@ exports.createTicket = async (req, res) => {
       req.user.id,
     );
 
-    // Notifie managers + admins
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -107,7 +109,7 @@ exports.createTicket = async (req, res) => {
       managers.map((m) =>
         sendNotification({
           userId: m._id,
-          message: `📋 Nouveau ticket: "${titre}" — priorité: ${priorite} | ${localisation}`,
+          message: ` Nouveau ticket: "${titre}" — priorité: ${priorite} | ${localisation}`,
           type: "ticket_created",
           ticketId: ticket._id,
         }),
@@ -119,7 +121,7 @@ exports.createTicket = async (req, res) => {
         managers.map((m) =>
           sendNotification({
             userId: m._id,
-            message: `🚨 Ticket CRITIQUE: "${titre}" — intervention urgente requise`,
+            message: `Ticket CRITIQUE: "${titre}" — intervention urgente requise`,
             type: "ticket_critical",
             ticketId: ticket._id,
           }),
@@ -130,7 +132,6 @@ exports.createTicket = async (req, res) => {
     const populated = await Ticket.findById(ticket._id)
       .populate("auteurId", "nom email avatar")
       .populate("technicienId", "nom email avatar");
-
     res.status(201).json(populated);
   } catch (err) {
     console.error("CREATE TICKET ERROR:", err);
@@ -170,14 +171,11 @@ exports.updateTicket = async (req, res) => {
 };
 
 // ── DELETE /api/tickets/:id ───────────────────────────────────────────────────
-// ✅ Notifie l'auteur et le technicien assigné avant suppression
 exports.deleteTicket = async (req, res) => {
   try {
-    // Charge le ticket AVANT suppression pour avoir auteurId et technicienId
     const ticket = await Ticket.findById(req.params.id)
       .populate("auteurId", "nom email")
       .populate("technicienId", "nom email");
-
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
     const titre = ticket.titre;
@@ -185,9 +183,7 @@ exports.deleteTicket = async (req, res) => {
     const techId = ticket.technicienId?._id || ticket.technicienId;
     const supprimePar = req.user?.nom || req.user?.email || "un administrateur";
 
-    // Suppression effective
     await Ticket.findByIdAndDelete(req.params.id);
-
     await createLog(
       "TICKET_DELETED",
       `Supprimé: "${titre}" par ${supprimePar}`,
@@ -195,21 +191,18 @@ exports.deleteTicket = async (req, res) => {
       "warning",
     );
 
-    // ✅ Notifie l'auteur du ticket (s'il existe et n'est pas l'admin lui-même)
     if (auteurId && String(auteurId) !== String(req.user.id)) {
       await sendNotification({
         userId: auteurId,
         message: `🗑️ Votre ticket "${titre}" a été supprimé par ${supprimePar}.`,
         type: "ticket_deleted",
-        ticketId: null, // ticket n'existe plus en base
+        ticketId: null,
       });
     }
-
-    // ✅ Notifie le technicien assigné (s'il y en avait un)
     if (techId && String(techId) !== String(req.user.id)) {
       await sendNotification({
         userId: techId,
-        message: `🗑️ Le ticket "${titre}" qui vous était assigné a été supprimé par ${supprimePar}.`,
+        message: `Le ticket "${titre}" qui vous était assigné a été supprimé par ${supprimePar}.`,
         type: "ticket_deleted",
         ticketId: null,
       });
@@ -263,6 +256,105 @@ exports.updateStatus = async (req, res) => {
   }
 };
 
+// ── PATCH /api/tickets/:id/refuse ─────────────────────────────────────────────
+// ✅ NOUVELLE ROUTE — technicien refuse un ticket assigné
+// Logique :
+//   1. Statut → "refused"  (conserve technicienId pour affichage historique)
+//   2. Enregistre reason + refusedBy + refusedAt
+//   3. Ajoute une note interne
+//   4. Notifie managers + admins avec metadata ticketId pour quick-assign
+exports.refuseTicket = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    if (!reason?.trim())
+      return res.status(400).json({ message: "Le motif du refus est requis" });
+
+    const ticket = await Ticket.findById(req.params.id)
+      .populate("auteurId", "nom email")
+      .populate("technicienId", "nom email");
+    if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
+
+    // Seul le technicien assigné peut refuser
+    const techId =
+      ticket.technicienId?._id?.toString() || ticket.technicienId?.toString();
+    if (techId !== req.user.id.toString())
+      return res
+        .status(403)
+        .json({ message: "Vous n'êtes pas assigné à ce ticket" });
+
+    if (ticket.statut !== "assigned")
+      return res
+        .status(400)
+        .json({ message: "Seul un ticket assigné peut être refusé" });
+
+    // ── Mise à jour du ticket ─────────────────────────────────────────────────
+    const techNom = req.user?.nom || "Technicien";
+    ticket.statut = "refused";
+    ticket.refusedReason = reason.trim();
+    ticket.refusedBy = req.user.id;
+    ticket.refusedAt = new Date();
+    ticket.notes.push({
+      auteur: req.user.id,
+      texte: ` REFUS par ${techNom} : ${reason.trim()}`,
+      type: "note",
+      date: new Date(),
+    });
+    await ticket.save();
+
+    await createLog(
+      "TICKET_REFUSED",
+      `"${ticket.titre}" refusé par ${techNom} — motif: ${reason}`,
+      req.user.id,
+      "warning",
+    );
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+    // 1. Managers + admins → notif actionnable avec metadata pour quick-assign
+    const managers = await User.find({
+      role: { $in: ["manager", "admin"] },
+      actif: true,
+    });
+    await Promise.all(
+      managers.map((m) =>
+        sendNotification({
+          userId: m._id,
+          message: ` ${techNom} a refusé le ticket "${ticket.titre}" — motif : ${reason.trim()}`,
+          type: "ticket_refused",
+          ticketId: ticket._id,
+          meta: {
+            action: "reassign", // indique au frontend d'afficher le bouton
+            ticketId: ticket._id.toString(),
+            ticketTitre: ticket.titre,
+            techNom,
+            reason: reason.trim(),
+            priorite: ticket.priorite,
+            localisation: ticket.localisation,
+          },
+        }),
+      ),
+    );
+
+    // 2. Auteur du ticket — informé mais sans action requise
+    if (ticket.auteurId) {
+      await sendNotification({
+        userId: ticket.auteurId._id || ticket.auteurId,
+        message: `⚠ Le technicien n'a pas pu traiter votre ticket "${ticket.titre}". Un manager va le réassigner.`,
+        type: "ticket_refused",
+        ticketId: ticket._id,
+      });
+    }
+
+    const updated = await Ticket.findById(ticket._id)
+      .populate("auteurId", "nom email")
+      .populate("technicienId", "nom email")
+      .populate("refusedBy", "nom email");
+    res.json(updated);
+  } catch (err) {
+    console.error("REFUSE TICKET ERROR:", err);
+    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  }
+};
+
 // ── PATCH /api/tickets/:id/assign ─────────────────────────────────────────────
 exports.assignTicket = async (req, res) => {
   try {
@@ -273,7 +365,14 @@ exports.assignTicket = async (req, res) => {
 
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
-      { technicienId, statut: "assigned" },
+      {
+        technicienId,
+        statut: "assigned",
+        // ✅ Réinitialise les champs de refus lors d'une réassignation
+        refusedReason: null,
+        refusedBy: null,
+        refusedAt: null,
+      },
       { new: true },
     )
       .populate("auteurId", "nom email")
@@ -335,6 +434,9 @@ exports.suggestTechnician = async (req, res) => {
           (t) => t.technicienId?.toString() === tid,
         ).length;
         score -= active * 10;
+
+        // ✅ Exclut le technicien qui vient de refuser
+        if (ticket.refusedBy?.toString() === tid) score -= 50;
 
         const past = await Ticket.countDocuments({
           technicienId: tech._id,
@@ -404,7 +506,7 @@ exports.resolveTicket = async (req, res) => {
     if (solution)
       ticket.notes.push({
         auteur: req.user.id,
-        texte: `✅ SOLUTION: ${solution}`,
+        texte: ` SOLUTION: ${solution}`,
         type: "solution",
         date: new Date(),
       });
@@ -458,7 +560,7 @@ exports.validateTicket = async (req, res) => {
     if (commentaire)
       ticket.notes.push({
         auteur: req.user.id,
-        texte: `🔒 VALIDATION: ${commentaire}`,
+        texte: ` VALIDATION: ${commentaire}`,
         type: "validation",
         date: new Date(),
       });
@@ -470,23 +572,20 @@ exports.validateTicket = async (req, res) => {
       req.user.id,
     );
 
-    if (ticket.technicienId) {
+    if (ticket.technicienId)
       await sendNotification({
         userId: ticket.technicienId,
         message: `Ticket "${ticket.titre}" validé et clôturé.`,
         type: "ticket_validated",
         ticketId: ticket._id,
       });
-    }
-
-    if (ticket.auteurId) {
+    if (ticket.auteurId)
       await sendNotification({
         userId: ticket.auteurId,
         message: `Votre ticket "${ticket.titre}" a été validé et clôturé.`,
         type: "ticket_validated",
         ticketId: ticket._id,
       });
-    }
 
     const admins = await User.find({ role: "admin", actif: true });
     await Promise.all(

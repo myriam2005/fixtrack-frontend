@@ -15,6 +15,7 @@ const {
   addNote,
   resolveTicket,
   validateTicket,
+  refuseTicket,
 } = require("../controllers/ticketController");
 
 // ── Lecture ───────────────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ router.patch(
   roleCheck(["manager", "admin"]),
   assignTicket,
 );
-
+router.patch("/:id/refuse", auth, roleCheck(["technician"]), refuseTicket);
 // ── Notes techniques (technicien) ────────────────────────────────────────────
 router.post(
   "/:id/notes",

@@ -8,10 +8,7 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    message: {
-      type: String,
-      required: true,
-    },
+    message: { type: String, required: true },
     type: {
       type: String,
       enum: [
@@ -20,20 +17,21 @@ const notificationSchema = new mongoose.Schema(
         "ticket_resolved",
         "ticket_validated",
         "ticket_critical",
-        "status_changed",
-        // notifie auteur + technicien quand un admin supprime un ticket
         "ticket_deleted",
+        "status_changed",
+        "ticket_refused", // ✅ NOUVEAU — technicien a refusé le ticket
       ],
       default: "status_changed",
     },
-    lu: {
-      type: Boolean,
-      default: false,
-    },
-    // ticketId est nullable : le ticket peut ne plus exister (cas suppression)
+    lu: { type: Boolean, default: false },
     ticketId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Ticket",
+      default: null,
+    },
+    // ✅ NOUVEAU — metadata pour le bouton quick-assign côté manager
+    meta: {
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
   },
