@@ -1,13 +1,13 @@
 // src/components/common/notification/NotificationItem.jsx
-// ✅ UX polish :
-//   - Bouton quick-assign simple et lisible, pas encombrant
-//   - Motif refus en italique discret (pas de boîte rouge)
-//   - Couleurs alertes uniquement pour critique/refus non-lu
-//   - Trait gauche coloré pour hiérarchiser visuellement
+// ✅ Bouton quick-assign visible UNIQUEMENT pour manager/admin
+//    — le rôle est lu depuis AuthContext
+//    — admin reçoit la notif sans bouton (info seulement)
+//    — technicien ne voit jamais le bouton
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate }        from "react-router-dom";
+import { useAuth }            from "../../../context/AuthContext";
 
-// ── Icônes SVG inline ─────────────────────────────────────────────────────────
+// ── Icônes SVG ────────────────────────────────────────────────────────────────
 const IcoTicket = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -57,20 +57,20 @@ const IcoArrowRight = () => (
   </svg>
 );
 
-// ── Config type ───────────────────────────────────────────────────────────────
+// ── Config type → icône + alertColor ─────────────────────────────────────────
 const TYPE_MAP = {
-  ticket_created:    { Icon: IcoTicket,   alertColor: null },
-  ticket_assigned:   { Icon: IcoAssign,   alertColor: null },
-  ticket_reassigned: { Icon: IcoAssign,   alertColor: null },
-  ticket_resolved:   { Icon: IcoResolve,  alertColor: null },
-  ticket_validated:  { Icon: IcoResolve,  alertColor: null },
+  ticket_created:    { Icon: IcoTicket,   alertColor: null      },
+  ticket_assigned:   { Icon: IcoAssign,   alertColor: null      },
+  ticket_reassigned: { Icon: IcoAssign,   alertColor: null      },
+  ticket_resolved:   { Icon: IcoResolve,  alertColor: null      },
+  ticket_validated:  { Icon: IcoResolve,  alertColor: null      },
   ticket_critical:   { Icon: IcoCritical, alertColor: "#DC2626" },
-  ticket_deleted:    { Icon: IcoTicket,   alertColor: null },
+  ticket_deleted:    { Icon: IcoTicket,   alertColor: null      },
   ticket_refused:    { Icon: IcoRefused,  alertColor: "#DC2626" },
-  status_changed:    { Icon: IcoRefresh,  alertColor: null },
+  status_changed:    { Icon: IcoRefresh,  alertColor: null      },
   warning:           { Icon: IcoCritical, alertColor: "#D97706" },
   error:             { Icon: IcoRefused,  alertColor: "#DC2626" },
-  info:              { Icon: IcoTicket,   alertColor: null },
+  info:              { Icon: IcoTicket,   alertColor: null      },
 };
 
 function timeAgo(dateStr) {
@@ -84,7 +84,9 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationItem({ notif, onMarkRead }) {
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
+  const { user }     = useAuth();
+  const currentRole  = user?.role || "";
 
   const type       = notif.type || "status_changed";
   const isRead     = !!notif.lu;
@@ -95,27 +97,27 @@ export default function NotificationItem({ notif, onMarkRead }) {
   const isCritical = type === "ticket_critical";
   const isAlert    = !isRead && !!alertColor;
 
-  // Bouton quick-assign : uniquement ticket_refused, non-lu, avec meta
-  const hasReassign = isRefused && !isRead &&
+  // ✅ Bouton quick-assign UNIQUEMENT pour manager
+  // admin reçoit la notif mais sans bouton (info seulement)
+  // technician et employee ne voient jamais ce bouton
+  const canReassign = currentRole === "manager";
+  const hasReassign = isRefused && !isRead && canReassign &&
     notif.meta?.action === "reassign" && notif.meta?.ticketId;
 
-  // Couleurs icône
-  const iconColor  = isRead ? "#CBD5E1" : isAlert ? alertColor : "#64748B";
+  const iconColor  = isRead ? "#CBD5E1" : isAlert ? alertColor  : "#64748B";
   const iconBg     = isRead ? "#F8FAFC" : isAlert ? `${alertColor}12` : "#F1F5F9";
   const iconBorder = isRead ? "#F1F5F9" : isAlert ? `${alertColor}30` : "#E2E8F0";
-
-  // Trait gauche
   const leftBorder = isRead
     ? "2.5px solid transparent"
     : isAlert ? `2.5px solid ${alertColor}60` : "2.5px solid #BFDBFE";
 
   const handleClick = () => {
-    if (!isRead && onMarkRead) onMarkRead(notif._id);
+    if (!isRead && onMarkRead) onMarkRead(notif._id || notif.id);
   };
 
   const handleReassign = (e) => {
     e.stopPropagation();
-    if (!isRead && onMarkRead) onMarkRead(notif._id);
+    if (!isRead && onMarkRead) onMarkRead(notif._id || notif.id);
     navigate(`/manager/tickets?ticketId=${notif.meta.ticketId}`);
   };
 
@@ -138,15 +140,13 @@ export default function NotificationItem({ notif, onMarkRead }) {
         width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 1,
         background: iconBg, border: `1px solid ${iconBorder}`,
         display: "flex", alignItems: "center", justifyContent: "center",
-        color: iconColor, transition: "all 0.15s",
+        color: iconColor,
       }}>
         <Icon />
       </div>
 
       {/* Contenu */}
       <div style={{ flex: 1, minWidth: 0 }}>
-
-        {/* Message */}
         <p style={{
           margin: "0 0 3px",
           fontSize: 12.5,
@@ -158,11 +158,11 @@ export default function NotificationItem({ notif, onMarkRead }) {
           {notif.message}
         </p>
 
-        {/* Timestamp + label */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: (hasReassign || (isRefused && notif.meta?.reason)) ? 8 : 0 }}>
-          <span style={{ fontSize: 11, color: "#94A3B8" }}>
-            {timeAgo(notif.createdAt)}
-          </span>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 5,
+          marginBottom: (hasReassign || (isRefused && notif.meta?.reason)) ? 8 : 0,
+        }}>
+          <span style={{ fontSize: 11, color: "#94A3B8" }}>{timeAgo(notif.createdAt || notif.timestamp)}</span>
           {!isRead && (
             <span style={{ fontSize: 10, fontWeight: 600, color: isAlert ? alertColor : "#3B82F6", letterSpacing: "0.02em" }}>
               · {isRefused ? "Refus" : isCritical ? "Critique" : "Nouveau"}
@@ -170,14 +170,14 @@ export default function NotificationItem({ notif, onMarkRead }) {
           )}
         </div>
 
-        {/* Motif du refus — discret, pas de boîte colorée */}
+        {/* Motif du refus — discret */}
         {isRefused && notif.meta?.reason && (
           <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "#64748B", lineHeight: 1.5, fontStyle: "italic" }}>
             "{notif.meta.reason}"
           </p>
         )}
 
-        {/* ✅ Bouton quick-assign — sobre, lisible, pas encombrant */}
+        {/* ✅ Bouton quick-assign — manager seulement */}
         {hasReassign && (
           <button
             onClick={handleReassign}
@@ -185,8 +185,7 @@ export default function NotificationItem({ notif, onMarkRead }) {
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "4px 10px", borderRadius: 6,
               border: "1px solid #E2E8F0",
-              backgroundColor: "#fff",
-              color: "#374151",
+              backgroundColor: "#fff", color: "#374151",
               fontSize: 11.5, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
               transition: "all 0.15s", whiteSpace: "nowrap",

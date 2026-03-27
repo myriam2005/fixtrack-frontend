@@ -134,13 +134,13 @@ const ICON_MAP = {
 
 // ── Catégories par défaut (fallback si l'API échoue) ─────────────────────────
 const DEFAULT_CATEGORIES = [
-  { value: "Électrique",        IcoComp: Icon.Zap       },
-  { value: "Plomberie",         IcoComp: Icon.Droplet   },
-  { value: "HVAC",              IcoComp: Icon.Wind      },
-  { value: "Informatique",      IcoComp: Icon.Monitor   },
-  { value: "Sécurité",          IcoComp: Icon.Shield    },
-  { value: "Mécanique",         IcoComp: Icon.Settings  },
-  { value: "Autre",             IcoComp: Icon.MoreCircle },
+    { value: "Informatique",      IcoComp: Icon.Monitor   },
+   { value: "Mécanique",         IcoComp: Icon.Settings  },
+    { value: "Plomberie",         IcoComp: Icon.Droplet   },
+      { value: "Sécurité",          IcoComp: Icon.Shield    },
+   { value: "Électrique",        IcoComp: Icon.Zap       },
+ { value: "HVAC",              IcoComp: Icon.Wind      },
+ { value: "Autre",             IcoComp: Icon.MoreCircle },
 ];
 
 // ── Hook pour charger les catégories depuis l'API ─────────────────────────────

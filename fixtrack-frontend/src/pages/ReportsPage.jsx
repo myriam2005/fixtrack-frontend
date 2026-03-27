@@ -1,10 +1,16 @@
 // src/pages/ReportsPage.jsx
-import { useState, useMemo, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { ticketService, userService } from "../services/api";
+// ✅ Fixes :
+//    — technicien : filtre sur son propre userId via resolveId (compatible _id populé)
+//    — rapport vide corrigé : ticketService.getAll() retourne déjà les tickets filtrés par rôle
+//    — userService.getAll() utilisé uniquement pour admin/manager (noms des auteurs)
+//    — technicien : userService.getAll() remplacé par getById pour éviter 403
+//    — historique persistant par userId dans localStorage
 
-import Badge  from "../components/common/badge/Badge";
-import Button from "../components/common/Button";
+import { useState, useMemo, useEffect } from "react";
+import { useAuth }         from "../context/AuthContext";
+import { ticketService, userService } from "../services/api";
+import Badge               from "../components/common/badge/Badge";
+import Button              from "../components/common/Button";
 import {
   BarChartIcon, TicketIcon, ClockIcon, CheckCircleIcon,
 } from "../components/common/Icons";
@@ -38,71 +44,53 @@ const PRIORITY_META = {
   low:      { label:"Basse",    color:"#6b7280", bg:"#f9fafb", border:"#e5e7eb" },
 };
 
+// ✅ Résout un id qui peut être une string, un ObjectId ou un objet populé
 const resolveId = (val) => {
   if (!val) return null;
-  if (typeof val === "object") return val._id || val.id || null;
-  return val;
+  if (typeof val === "object") return String(val._id || val.id || "");
+  return String(val);
 };
 
 const getName = (id, users) => {
   if (!id) return "—";
   if (typeof id === "object" && id.nom) return id.nom;
   const rawId = resolveId(id);
-  return users.find(u => (u._id || u.id) === rawId)?.nom || "—";
+  return users.find(u => resolveId(u) === rawId)?.nom || "—";
 };
 
 const getDate = (t) => (t.createdAt || t.dateCreation || "").slice(0, 10);
 
-// ─── Clé localStorage par utilisateur ────────────────────────────────────────
 const getHistoryKey = (userId) => `fixtrack_report_history_${userId}`;
-
-const loadHistory = (userId) => {
+const loadHistory   = (userId) => {
   if (!userId) return [];
   try {
     const raw = localStorage.getItem(getHistoryKey(userId));
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    // Restaurer les objets Date sérialisés
-    return parsed.map(e => ({
-      ...e,
-      generatedAt: new Date(e.generatedAt),
-    }));
-  } catch {
-    return [];
-  }
+    return JSON.parse(raw).map(e => ({ ...e, generatedAt: new Date(e.generatedAt) }));
+  } catch { return []; }
 };
-
 const saveHistory = (userId, history) => {
   if (!userId) return;
   try {
-    // On ne sauvegarde pas l'objet `report` complet dans le localStorage
-    // car il peut contenir des JSX (cellules React). On sauvegarde uniquement
-    // les métadonnées + les données brutes pour pouvoir régénérer.
     const toStore = history.map(e => ({
-      id:          e.id,
-      type:        e.type,
-      fmt:         e.fmt,
+      id: e.id, type: e.type, fmt: e.fmt,
       generatedAt: e.generatedAt instanceof Date ? e.generatedAt.toISOString() : e.generatedAt,
-      dateFrom:    e.dateFrom,
-      dateTo:      e.dateTo,
-      description: e.description,
-      rowCount:    e.report?.rows?.length ?? 0,
-      // On stocke aussi les données brutes pour pouvoir recalculer
-      reportData:  e.reportData || null,
+      dateFrom: e.dateFrom, dateTo: e.dateTo, description: e.description,
+      rowCount: e.report?.rows?.length ?? 0,
+      reportData: e.reportData || null,
     }));
     localStorage.setItem(getHistoryKey(userId), JSON.stringify(toStore));
-  } catch {
-    // quota dépassé → silencieux
-  }
+  } catch { /* quota */ }
 };
 
-// ─── Calcul rapport ───────────────────────────────────────────────────────────
+// ── Calcul rapport ────────────────────────────────────────────────────────────
 function computeReport(type, userId, userRole, dateFrom, dateTo, tickets, users) {
-  // ✅ FIX : pour le technicien, filtrer strictement sur son propre userId
+  // ✅ Pour le technicien : les tickets viennent déjà filtrés par le backend
+  //    On filtre quand même localement au cas où (réassignation, double source)
   let src = userRole === "technician"
     ? tickets.filter(t => {
         const techId = resolveId(t.technicienId);
-        return techId === userId;
+        return techId === String(userId);
       })
     : [...tickets];
 
@@ -125,64 +113,52 @@ function computeReport(type, userId, userRole, dateFrom, dateTo, tickets, users)
         inProgress: byStatus.in_progress||0,
         resolved: byStatus.resolved||0,
         closed: byStatus.closed||0,
+        refused: byStatus.refused||0,
       },
       byPriority, byCategory,
       rows: src.map(t => ({
-        id: t._id||t.id,
-        titre: t.titre,
-        statut: t.statut,
-        priorite: t.priorite,
-        categorie: t.categorie,
-        localisation: t.localisation,
-        technicien: getName(t.technicienId, users),
+        id: t._id||t.id, titre: t.titre, statut: t.statut,
+        priorite: t.priorite, categorie: t.categorie,
+        localisation: t.localisation, technicien: getName(t.technicienId, users),
         date: getDate(t),
       })),
     };
   }
 
   if (type === "performance") {
-    // ✅ FIX : manager voit tous les techs, technicien ne voit que lui-même
     const techs = userRole === "technician"
-      ? users.filter(u => (u._id || u.id) === userId)
+      ? users.filter(u => resolveId(u) === String(userId))
       : users.filter(u => u.role === "technician" || u.role === "technicien");
 
     return {
       type,
       rows: techs.map(tech => {
-        const tid      = tech._id || tech.id;
-        const assigned = src.filter(t => resolveId(t.technicienId) === tid);
-        const resolved = assigned.filter(t => t.statut === "resolved" || t.statut === "closed");
-        const inProg   = assigned.filter(t => t.statut === "in_progress");
-        const rate     = assigned.length > 0 ? Math.round(resolved.length / assigned.length * 100) : 0;
+        const tid      = resolveId(tech);
+        // ✅ Utilise tous les tickets de la période pour ce technicien
+        const allForTech = tickets.filter(t => resolveId(t.technicienId) === tid);
+        const period     = allForTech.filter(t => {
+          const d = getDate(t);
+          return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo);
+        });
+        const resolved  = period.filter(t => ["resolved","closed"].includes(t.statut));
+        const inProg    = period.filter(t => t.statut === "in_progress");
+        const rate      = period.length > 0 ? Math.round(resolved.length / period.length * 100) : 0;
         return {
-          id: tid,
-          nom: tech.nom,
-          competences: tech.competences?.join(", ")||"—",
-          assigned: assigned.length,
-          resolved: resolved.length,
-          inProgress: inProg.length,
-          rate,
+          id: tid, nom: tech.nom, competences: tech.competences?.join(", ")||"—",
+          assigned: period.length, resolved: resolved.length, inProgress: inProg.length, rate,
         };
       }),
     };
   }
 
   if (type === "worklog") {
-    // ✅ FIX : technicien ne voit que ses propres interventions
-    const filtered = userRole === "technician"
-      ? src
-      : src.filter(t => t.technicienId);
+    const filtered = userRole === "technician" ? src : src.filter(t => t.technicienId);
     return {
       type,
       rows: filtered.map(t => ({
-        id: t._id||t.id,
-        titre: t.titre,
-        technicien: getName(t.technicienId, users),
-        statut: t.statut,
-        categorie: t.categorie,
-        localisation: t.localisation,
-        date: getDate(t),
-        notes: t.notes?.[0]?.texte || t.notes?.[0] || "—",
+        id: t._id||t.id, titre: t.titre, technicien: getName(t.technicienId, users),
+        statut: t.statut, categorie: t.categorie, localisation: t.localisation,
+        date: getDate(t), notes: t.notes?.[0]?.texte || "—",
       })),
     };
   }
@@ -193,24 +169,18 @@ function computeReport(type, userId, userRole, dateFrom, dateTo, tickets, users)
     return {
       type,
       summary: {
-        totalUsers: users.length,
-        totalTickets: src.length,
+        totalUsers: users.length, totalTickets: src.length,
         criticalOpen: src.filter(t => t.priorite === "critical" && t.statut === "open").length,
         unassigned: src.filter(t => !t.technicienId).length,
       },
       byRole,
       rows: src.map(t => ({
-        id: t._id||t.id,
-        titre: t.titre,
-        auteur: getName(t.auteurId, users),
-        technicien: getName(t.technicienId, users),
-        statut: t.statut,
-        priorite: t.priorite,
-        date: getDate(t),
+        id: t._id||t.id, titre: t.titre, auteur: getName(t.auteurId, users),
+        technicien: getName(t.technicienId, users), statut: t.statut,
+        priorite: t.priorite, date: getDate(t),
       })),
     };
   }
-
   return null;
 }
 
@@ -225,38 +195,37 @@ function getExportData(report) {
 
 function exportCSV(report, filename, description) {
   const { cols, rows } = getExportData(report);
-  const esc = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const esc = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
   const lines = [];
-  if (description) lines.push(`"Description:","${description.replace(/"/g, '""')}"`);
+  if (description) lines.push(`"Description:","${description.replace(/"/g,'""')}"`);
   lines.push(cols.map(esc).join(","));
   rows.forEach(r => lines.push(r.map(esc).join(",")));
-  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename + ".csv"; a.click(); URL.revokeObjectURL(a.href);
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type:"text/csv;charset=utf-8;" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename+".csv"; a.click(); URL.revokeObjectURL(a.href);
 }
 async function exportExcel(report, filename, title, description) {
   if (!window.XLSX) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
   const { cols, rows } = getExportData(report);
   const data = [];
   if (description) { data.push(["Description :", description]); data.push([]); }
-  data.push(cols);
-  rows.forEach(r => data.push(r));
+  data.push(cols); rows.forEach(r => data.push(r));
   const ws = window.XLSX.utils.aoa_to_sheet(data);
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, title.slice(0,31));
-  window.XLSX.writeFile(wb, filename + ".xlsx");
+  window.XLSX.writeFile(wb, filename+".xlsx");
 }
 async function exportPDF(report, filename, title, description, period) {
   if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   if (!window.jspdf?.jsPDF?.prototype?.autoTable) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"landscape" });
-  doc.setFontSize(18); doc.setTextColor(37,99,235); doc.text("FixTrack — " + title, 14, 18);
+  doc.setFontSize(18); doc.setTextColor(37,99,235); doc.text("FixTrack — "+title, 14, 18);
   doc.setFontSize(10); doc.setTextColor(107,114,128); doc.text(`Généré le ${new Date().toLocaleString("fr-FR")}   |   Période : ${period}`, 14, 26);
   let startY = 32;
-  if (description) { doc.setFontSize(10); doc.setTextColor(30,30,30); doc.text("Description : " + description, 14, 34); startY = 42; }
+  if (description) { doc.setFontSize(10); doc.setTextColor(30,30,30); doc.text("Description : "+description, 14, 34); startY = 42; }
   const { cols, rows } = getExportData(report);
   doc.autoTable({ head:[cols], body:rows, startY, styles:{fontSize:9,cellPadding:3}, headStyles:{fillColor:[37,99,235],textColor:255,fontStyle:"bold"}, alternateRowStyles:{fillColor:[239,246,255]}, margin:{left:14,right:14} });
-  doc.save(filename + ".pdf");
+  doc.save(filename+".pdf");
 }
 function loadScript(src) {
   return new Promise((res, rej) => {
@@ -264,7 +233,7 @@ function loadScript(src) {
   });
 }
 
-// ─── Composants UI ────────────────────────────────────────────────────────────
+// ── Composants UI ─────────────────────────────────────────────────────────────
 function KpiCard({ icon, value, label, color }) {
   return (
     <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:12, padding:"16px 18px", display:"flex", alignItems:"center", gap:12, boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}>
@@ -340,9 +309,7 @@ function ReportViewer({ report, generatedAt, description }) {
             <div><div style={{ fontWeight:600 }}>{r.titre}</div><div style={{ fontSize:11, color:MUTED }}>{r.localisation}</div></div>,
             <Badge status={r.statut}/>,
             <Badge status={r.priorite}/>,
-            r.categorie,
-            r.technicien,
-            r.date,
+            r.categorie, r.technicien, r.date,
           ])}
         />
       </>}
@@ -372,9 +339,7 @@ function ReportViewer({ report, generatedAt, description }) {
           rows={report.rows.map(r=>[
             <span style={{ fontFamily:"monospace", fontSize:11.5 }}>{String(r.id).slice(-6).toUpperCase()}</span>,
             <span style={{ fontWeight:600 }}>{r.titre}</span>,
-            r.technicien,
-            <Badge status={r.statut}/>,
-            r.categorie,
+            r.technicien, <Badge status={r.statut}/>, r.categorie,
             <span style={{ fontSize:11.5, color:MUTED }}>{r.localisation}</span>,
             r.date,
             <span style={{ fontSize:11.5, color:MUTED, fontStyle:"italic" }}>{r.notes}</span>,
@@ -384,10 +349,10 @@ function ReportViewer({ report, generatedAt, description }) {
 
       {report.type === "audit" && <>
         <div className="rp-audit-grid">
-          <KpiCard icon="👥" value={report.summary.totalUsers}   label="Utilisateurs"      color={BLUE}   />
-          <KpiCard icon="🎫" value={report.summary.totalTickets} label="Tickets total"      color="#7c3aed"/>
-          <KpiCard icon="🚨" value={report.summary.criticalOpen} label="Critiques ouverts"  color="#dc2626"/>
-          <KpiCard icon="⚠️" value={report.summary.unassigned}   label="Non assignés"       color="#d97706"/>
+          <KpiCard icon="👥" value={report.summary.totalUsers}   label="Utilisateurs"     color={BLUE}   />
+          <KpiCard icon="🎫" value={report.summary.totalTickets} label="Tickets total"     color="#7c3aed"/>
+          <KpiCard icon="🚨" value={report.summary.criticalOpen} label="Critiques ouverts" color="#dc2626"/>
+          <KpiCard icon="⚠️" value={report.summary.unassigned}   label="Non assignés"      color="#d97706"/>
         </div>
         <SectionTitle>Utilisateurs par rôle</SectionTitle>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
@@ -403,11 +368,7 @@ function ReportViewer({ report, generatedAt, description }) {
           rows={report.rows.map(r=>[
             <span style={{ fontFamily:"monospace", fontSize:11.5 }}>{String(r.id).slice(-6).toUpperCase()}</span>,
             <span style={{ fontWeight:600 }}>{r.titre}</span>,
-            r.auteur,
-            r.technicien,
-            <Badge status={r.statut}/>,
-            <Badge status={r.priorite}/>,
-            r.date,
+            r.auteur, r.technicien, <Badge status={r.statut}/>, <Badge status={r.priorite}/>, r.date,
           ])}
         />
       </>}
@@ -415,12 +376,11 @@ function ReportViewer({ report, generatedAt, description }) {
   );
 }
 
-// ─── Page principale ──────────────────────────────────────────────────────────
+// ── Page principale ────────────────────────────────────────────────────────────
 export default function ReportsPage() {
   const { user } = useAuth();
-  const role   = user?.role || "technician";
-  // ✅ FIX : utiliser l'id de l'utilisateur connecté pour filtrer ET pour la clé localStorage
-  const userId = user?._id || user?.id || user?.email || "";
+  const role     = user?.role || "technician";
+  const userId   = String(user?._id || user?.id || "");
   const allowedTypes = ROLE_TYPES[role] || ["tickets"];
 
   const [tickets,     setTickets]     = useState([]);
@@ -428,20 +388,33 @@ export default function ReportsPage() {
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([ticketService.getAll(), userService.getAll()])
-      .then(([t, u]) => {
-        setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
-        setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
-      })
-      .catch(console.error)
-      .finally(() => setDataLoading(false));
-  }, []);
+    const loadData = async () => {
+      try {
+        // ✅ ticketService.getAll() retourne les tickets filtrés par rôle par le backend
+        const ticketData = await ticketService.getAll();
+        setTickets((ticketData || []).map(x => ({ ...x, id: x._id || x.id })));
 
-  const allDates = useMemo(
-    () => tickets.map(t => getDate(t)).filter(Boolean).sort(),
-    [tickets]
-  );
-  const computedDateMin = allDates[0]                   || "2025-01-01";
+        // ✅ userService.getAll() uniquement pour admin/manager (pour les noms)
+        //    technicien : récupère seulement son propre profil
+        if (role === "admin" || role === "manager") {
+          const userData = await userService.getAll();
+          setUsers((userData || []).map(x => ({ ...x, id: x._id || x.id })));
+        } else {
+          // Technicien : juste son propre objet user pour les rapports
+          setUsers([{ ...user, id: userId }]);
+        }
+      } catch (err) {
+        console.error("ReportsPage data error:", err);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, role]);
+
+  const allDates        = useMemo(() => tickets.map(t => getDate(t)).filter(Boolean).sort(), [tickets]);
+  const computedDateMin = allDates[0] || "2025-01-01";
   const computedDateMax = allDates[allDates.length - 1] || new Date().toISOString().slice(0,10);
 
   const [selectedType,     setSelectedType]     = useState(allowedTypes[0]);
@@ -457,14 +430,10 @@ export default function ReportsPage() {
   const [showHistory,      setShowHistory]      = useState(false);
   const [toast,            setToast]            = useState(null);
   const [datesInitialized, setDatesInitialized] = useState(false);
+  const [history,          setHistory]          = useState(() => loadHistory(userId));
 
-  // ✅ FIX : Charger l'historique depuis localStorage au montage (persistant, par userId)
-  const [history, setHistory] = useState(() => loadHistory(userId));
-
-  // ✅ FIX : Sauvegarder l'historique dans localStorage à chaque modification
-  useEffect(() => {
-    if (userId) saveHistory(userId, history);
-  }, [history, userId]);
+  useEffect(() => { if (userId) saveHistory(userId, history); }, [history, userId]);
+  useEffect(() => { setHistory(loadHistory(userId)); }, [userId]);
 
   useEffect(() => {
     if (!datesInitialized && allDates.length > 0) {
@@ -475,12 +444,6 @@ export default function ReportsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allDates.length, datesInitialized]);
 
-  // ✅ FIX : Recharger l'historique si l'utilisateur change (ex: reconnexion d'un autre compte)
-  useEffect(() => {
-    setHistory(loadHistory(userId));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
   const showToast = (msg, isError = false) => {
     setToast({ msg, isError });
     setTimeout(() => setToast(null), 3200);
@@ -488,34 +451,31 @@ export default function ReportsPage() {
 
   const quickStats = useMemo(() => ({
     generated: history.length,
-    ready:     history.filter(h => h.rowCount > 0 || h.report?.rows?.length > 0).length,
+    ready:     history.filter(h => (h.rowCount || 0) > 0).length,
     pending:   generating ? 1 : 0,
   }), [history, generating]);
 
   const handleGenerate = async () => {
     setGenerating(true);
-    await new Promise(r => setTimeout(r, 700));
+    await new Promise(r => setTimeout(r, 600));
     const now    = new Date();
     const report = computeReport(selectedType, userId, role, dateFrom, dateTo, tickets, users);
     const entry  = {
-      id:          `R${Date.now()}`,
-      type:        selectedType,
-      fmt:         selectedFmt,
-      generatedAt: now,
-      report,
-      dateFrom,
-      dateTo,
-      description,
-      rowCount:    report?.rows?.length ?? 0,
-      // Données brutes pour l'export depuis l'historique
-      reportData:  report,
+      id: `R${Date.now()}`, type: selectedType, fmt: selectedFmt,
+      generatedAt: now, report, dateFrom, dateTo, description,
+      rowCount: report?.rows?.length ?? 0, reportData: report,
     };
     setHistory(prev => [entry, ...prev]);
     setActiveReport(report);
     setActiveGenAt(now);
     setActiveDesc(description);
     setGenerating(false);
-    showToast(`✅ Rapport généré — ${report?.rows?.length ?? 0} ligne(s)`);
+    const count = report?.rows?.length ?? 0;
+    if (count === 0 && role === "technician") {
+      showToast(`⚠ Aucun ticket trouvé pour cette période. Vérifiez les dates.`, true);
+    } else {
+      showToast(`✅ Rapport généré — ${count} ligne(s)`);
+    }
   };
 
   const handleDownload = async () => {
@@ -539,6 +499,13 @@ export default function ReportsPage() {
   const spinner = (size=16, border=2) => (
     <div style={{ width:size, height:size, border:`${border}px solid rgba(255,255,255,.3)`, borderTopColor:"#fff", borderRadius:"50%", animation:"spin .6s linear infinite", flexShrink:0 }}/>
   );
+
+  // ✅ Indicateur de données chargées adapté au rôle
+  const dataIndicator = dataLoading
+    ? "Chargement des données…"
+    : role === "technician"
+      ? `${tickets.length} ticket(s) vous concernant (${computedDateMin} → ${computedDateMax})`
+      : `${tickets.length} tickets chargés (${computedDateMin} → ${computedDateMax})`;
 
   return (
     <>
@@ -578,7 +545,6 @@ export default function ReportsPage() {
             </h1>
             <p style={{ fontSize:13, color:MUTED, margin:"6px 0 0" }}>
               Générez et consultez les rapports de performance et d&apos;exploitation.
-              {/* ✅ Indicateur de compte connecté */}
               {user && (
                 <span style={{ marginLeft:10, padding:"2px 10px", borderRadius:20, background:"#eff6ff", color:BLUE, fontSize:11, fontWeight:700, border:`1px solid #bfdbfe` }}>
                   {user.name || user.nom} · {role}
@@ -591,9 +557,7 @@ export default function ReportsPage() {
               <span style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}>
                 🕐 Historique
                 {history.length > 0 && (
-                  <span style={{ background:BLUE, color:"#fff", borderRadius:20, fontSize:9, padding:"1px 8px", fontWeight:700 }}>
-                    {history.length}
-                  </span>
+                  <span style={{ background:BLUE, color:"#fff", borderRadius:20, fontSize:9, padding:"1px 8px", fontWeight:700 }}>{history.length}</span>
                 )}
               </span>
             }
@@ -602,41 +566,28 @@ export default function ReportsPage() {
           />
         </div>
 
-        {/* KPIs rapides */}
         <div className="rp-kpi-grid">
-          <KpiCard icon={<BarChartIcon stroke={BLUE} width="20" height="20"/>}       value={quickStats.generated} label="Rapports générés"    color={BLUE}   />
-          <KpiCard icon={<CheckCircleIcon stroke="#16a34a" width="20" height="20"/>} value={quickStats.ready}     label="Avec données"         color="#16a34a"/>
-          <KpiCard icon={<ClockIcon stroke="#d97706" width="20" height="20"/>}       value={quickStats.pending}   label="En cours de génér."   color="#d97706"/>
+          <KpiCard icon={<BarChartIcon stroke={BLUE} width="20" height="20"/>}       value={quickStats.generated} label="Rapports générés"  color={BLUE}   />
+          <KpiCard icon={<CheckCircleIcon stroke="#16a34a" width="20" height="20"/>} value={quickStats.ready}     label="Avec données"       color="#16a34a"/>
+          <KpiCard icon={<ClockIcon stroke="#d97706" width="20" height="20"/>}       value={quickStats.pending}   label="En cours"           color="#d97706"/>
         </div>
 
-        {/* Configuration */}
         <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:14, padding:"24px 28px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:22 }}>
             <span style={{ fontSize:14, color:MUTED }}>▽</span>
             <span style={{ fontSize:15, fontWeight:700, color:TEXT }}>Configuration du Rapport</span>
-            {dataLoading
-              ? <span style={{ fontSize:11, color:MUTED, marginLeft:"auto" }}>Chargement des données…</span>
-              : <span style={{ fontSize:11, color:"#16a34a", marginLeft:"auto" }}>
-                  ✓ {role === "technician"
-                    ? `${tickets.filter(t => resolveId(t.technicienId) === userId).length} ticket(s) vous concernant`
-                    : `${tickets.length} tickets chargés`
-                  } ({computedDateMin} → {computedDateMax})
-                </span>
-            }
+            <span style={{ fontSize:11, color: dataLoading ? MUTED : "#16a34a", marginLeft:"auto" }}>
+              {dataLoading ? "Chargement des données…" : `✓ ${dataIndicator}`}
+            </span>
           </div>
 
           <div className="rp-config-grid">
             <div>
               <label style={{ display:"block", fontSize:11, fontWeight:700, color:MUTED, marginBottom:8, textTransform:"uppercase", letterSpacing:".5px" }}>Type de rapport</label>
-              <select
-                value={selectedType}
-                onChange={e=>setSelectedType(e.target.value)}
-                style={{ width:"100%", height:44, border:`1px solid ${BORDER}`, borderRadius:9, padding:"0 12px", fontSize:13.5, fontWeight:500, color:TEXT, background:"#fff", cursor:"pointer" }}
-              >
+              <select value={selectedType} onChange={e=>setSelectedType(e.target.value)} style={{ width:"100%", height:44, border:`1px solid ${BORDER}`, borderRadius:9, padding:"0 12px", fontSize:13.5, fontWeight:500, color:TEXT, background:"#fff", cursor:"pointer" }}>
                 {allowedTypes.map(t=><option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
               </select>
             </div>
-
             <div>
               <label style={{ display:"block", fontSize:11, fontWeight:700, color:MUTED, marginBottom:8, textTransform:"uppercase", letterSpacing:".5px" }}>Période</label>
               <div className="rp-period-row">
@@ -644,16 +595,13 @@ export default function ReportsPage() {
                 <input type="date" value={dateTo}   onChange={e=>setDateTo(e.target.value)}   style={{ flex:1, height:44, border:`1px solid ${BORDER}`, borderRadius:9, padding:"0 10px", fontSize:13, color:TEXT }}/>
               </div>
             </div>
-
             <div>
               <label style={{ display:"block", fontSize:11, fontWeight:700, color:MUTED, marginBottom:8, textTransform:"uppercase", letterSpacing:".5px" }}>Format d&apos;export</label>
               <div className="rp-fmt-row">
                 {["pdf","excel","csv"].map(f => {
-                  const m = FORMAT_META[f];
-                  const active = selectedFmt===f;
+                  const m = FORMAT_META[f]; const active = selectedFmt===f;
                   return (
-                    <button key={f} onClick={()=>setSelectedFmt(f)}
-                      style={{ flex:1, height:44, borderRadius:9, cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:600, transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center", gap:5, border:`1.5px solid ${active?BLUE:BORDER}`, background:active?BLUE_L:"#fff", color:active?BLUE:MUTED }}>
+                    <button key={f} onClick={()=>setSelectedFmt(f)} style={{ flex:1, height:44, borderRadius:9, cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:600, transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center", gap:5, border:`1.5px solid ${active?BLUE:BORDER}`, background:active?BLUE_L:"#fff", color:active?BLUE:MUTED }}>
                       {m.emoji} {m.label}
                     </button>
                   );
@@ -663,46 +611,28 @@ export default function ReportsPage() {
           </div>
 
           <div style={{ marginTop:18 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:700, color:MUTED, marginBottom:8, textTransform:"uppercase", letterSpacing:".5px" }}>
-              Description <span style={{ fontWeight:400, textTransform:"none", fontSize:11, color:"#9ca3af" }}>— optionnel</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={e=>setDescription(e.target.value)}
-              placeholder="Ajoutez une note ou un contexte pour ce rapport…"
-              rows={2}
-              style={{ width:"100%", border:`1px solid ${BORDER}`, borderRadius:9, padding:"10px 14px", fontSize:13, color:TEXT, resize:"vertical", lineHeight:1.5, background:"#fafafa" }}
-            />
+            <label style={{ display:"block", fontSize:11, fontWeight:700, color:MUTED, marginBottom:8, textTransform:"uppercase", letterSpacing:".5px" }}>Description <span style={{ fontWeight:400, textTransform:"none", fontSize:11, color:"#9ca3af" }}>— optionnel</span></label>
+            <textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Ajoutez une note ou un contexte pour ce rapport…" rows={2} style={{ width:"100%", border:`1px solid ${BORDER}`, borderRadius:9, padding:"10px 14px", fontSize:13, color:TEXT, resize:"vertical", lineHeight:1.5, background:"#fafafa" }} />
           </div>
 
           <div className="rp-gen-wrap">
-            <button
-              className="rp-gen-btn"
-              onClick={handleGenerate}
-              disabled={generating||dataLoading}
-              style={{ background:generating?"#93c5fd":`linear-gradient(135deg,${BLUE} 0%,#1d4ed8 100%)`, boxShadow:generating?"none":"0 4px 16px rgba(37,99,235,0.28)", cursor:(generating||dataLoading)?"not-allowed":"pointer" }}
-            >
+            <button className="rp-gen-btn" onClick={handleGenerate} disabled={generating||dataLoading}
+              style={{ background:generating?"#93c5fd":`linear-gradient(135deg,${BLUE} 0%,#1d4ed8 100%)`, boxShadow:generating?"none":"0 4px 16px rgba(37,99,235,0.28)", cursor:(generating||dataLoading)?"not-allowed":"pointer" }}>
               {generating ? <>{spinner()} Calcul en cours…</> : <><span>▶</span> Générer le Rapport</>}
             </button>
           </div>
         </div>
 
-        {/* Rapport actif */}
         {activeReport && (
           <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:14, padding:"24px 28px", boxShadow:"0 1px 4px rgba(0,0,0,0.05)", animation:"fadeUp .4s ease" }}>
             <div className="rp-result-header">
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:800, color:TEXT }}>{TYPE_LABELS[activeReport.type]}</div>
-                <div style={{ fontSize:11.5, color:MUTED, marginTop:3 }}>
-                  Période : {dateFrom} → {dateTo} · {activeReport.rows?.length ?? 0} ligne(s)
-                </div>
+                <div style={{ fontSize:11.5, color:MUTED, marginTop:3 }}>Période : {dateFrom} → {dateTo} · {activeReport.rows?.length ?? 0} ligne(s)</div>
               </div>
               <div className="rp-result-actions">
-                <button
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  style={{ height:40, padding:"0 20px", background:downloading?"#bbf7d0":"linear-gradient(135deg,#16a34a 0%,#15803d 100%)", border:"none", borderRadius:9, cursor:downloading?"not-allowed":"pointer", color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, boxShadow:downloading?"none":"0 3px 12px rgba(22,163,74,0.25)", transition:"all .18s", display:"flex", alignItems:"center", gap:7, whiteSpace:"nowrap" }}
-                >
+                <button onClick={handleDownload} disabled={downloading}
+                  style={{ height:40, padding:"0 20px", background:downloading?"#bbf7d0":"linear-gradient(135deg,#16a34a 0%,#15803d 100%)", border:"none", borderRadius:9, cursor:downloading?"not-allowed":"pointer", color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, boxShadow:downloading?"none":"0 3px 12px rgba(22,163,74,0.25)", transition:"all .18s", display:"flex", alignItems:"center", gap:7, whiteSpace:"nowrap" }}>
                   {downloading ? <>{spinner(14,2)} Export…</> : <>{FORMAT_META[selectedFmt]?.emoji} Télécharger {selectedFmt.toUpperCase()}</>}
                 </button>
                 <Button label="✕ Fermer" onClick={()=>setActiveReport(null)} variant="secondary"/>
@@ -713,23 +643,17 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* Drawer Historique */}
       {showHistory && (
         <>
           <div onClick={()=>setShowHistory(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.18)", zIndex:199 }}/>
           <div className="rp-drawer">
             <div style={{ padding:"20px 24px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
-                <span style={{ fontSize:15, fontWeight:800, color:TEXT }}>🕐 Historique d&apos;activité</span>
-                {user && (
-                  <div style={{ fontSize:11, color:MUTED, marginTop:2 }}>
-                    {user.name || user.nom} · persistant entre sessions
-                  </div>
-                )}
+                <span style={{ fontSize:15, fontWeight:800, color:TEXT }}>🕐 Historique</span>
+                {user && <div style={{ fontSize:11, color:MUTED, marginTop:2 }}>{user.name||user.nom} · persistant entre sessions</div>}
               </div>
               <Button label="✕" onClick={()=>setShowHistory(false)} variant="secondary"/>
             </div>
-
             <div style={{ flex:1, overflowY:"auto", padding:"16px 20px" }}>
               {history.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"48px 0", color:MUTED, fontSize:13 }}>
@@ -740,20 +664,15 @@ export default function ReportsPage() {
               ) : (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   {history.map(entry => {
-                    const m = FORMAT_META[entry.fmt] || FORMAT_META.pdf;
-                    // ✅ Restaurer le rapport depuis reportData si le rapport en mémoire n'est plus disponible
+                    const m           = FORMAT_META[entry.fmt] || FORMAT_META.pdf;
                     const entryReport = entry.report || entry.reportData || null;
                     return (
-                      <div
-                        key={entry.id}
+                      <div key={entry.id}
                         onClick={() => {
                           if (entryReport) {
-                            setActiveReport(entryReport);
-                            setActiveGenAt(entry.generatedAt);
-                            setActiveDesc(entry.description || "");
-                            setSelectedFmt(entry.fmt);
-                            setShowHistory(false);
-                            showToast(`📂 ${TYPE_LABELS[entry.type]} chargé`);
+                            setActiveReport(entryReport); setActiveGenAt(entry.generatedAt);
+                            setActiveDesc(entry.description||""); setSelectedFmt(entry.fmt);
+                            setShowHistory(false); showToast(`📂 ${TYPE_LABELS[entry.type]} chargé`);
                           } else {
                             showToast("⚠️ Données non disponibles — régénérez ce rapport", true);
                           }
@@ -763,32 +682,17 @@ export default function ReportsPage() {
                         onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor=BORDER;}}
                       >
                         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                          <div style={{ width:34, height:34, borderRadius:8, background:m.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>
-                            {m.emoji}
-                          </div>
+                          <div style={{ width:34, height:34, borderRadius:8, background:m.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{m.emoji}</div>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontSize:13, fontWeight:700, color:TEXT }}>{TYPE_LABELS[entry.type]}</div>
                             <div style={{ fontSize:11, color:MUTED, marginTop:1 }}>{entry.dateFrom} → {entry.dateTo}</div>
-                            {entry.description && (
-                              <div style={{ fontSize:11, color:MUTED, fontStyle:"italic", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                                📝 {entry.description}
-                              </div>
-                            )}
+                            {entry.description && <div style={{ fontSize:11, color:MUTED, fontStyle:"italic", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>📝 {entry.description}</div>}
                             <div style={{ fontSize:11, color:"#9ca3af" }}>
-                              {entry.generatedAt instanceof Date
-                                ? entry.generatedAt.toLocaleString("fr-FR")
-                                : new Date(entry.generatedAt).toLocaleString("fr-FR")
-                              }
-                              {(entry.rowCount || entry.report?.rows?.length) > 0 && (
-                                <span style={{ marginLeft:6, color:"#16a34a", fontWeight:600 }}>
-                                  · {entry.rowCount || entry.report?.rows?.length} ligne(s)
-                                </span>
-                              )}
+                              {entry.generatedAt instanceof Date ? entry.generatedAt.toLocaleString("fr-FR") : new Date(entry.generatedAt).toLocaleString("fr-FR")}
+                              {(entry.rowCount || 0) > 0 && <span style={{ marginLeft:6, color:"#16a34a", fontWeight:600 }}>· {entry.rowCount} ligne(s)</span>}
                             </div>
                           </div>
-                          <span style={{ fontSize:10, fontWeight:700, padding:"2px 9px", borderRadius:20, background:"#f3f4f6", color:MUTED, flexShrink:0 }}>
-                            {entry.fmt.toUpperCase()}
-                          </span>
+                          <span style={{ fontSize:10, fontWeight:700, padding:"2px 9px", borderRadius:20, background:"#f3f4f6", color:MUTED, flexShrink:0 }}>{entry.fmt.toUpperCase()}</span>
                         </div>
                       </div>
                     );
@@ -796,21 +700,9 @@ export default function ReportsPage() {
                 </div>
               )}
             </div>
-
             {history.length > 0 && (
               <div style={{ padding:"16px 20px", borderTop:`1px solid ${BORDER}` }}>
-                <Button
-                  label="🗑️ Effacer l'historique"
-                  onClick={() => {
-                    setHistory([]);
-                    if (userId) localStorage.removeItem(getHistoryKey(userId));
-                    setActiveReport(null);
-                    setShowHistory(false);
-                    showToast("🗑️ Historique effacé.");
-                  }}
-                  variant="danger"
-                  fullWidth
-                />
+                <Button label="🗑️ Effacer l'historique" onClick={() => { setHistory([]); if (userId) localStorage.removeItem(getHistoryKey(userId)); setActiveReport(null); setShowHistory(false); showToast("🗑️ Historique effacé."); }} variant="danger" fullWidth />
               </div>
             )}
           </div>
