@@ -38,16 +38,7 @@ const ticketSchema = new Schema(
     },
     priorite: {
       type: String,
-      enum: [
-        "basse",
-        "moyenne",
-        "haute",
-        "critique",
-        "low",
-        "medium",
-        "high",
-        "critical",
-      ],
+      enum: ["basse", "moyenne", "haute", "critique"],
       default: "moyenne",
     },
     scoreIA: { type: Number, default: 0 },
