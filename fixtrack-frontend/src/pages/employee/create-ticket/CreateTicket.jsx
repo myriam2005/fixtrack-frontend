@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { ticketService } from "../../../services/api";
 import { AIPanel } from './AIPanel';
-import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import SkeletonLoader from "../../../components/common/SkeletonLoader";
 
 import { CSS }                                         from "./Wizardstyles";
 import { STEPS, validateStep, Icon }                   from "./Wizardconstants";
@@ -240,7 +240,7 @@ export default function CreateTicket() {
   const animCls   = dir === "next" ? "wz-step-anim" : "wz-step-anim-back";
   const stepProps = { form, errors, set, animCls };
 
-  if (loading) return <LoadingSpinner size={48} />;
+  if (loading) return <SkeletonLoader type="card" height={48} />;
   if (success)  return (
     <SuccessScreen
       navigate={navigate}

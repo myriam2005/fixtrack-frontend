@@ -3,15 +3,15 @@
 
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import LoadingSpinner from "../common/LoadingSpinner";
+import SkeletonLoader from "../common/SkeletonLoader";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, isAuth, authChecked, loading } = useAuth();
 
-  // ✅ Tant que la vérification GET /api/auth/me n'est pas terminée → spinner
+  // ✅ Tant que la vérification GET /api/auth/me n'est pas terminée → skeleton
   // (évite un redirect vers /login au premier chargement si le token est valide)
   if (!authChecked || loading) {
-    return <LoadingSpinner size={40} />;
+    return <SkeletonLoader type="card" height={40} />;
   }
 
   // Pas connecté → login

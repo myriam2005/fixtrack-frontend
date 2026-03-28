@@ -73,7 +73,7 @@ sx={{
 
 ### Component Organization
 
-- **Shared:** `components/common/` (Badge, Button, Modal, LoadingSpinner, StarRating, Timeline, DashboardShared)
+- **Shared:** `components/common/` (Badge, Button, Modal, SkeletonLoader, StarRating, Timeline, DashboardShared)
 - **Auth forms:** `components/auth/` (ProtectedRoute, SidePanel, PasswordStrength)
 - **Layout wrapper:** `components/layout/Layout.jsx` renders persistent header/sidebar; uses `notifCount` prop
 - **Page components** are the source of truth; sub-components receive filtered data as props

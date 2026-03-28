@@ -4,7 +4,7 @@ import { Grid, Paper, Typography, Divider, Box } from '@mui/material';
 import Button from './components/common/Button';
 import Badge from './components/common/Badge';
 import Modal from './components/common/Modal';
-import LoadingSpinner from './components/common/LoadingSpinner';
+import SkeletonLoader from './components/common/SkeletonLoader';
 import StarRating from './components/common/StarRating';
 import Timeline from './components/common/Timeline';
 
@@ -44,7 +44,7 @@ export default function TestComponents() {
           🧪 Test des Composants Communs
         </Typography>
         <Typography variant="subtitle1" align="center">
-          Badge • Button • LoadingSpinner • Modal • StarRating • Timeline
+          Badge • Button • SkeletonLoader • Modal • StarRating • Timeline
         </Typography>
       </Paper>
 
@@ -97,9 +97,9 @@ export default function TestComponents() {
         <Divider sx={{ mb: 3 }} />
         
         <Grid container spacing={4} alignItems="center">
-          <Grid item><LoadingSpinner size={30} /></Grid>
-          <Grid item><LoadingSpinner size={50} /></Grid>
-          <Grid item><LoadingSpinner size={70} /></Grid>
+          <Grid item><SkeletonLoader type="line" height={30} /></Grid>
+          <Grid item><SkeletonLoader type="line" height={50} /></Grid>
+          <Grid item><SkeletonLoader type="line" height={70} /></Grid>
           <Grid item><Typography variant="body2">Différentes tailles</Typography></Grid>
         </Grid>
       </Paper>
@@ -176,7 +176,7 @@ export default function TestComponents() {
       {/* Footer avec résumé */}
       <Paper elevation={1} sx={{ p: 2, backgroundColor: '#e0e0e0' }}>
         <Typography variant="body2" align="center">
-          ✅ 6 composants fonctionnels : Badge, Button, LoadingSpinner, Modal, StarRating, Timeline
+          ✅ 6 composants fonctionnels : Badge, Button, SkeletonLoader, Modal, StarRating, Timeline
         </Typography>
       </Paper>
     </Box>

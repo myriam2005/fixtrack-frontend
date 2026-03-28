@@ -8,7 +8,6 @@ import { useMemo, useState, useEffect } from "react";
 import { useNavigate }                  from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge                            from "../../components/common/badge/Badge";
-import LoadingSpinner                   from "../../components/common/LoadingSpinner";
 import SkeletonLoader                   from "../../components/common/SkeletonLoader";
 import { DashboardHeader, KpiCard }     from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate }      from "../../components/common/dashboard/DashboardSharedUtils";
@@ -170,7 +169,7 @@ export default function TechnicianDashboard() {
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
-        <LoadingSpinner />
+        <SkeletonLoader type="row" height={14} count={6} />
       </Box>
     );
   }
