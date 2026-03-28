@@ -114,6 +114,31 @@ exports.updateUser = async (req, res) => {
       req.user.id,
     );
 
+    // ✅ NOUVEAU — Envoyer une notification à l'utilisateur dont le profil a été modifié
+    const sendNotification = require("../utils/sendNotification");
+    const adminUser = await User.findById(req.user.id).select("-password");
+    const changedFields = [];
+    if (update.nom) changedFields.push("Nom");
+    if (update.email) changedFields.push("Email");
+    if (update.telephone) changedFields.push("Téléphone");
+    if (update.actif !== undefined) changedFields.push("Statut");
+    if (update.competences) changedFields.push("Compétences");
+    if (update.password) changedFields.push("Mot de passe");
+
+    const fieldList =
+      changedFields.length > 0
+        ? " Éléments modifiés : " + changedFields.join(", ") + "."
+        : "";
+    await sendNotification({
+      userId: user._id,
+      message: `Votre profil a été modifié par l'administrateur ${adminUser?.nom || "Administrateur"}.${fieldList}`,
+      type: "profile_updated",
+      meta: {
+        adminName: adminUser?.nom || "Administrateur",
+        changedFields,
+      },
+    });
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
