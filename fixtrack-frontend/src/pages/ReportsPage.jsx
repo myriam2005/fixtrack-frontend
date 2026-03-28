@@ -8,7 +8,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useAuth }         from "../context/AuthContext";
-import { ticketService, userService } from "../services/api";
+import { ticketService, userService, exportService } from "../services/api";
 import Badge               from "../components/common/badge/Badge";
 import Button              from "../components/common/Button";
 import {
@@ -424,6 +424,7 @@ export default function ReportsPage() {
   const [description,      setDescription]      = useState("");
   const [generating,       setGenerating]       = useState(false);
   const [downloading,      setDownloading]      = useState(false);
+  const [quickExporting,   setQuickExporting]   = useState(null); // "excel" or "pdf" or null
   const [activeReport,     setActiveReport]     = useState(null);
   const [activeGenAt,      setActiveGenAt]      = useState(null);
   const [activeDesc,       setActiveDesc]       = useState("");
@@ -454,6 +455,42 @@ export default function ReportsPage() {
     ready:     history.filter(h => (h.rowCount || 0) > 0).length,
     pending:   generating ? 1 : 0,
   }), [history, generating]);
+
+  const handleQuickExport = async (format) => {
+    setQuickExporting(format);
+    try {
+      if (format === "excel") {
+        const response = await exportService.excel();
+        const blob = response.data || response;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `FixTrack_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showToast("✓ Export Excel lancé");
+      } else if (format === "pdf") {
+        const response = await exportService.pdf();
+        const blob = response.data || response;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `FixTrack_Export_${new Date().toISOString().slice(0, 10)}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showToast("✓ Export PDF lancé");
+      }
+    } catch (err) {
+      console.error("Quick export error:", err);
+      showToast("Erreur lors de l'export", true);
+    } finally {
+      setQuickExporting(null);
+    }
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -571,6 +608,80 @@ export default function ReportsPage() {
           <KpiCard icon={<CheckCircleIcon stroke="#16a34a" width="20" height="20"/>} value={quickStats.ready}     label="Avec données"       color="#16a34a"/>
           <KpiCard icon={<ClockIcon stroke="#d97706" width="20" height="20"/>}       value={quickStats.pending}   label="En cours"           color="#d97706"/>
         </div>
+
+        {(role === "admin" || role === "manager") && (
+          <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:14, padding:"24px 28px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:TEXT, marginBottom:4 }}>Export Rapide</div>
+                <div style={{ fontSize:13, color:MUTED }}>Exportez l'intégralité du système sans configuration préalable</div>
+              </div>
+              <div style={{ fontSize:11, fontWeight:700, color:BLUE, background:"#eff6ff", padding:"6px 12px", borderRadius:8, whiteSpace:"nowrap" }}>Toutes données</div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+              <button
+                onClick={() => handleQuickExport("excel")}
+                disabled={quickExporting !== null}
+                style={{
+                  padding:"16px 20px",
+                  borderRadius:11,
+                  border:`1.5px solid ${quickExporting === "excel" ? BLUE : BORDER}`,
+                  background:quickExporting === "excel" ? BLUE_L : "#fff",
+                  color:quickExporting === "excel" ? BLUE : TEXT,
+                  fontFamily:"Inter,sans-serif",
+                  fontSize:13,
+                  fontWeight:700,
+                  cursor:quickExporting !== null ? "not-allowed" : "pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  gap:10,
+                  transition:"all 0.15s",
+                  whiteSpace:"nowrap",
+                  opacity:quickExporting !== null ? 0.6 : 1,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {quickExporting === "excel" ? "Export en cours…" : "Export Excel (.xlsx)"}
+              </button>
+              <button
+                onClick={() => handleQuickExport("pdf")}
+                disabled={quickExporting !== null}
+                style={{
+                  padding:"16px 20px",
+                  borderRadius:11,
+                  border:`1.5px solid ${quickExporting === "pdf" ? "#ef4444" : BORDER}`,
+                  background:quickExporting === "pdf" ? "#fef2f2" : "#fff",
+                  color:quickExporting === "pdf" ? "#dc2626" : TEXT,
+                  fontFamily:"Inter,sans-serif",
+                  fontSize:13,
+                  fontWeight:700,
+                  cursor:quickExporting !== null ? "not-allowed" : "pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  gap:10,
+                  transition:"all 0.15s",
+                  whiteSpace:"nowrap",
+                  opacity:quickExporting !== null ? 0.6 : 1,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                {quickExporting === "pdf" ? "Export en cours…" : "Export PDF (.pdf)"}
+              </button>
+            </div>
+            <div style={{ fontSize:11, color:MUTED, marginTop:14, paddingTop:14, borderTop:`1px solid ${BORDER}` }}>
+              ✓ Inclut tous les tickets, utilisateurs et statistiques du système
+            </div>
+          </div>
+        )}
 
         <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:14, padding:"24px 28px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:22 }}>
