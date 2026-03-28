@@ -37,12 +37,12 @@ exports.getUserById = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
-    const { nom, email, password, role } = req.body;
+    const { nom, email, password, role, competences } = req.body;
     if (!nom || !email || !password)
       return res
         .status(400)
         .json({ message: "Nom, email et mot de passe requis" });
-    const VALID_ROLES = ["utilisateur", "technician", "manager", "admin"];
+    const VALID_ROLES = ["employee", "technician", "manager", "admin"];
     if (role && !VALID_ROLES.includes(role))
       return res.status(400).json({ message: "Rôle invalide" });
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
@@ -52,11 +52,11 @@ exports.createUser = async (req, res) => {
       nom: nom.trim(),
       email: email.toLowerCase().trim(),
       password,
-      role: role || "utilisateur",
+      role: role || "employee",
       actif: true,
       avatar: "",
       telephone: null,
-      competences: [],
+      competences: Array.isArray(competences) ? competences : [],
     });
     await user.save();
     const created = await User.findById(user._id).select("-password");
@@ -71,24 +71,49 @@ exports.createUser = async (req, res) => {
   }
 };
 
+// ── PUT /api/users/:id ────────────────────────────────────────────────────────
+// FIX : gère maintenant le mot de passe (hashé) et les compétences
 exports.updateUser = async (req, res) => {
   try {
-    const { nom, email, telephone, actif } = req.body;
+    const { nom, email, telephone, actif, password, competences } = req.body;
     const update = {};
+
     if (nom !== undefined) update.nom = nom;
     if (email !== undefined) update.email = email.toLowerCase().trim();
     if (telephone !== undefined) update.telephone = telephone;
     if (actif !== undefined) update.actif = actif;
+    if (competences !== undefined && Array.isArray(competences))
+      update.competences = competences;
+
+    // ── FIX MOT DE PASSE ─────────────────────────────────────────────────
+    // Si un nouveau mot de passe est fourni, on le hache avant de le sauvegarder.
+    // On utilise findById + save (plutôt que findByIdAndUpdate) pour déclencher
+    // le middleware pre('save') du modèle User qui s'occupe du hachage.
+    // Mais comme on veut aussi mettre à jour les autres champs en même temps,
+    // on gère le hachage manuellement ici pour rester avec une seule opération DB.
+    if (password && password.trim().length > 0) {
+      if (password.trim().length < 6) {
+        return res.status(400).json({
+          message: "Le mot de passe doit contenir au moins 6 caractères",
+        });
+      }
+      const salt = await bcrypt.genSalt(10);
+      update.password = await bcrypt.hash(password.trim(), salt);
+    }
+
     const user = await User.findByIdAndUpdate(req.params.id, update, {
       new: true,
     }).select("-password");
+
     if (!user)
       return res.status(404).json({ message: "Utilisateur introuvable" });
+
     await createLog(
       "USER_UPDATED",
-      `Profil modifié : ${user.email}`,
+      `Profil modifié : ${user.email}${password ? " (mot de passe changé)" : ""}`,
       req.user.id,
     );
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -98,7 +123,7 @@ exports.updateUser = async (req, res) => {
 exports.updateRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const VALID_ROLES = ["utilisateur", "technician", "manager", "admin"];
+    const VALID_ROLES = ["employee", "technician", "manager", "admin"];
     if (!VALID_ROLES.includes(role))
       return res.status(400).json({ message: "Rôle invalide" });
     const user = await User.findByIdAndUpdate(
@@ -140,7 +165,6 @@ exports.deleteUser = async (req, res) => {
 };
 
 // ── PUT /api/users/profile ────────────────────────────────────────────────────
-// FIX : normalise email + retourne { message, user } avec données fraîches de la DB
 exports.updateProfile = async (req, res) => {
   try {
     const { nom, email, telephone } = req.body;
@@ -175,7 +199,6 @@ exports.updateProfile = async (req, res) => {
       req.user.id,
     );
 
-    // FIX : retourne { message, user } — le frontend lit user.email/user.nom exacts
     res.json({
       message: "Profil mis à jour",
       user: {
