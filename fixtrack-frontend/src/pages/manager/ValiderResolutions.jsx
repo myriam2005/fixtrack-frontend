@@ -169,7 +169,6 @@ export default function ValiderResolutions() {
     setValidating(true);
 
     const techNom = selectedTicket.technicienId?.nom || "le technicien";
-    const ticketTitre = selectedTicket.titre;
 
     try {
       // 1. Remet le ticket en in_progress → déclenche notif technicien côté backend

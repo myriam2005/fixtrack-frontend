@@ -5,7 +5,7 @@ import { Box, Typography, Paper, Divider } from "@mui/material";
 import { DashboardHeader } from "../../components/common/dashboard/DashboardShared";
 import { getGreeting } from "../../components/common/dashboard/DashboardSharedUtils";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
-import { ticketService, userService } from "../../services/api";
+import { ticketService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
 
@@ -179,7 +179,6 @@ function downloadLogsCSV(logs, allLogs, range = "all") {
 export default function AdminDashboard() {
   const { user: authUser } = useAuth();
 
-  const [loading,     setLoading]     = useState(true);
   const [tickets,     setTickets]     = useState([]);
   const [users,       setUsers]       = useState([]);
   const [logs,        setLogs]        = useState([]);
@@ -199,7 +198,6 @@ export default function AdminDashboard() {
 
     // ✅ FIX : fetch direct avec token pour garantir que tous les rôles sont retournés
     //    (userService.getAll() peut utiliser un token périmé ou mal transmis)
-    setLoading(true);
     Promise.all([
       ticketService.getAll(),
       fetch(`${API}/users`, { headers }).then(r => {
@@ -216,9 +214,8 @@ export default function AdminDashboard() {
           .map(normalizeUser)
           .filter(u => u.actif !== false);
         setUsers(active);
-        setLoading(false);
       })
-      .catch(err => { console.error(err); setLoading(false); });
+      .catch(err => { console.error(err); });
 
     // Logs
     fetch(`${API}/logs?limit=500`, { headers })
@@ -266,12 +263,11 @@ export default function AdminDashboard() {
 
   const monthly = useMemo(() => buildMonthlyData(tickets), [tickets]);
 
-  const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  const urgentTickets = useMemo(() =>
-    tickets.filter(t => t.statut === "open" || t.priorite === "critical")
-      .sort((a, b) => pOrder[a.priorite] - pOrder[b.priorite]).slice(0, 4),
-    [tickets]
-  );
+  const urgentTickets = useMemo(() => {
+    const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    return tickets.filter(t => t.statut === "open" || t.priorite === "critical")
+      .sort((a, b) => pOrder[a.priorite] - pOrder[b.priorite]).slice(0, 4);
+  }, [tickets]);
 
   const sparkTickets  = useMemo(() => [...buildSpark(tickets, () => true), totalTickets], [tickets, totalTickets]);
   const sparkCritical = useMemo(() => [...buildSpark(tickets, t => t.priorite === "critical"), criticalTickets], [tickets, criticalTickets]);

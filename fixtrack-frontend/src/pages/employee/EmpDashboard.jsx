@@ -298,7 +298,6 @@ export default function EmpDashboard() {
 
   // ✅ États backend
   const [myTickets,      setMyTickets]      = useState([]);
-  const [notifications,  setNotifications]  = useState([]);
   const [loading,        setLoading]        = useState(true);
 
   // ✅ Fetch données réelles
@@ -306,12 +305,11 @@ export default function EmpDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-      const [tickets, notifs] = await Promise.all([
+      const [tickets] = await Promise.all([
   ticketService.getAll(),
   notificationService.getAll(),
 ]);
 setMyTickets(tickets || []);
-setNotifications((notifs || []).slice(0, 4));
       } catch (err) {
         console.error("Erreur chargement dashboard:", err);
       } finally {
@@ -321,22 +319,12 @@ setNotifications((notifs || []).slice(0, 4));
     fetchData();
   }, []);
 
-  // ✅ Marquer tout comme lu
-  const handleMarkAllRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, lu: true })));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const totalCount      = myTickets.length;
   const openCount       = myTickets.filter(t => t.statut === "open").length;
   const inProgressCount = myTickets.filter(t => t.statut === "in_progress" || t.statut === "assigned").length;
   const resolvedCount   = myTickets.filter(t => t.statut === "resolved" || t.statut === "closed").length;
   const urgentTicket    = myTickets.find(t => t.statut === "open" && t.priorite === "critical");
-  const unreadCount     = notifications.filter(n => !n.lu).length;
+
 
   const filteredTickets = useMemo(() => {
     const sorted = [...myTickets].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
