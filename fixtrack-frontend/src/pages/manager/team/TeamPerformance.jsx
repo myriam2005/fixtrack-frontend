@@ -48,7 +48,6 @@ const CHART_COLORS = [
   { base:"#93C5FD", light:"#EFF6FF" },{ base:"#BFDBFE", light:"#EFF6FF" },
 ];
 
-// ✅ Résout l'id qu'il soit string ou objet populé { _id, nom }
 const resolveId = (val) => {
   if (!val) return null;
   if (typeof val === "object") return String(val._id || val.id || "");
@@ -58,22 +57,37 @@ const resolveId = (val) => {
 const heuresDepuis  = (d) => Math.floor((Date.now() - new Date(d).getTime()) / 3600000);
 const initials      = (nom) => (nom || "??").split(" ").map(n => n[0]).join("").toUpperCase().slice(0,2);
 const delaiMoyenResolution = (techTickets) => {
-  const resolus = techTickets.filter(t => ["resolved","closed"].includes(t.statut));
+  const resolus = techTickets.filter(t => {
+    const s = String(t.statut || "").toLowerCase();
+    return s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+  });
   if (!resolus.length) return null;
-  return Math.round(resolus.reduce((a,t) => a + heuresDepuis(t.dateCreation || t.createdAt), 0) / resolus.length);
+  return Math.round(resolus.reduce((a, t) => a + heuresDepuis(t.dateCreation), 0) / resolus.length);
 };
 const formatDelai   = (h) => { if (h === null) return "—"; if (h < 24) return `${h}h`; const j = Math.floor(h/24), r = h%24; return r > 0 ? `${j}j ${r}h` : `${j}j`; };
 const noteSimulee   = (techTickets, seed) => {
   if (!techTickets.length) return null;
-  const rate = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length / techTickets.length;
+  const rate = techTickets.filter(t => {
+    const s = String(t.statut || "").toLowerCase();
+    return s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+  }).length / techTickets.length;
   const base = 3.5 + rate * 1.5;
   const jitter = ((seed * 7919) % 10) / 20 - 0.25;
   return parseFloat(Math.min(5, Math.max(1, base + jitter)).toFixed(1));
 };
 const calcScore     = (techTickets) => {
   if (!techTickets.length) return 0;
-  const resolus = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
-  const late    = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation || t.createdAt) > 24).length;
+  const resolus = techTickets.filter(t => {
+    const s = String(t.statut || "").toLowerCase();
+    return s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+  }).length;
+  const late = techTickets.filter(t => {
+    const p = String(t.priorite || "").toLowerCase();
+    const s = String(t.statut || "").toLowerCase();
+    const isCritical = p === "critical" || p === "critique";
+    const isActive = !["resolved", "closed", "résolu", "fermé"].includes(s);
+    return isCritical && isActive && heuresDepuis(t.dateCreation) > 24;
+  }).length;
   return Math.max(0, Math.round((resolus / techTickets.length) * 100 - late * 10));
 };
 const sortByRate    = (a, b) => { if (b.tauxResolution !== a.tauxResolution) return b.tauxResolution - a.tauxResolution; if (b.score !== a.score) return b.score - a.score; return b.resolusTotal - a.resolusTotal; };
@@ -103,6 +117,7 @@ function StarRating({ note }) {
   );
 }
 
+// ─── Smaller, smoother PurePieChart ──────────────────────────────────────────
 function PurePieChart({ data, total, title = "Répartition", subtitle }) {
   const [animated, setAnimated] = useState(false);
   const [hovered,  setHovered]  = useState(null);
@@ -114,7 +129,8 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
     colorLight: CHART_COLORS[i % CHART_COLORS.length].light,
   }));
 
-  const SIZE = 210, CX = 105, CY = 105, R_OUT = 88, R_IN = 56;
+  // Reduced from SIZE=210 / R_OUT=88 / R_IN=56 → compact donut
+  const SIZE = 148, CX = 74, CY = 74, R_OUT = 60, R_IN = 38;
 
   const slices = enriched.reduce((acc, d) => {
     const prevCumul = acc.length === 0 ? 0 : acc[acc.length - 1]._cumul;
@@ -135,71 +151,200 @@ function PurePieChart({ data, total, title = "Répartition", subtitle }) {
   };
 
   const hovSlice = hovered !== null ? slices[hovered] : null;
+
   return (
     <Box>
-      <Box sx={{ mb:"16px" }}>
-        <Typography sx={{ fontSize:"15px", fontWeight:800, color:"#111827", letterSpacing:"-0.02em", lineHeight:1.2 }}>{title}</Typography>
-        {subtitle && <Typography sx={{ fontSize:"12px", color:"#9CA3AF", mt:"2px" }}>{subtitle}</Typography>}
+      <Box sx={{ mb:"12px" }}>
+        <Typography sx={{ fontSize:"13px", fontWeight:700, color:"#111827", letterSpacing:"-0.01em", lineHeight:1.2 }}>{title}</Typography>
+        {subtitle && <Typography sx={{ fontSize:"11px", color:"#9CA3AF", mt:"2px" }}>{subtitle}</Typography>}
       </Box>
-      <Box sx={{ display:"flex", alignItems:"center", gap:"24px", flexWrap:"wrap" }}>
+      <Box sx={{ display:"flex", alignItems:"center", gap:"16px", flexWrap:"wrap" }}>
+
+        {/* Donut — compact size */}
         <Box sx={{ flexShrink:0, position:"relative" }}>
-          <Box sx={{ position:"absolute", inset:"-12px", borderRadius:"50%", pointerEvents:"none", background: hovSlice ? `radial-gradient(circle, ${hovSlice.color}22 0%, transparent 70%)` : "radial-gradient(circle, #2563EB18 0%, transparent 70%)", transition:"background 0.4s ease" }}/>
           <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ overflow:"visible" }}>
-            <defs><filter id="slice-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#00000022"/></filter></defs>
-            {total === 0 && <circle cx={CX} cy={CY} r={(R_OUT+R_IN)/2} fill="none" stroke="#F3F4F6" strokeWidth={R_OUT-R_IN}/>}
+            {total === 0 && (
+              <circle cx={CX} cy={CY} r={(R_OUT+R_IN)/2} fill="none" stroke="#F3F4F6" strokeWidth={R_OUT-R_IN}/>
+            )}
             {slices.map((s, i) => (
-              <path key={i} d={arcPath(s, hovered === i ? 7 : 0)} fill={s.color} stroke="#fff"
-                strokeWidth={hovered === i ? "2.5" : "2"}
-                filter={hovered === i ? "url(#slice-shadow)" : undefined}
-                style={{ opacity: animated ? (hovered !== null && hovered !== i ? 0.5 : 1) : 0, transform: animated ? "scale(1)" : "scale(0.78)", transformOrigin: `${CX}px ${CY}px`, transition: [`opacity 0.5s ease ${i * 0.08}s`,`transform 0.5s cubic-bezier(.34,1.56,.64,1) ${i * 0.08}s`,"d 0.25s cubic-bezier(.34,1.2,.64,1)","filter 0.2s ease"].join(", "), cursor:"pointer" }}
-                onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} />
+              <path
+                key={i}
+                d={arcPath(s, hovered === i ? 5 : 0)}
+                fill={s.color}
+                stroke="#fff"
+                strokeWidth={hovered === i ? "2" : "1.5"}
+                style={{
+                  opacity: animated ? (hovered !== null && hovered !== i ? 0.35 : 1) : 0,
+                  transform: animated ? "scale(1)" : "scale(0.82)",
+                  transformOrigin: `${CX}px ${CY}px`,
+                  transition: [
+                    `opacity 0.4s ease ${i * 0.07}s`,
+                    `transform 0.45s cubic-bezier(.34,1.56,.64,1) ${i * 0.07}s`,
+                    "d 0.22s cubic-bezier(.34,1.2,.64,1)",
+                  ].join(", "),
+                  cursor: "pointer",
+                }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              />
             ))}
-            <text x={CX} y={CY - 10} textAnchor="middle" fontSize={hovSlice ? "18" : "24"} fontWeight="900" fill={hovSlice ? hovSlice.color : "#111827"} style={{ transition:"all 0.25s ease" }}>{hovSlice ? hovSlice.value : total}</text>
-            <text x={CX} y={CY + 8}  textAnchor="middle" fontSize="9" fontWeight="700" fill={hovSlice ? hovSlice.color : "#9CA3AF"} style={{ textTransform:"uppercase", letterSpacing:"0.07em", transition:"all 0.25s ease" }}>{hovSlice ? hovSlice.name.split(" ")[0] : "tickets"}</text>
-            {hovSlice && <text x={CX} y={CY + 24} textAnchor="middle" fontSize="13" fontWeight="800" fill={hovSlice.color}>{hovSlice.pct}%</text>}
+            {/* Center label */}
+            <text
+              x={CX} y={CY - 7}
+              textAnchor="middle"
+              fontSize={hovSlice ? "15" : "19"}
+              fontWeight="700"
+              fill={hovSlice ? hovSlice.color : "#111827"}
+              style={{ transition:"all 0.22s ease", fontFamily:"inherit" }}
+            >
+              {hovSlice ? hovSlice.value : total}
+            </text>
+            <text
+              x={CX} y={CY + 7}
+              textAnchor="middle"
+              fontSize="8"
+              fontWeight="600"
+              fill={hovSlice ? hovSlice.color : "#9CA3AF"}
+              style={{ textTransform:"uppercase", letterSpacing:"0.07em", transition:"all 0.22s ease" }}
+            >
+              {hovSlice ? hovSlice.name.split(" ")[0] : "tickets"}
+            </text>
+            {hovSlice && (
+              <text
+                x={CX} y={CY + 20}
+                textAnchor="middle"
+                fontSize="11"
+                fontWeight="700"
+                fill={hovSlice.color}
+                style={{ transition:"all 0.22s ease" }}
+              >
+                {hovSlice.pct}%
+              </text>
+            )}
           </svg>
         </Box>
-        <Box sx={{ display:"flex", flexDirection:"column", gap:"5px", flex:1, minWidth:"130px" }}>
+
+        {/* Legend — slimmer rows */}
+        <Box sx={{ display:"flex", flexDirection:"column", gap:"3px", flex:1, minWidth:"120px" }}>
           {slices.map((s, i) => (
-            <Box key={i} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
-              sx={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:"10px", border:"1.5px solid", borderColor: hovered === i ? s.color + "55" : "transparent", backgroundColor: hovered === i ? s.colorLight : "transparent", cursor:"pointer", opacity: animated ? (hovered !== null && hovered !== i ? 0.5 : 1) : 0, transform: animated ? "translateX(0)" : "translateX(16px)", transition: [`opacity 0.4s ease ${0.3 + i * 0.07}s`,`transform 0.4s cubic-bezier(.22,1,.36,1) ${0.3 + i * 0.07}s`,"background-color 0.2s ease","border-color 0.2s ease"].join(", ") }}>
-              <Box sx={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                <Box sx={{ width:10, height:10, borderRadius:"3px", backgroundColor: s.color, flexShrink:0, boxShadow: hovered === i ? `0 0 0 3px ${s.color}33` : "none", transition:"box-shadow 0.2s ease" }}/>
-                <Typography sx={{ fontSize:"12px", fontWeight: hovered === i ? 700 : 500, color: hovered === i ? "#111827" : "#374151", maxWidth:"100px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</Typography>
+            <Box
+              key={i}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              sx={{
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"space-between",
+                padding:"5px 8px",
+                borderRadius:"8px",
+                border:"1px solid",
+                borderColor: hovered === i ? s.color + "44" : "transparent",
+                backgroundColor: hovered === i ? s.colorLight : "transparent",
+                cursor:"pointer",
+                opacity: animated ? (hovered !== null && hovered !== i ? 0.38 : 1) : 0,
+                transform: animated ? "translateX(0)" : "translateX(12px)",
+                transition: [
+                  `opacity 0.38s ease ${0.28 + i * 0.06}s`,
+                  `transform 0.38s cubic-bezier(.22,1,.36,1) ${0.28 + i * 0.06}s`,
+                  "background-color 0.18s ease",
+                  "border-color 0.18s ease",
+                ].join(", "),
+              }}
+            >
+              <Box sx={{ display:"flex", alignItems:"center", gap:"7px" }}>
+                <Box sx={{
+                  width:8, height:8, borderRadius:"2px",
+                  backgroundColor: s.color, flexShrink:0,
+                  boxShadow: hovered === i ? `0 0 0 2.5px ${s.color}2e` : "none",
+                  transition:"box-shadow 0.18s ease",
+                }}/>
+                <Typography sx={{
+                  fontSize:"11px",
+                  fontWeight: hovered === i ? 600 : 400,
+                  color: hovered === i ? "#111827" : "#374151",
+                  maxWidth:"90px",
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                  transition:"font-weight 0.15s ease",
+                }}>
+                  {s.name}
+                </Typography>
               </Box>
-              <Box sx={{ display:"flex", alignItems:"center", gap:"6px", ml:"8px" }}>
-                <Box sx={{ backgroundColor: hovered === i ? s.color : "#F3F4F6", color: hovered === i ? "#fff" : "#6B7280", borderRadius:"6px", padding:"1px 7px", fontSize:"11px", fontWeight:800, transition:"background-color 0.2s ease, color 0.2s ease" }}>{s.value}</Box>
-                <Typography sx={{ fontSize:"10px", fontWeight:700, minWidth:"28px", color: hovered === i ? s.color : "#9CA3AF", transition:"color 0.2s ease" }}>{s.pct}%</Typography>
+              <Box sx={{ display:"flex", alignItems:"center", gap:"5px", ml:"6px" }}>
+                <Box sx={{
+                  backgroundColor: hovered === i ? s.color : "#F3F4F6",
+                  color: hovered === i ? "#fff" : "#6B7280",
+                  borderRadius:"5px", padding:"1px 6px",
+                  fontSize:"10px", fontWeight:700,
+                  transition:"background-color 0.18s ease, color 0.18s ease",
+                }}>
+                  {s.value}
+                </Box>
+                <Typography sx={{
+                  fontSize:"10px", fontWeight:600,
+                  minWidth:"26px",
+                  color: hovered === i ? s.color : "#9CA3AF",
+                  transition:"color 0.18s ease",
+                }}>
+                  {s.pct}%
+                </Typography>
               </Box>
             </Box>
           ))}
         </Box>
+
       </Box>
     </Box>
   );
 }
 
+// ─── Smaller, smoother TeamBarChart ──────────────────────────────────────────
 function TeamBarChart({ allTickets }) {
   const months = getLast3Months();
-  const counts = months.map(({year,month}) => allTickets.filter(t => { const d = new Date(t.dateCreation || t.createdAt); return d.getFullYear()===year && d.getMonth()===month; }).length);
+  const counts = months.map(({year,month}) =>
+    allTickets.filter(t => {
+      const d = new Date(t.dateCreation || t.createdAt);
+      return d.getFullYear()===year && d.getMonth()===month;
+    }).length
+  );
   const max = Math.max(...counts, 1);
+
+  const BAR_MAX_H = 48;
   return (
     <Box>
-      <Box sx={{ display:"flex", alignItems:"flex-end", gap:"10px", height:"64px", mb:"8px" }}>
-        {months.map((m,i) => {
-          const isCur = i === 2;
+      <Box sx={{ display:"flex", alignItems:"flex-end", gap:"8px", height:`${BAR_MAX_H + 16}px`, mb:"6px" }}>
+        {months.map((m, i) => {
+          const isCur  = i === 2;
+          const hasVal = counts[i] > 0;
+          const barH   = hasVal ? Math.max(Math.round((counts[i] / max) * BAR_MAX_H), 6) : 3;
           return (
-            <Box key={i} sx={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
-              <Typography sx={{ fontSize:"10px", fontWeight:700, color: isCur ? "#2563EB" : "#9CA3AF" }}>{counts[i] || ""}</Typography>
-              <Box sx={{ width:"100%", height:`${Math.max((counts[i]/max)*50, 4)}px`, borderRadius:"4px 4px 0 0", background: isCur ? "linear-gradient(180deg,#3B82F6,#2563EB)" : "#E5E7EB", transition:"height 0.4s ease" }}/>
+            <Box key={i} sx={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%" }}>
+              {hasVal && (
+                <Typography sx={{ fontSize:"10px", fontWeight:600, color: isCur ? "#2563EB" : "#9CA3AF", lineHeight:1, mb:"3px" }}>
+                  {counts[i]}
+                </Typography>
+              )}
+              <Box sx={{
+                width:"100%",
+                height:`${barH}px`,
+                borderRadius: hasVal ? "3px 3px 0 0" : "1.5px",
+                background: isCur && hasVal ? "#2563EB" : "#E5E7EB",
+                transition:"height 0.42s cubic-bezier(.34,1.2,.64,1)",
+              }}/>
             </Box>
           );
         })}
       </Box>
-      <Box sx={{ display:"flex", gap:"10px" }}>
-        {months.map((m,i) => (
+      <Box sx={{ display:"flex", gap:"8px" }}>
+        {months.map((m, i) => (
           <Box key={i} sx={{ flex:1, textAlign:"center" }}>
-            <Typography sx={{ fontSize:"11px", fontWeight: i===2?700:500, color: i===2?"#2563EB":"#9CA3AF", textTransform:"capitalize" }}>{m.label}</Typography>
+            <Typography sx={{
+              fontSize:"10px",
+              fontWeight: i===2 ? 600 : 400,
+              color: i===2 ? "#2563EB" : "#9CA3AF",
+              textTransform:"capitalize",
+            }}>
+              {m.label}
+            </Typography>
           </Box>
         ))}
       </Box>
@@ -244,51 +389,135 @@ export default function TeamPerformance() {
   const [sortBy,  setSortBy]  = useState("score");
   const [tickets, setTickets] = useState([]);
   const [users,   setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ getAll() retourne déjà le tableau directement
   useEffect(() => {
-    Promise.all([ticketService.getAll(), userService.getTechnicians()])
-  .then(([t, u]) => {
-    setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
-    setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
-  })
-      .catch(console.error);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [ticketsRes, usersRes] = await Promise.all([
+          ticketService.getAll().catch(() => []),
+          userService.getTechnicians().catch(() => []),
+        ]);
+
+        // ✅ Normalize ticket data
+        const normalized_tickets = (ticketsRes || []).map(t => ({
+          ...t,
+          id: t._id || t.id || "",
+          technicienId: t.technicienId || t.technicien_id || t.assigned_to || null,
+          statut: (t.statut || t.status || "").toLowerCase(),
+          priorite: (t.priorite || t.priority || "").toLowerCase(),
+          dateCreation: t.dateCreation || t.createdAt || t.created_at || new Date().toISOString(),
+        }));
+
+        // ✅ Normalize user data
+        const normalized_users = (usersRes || []).map(u => ({
+          ...u,
+          id: u._id || u.id || "",
+          nom: u.nom || u.name || u.prénom || "Sans nom",
+          role: (u.role || "").toLowerCase(),
+          email: u.email || "",
+        }));
+
+        setTickets(normalized_tickets);
+        setUsers(normalized_users);
+        console.log("✅ TeamPerformance data loaded:", {
+          ticketCount: normalized_tickets.length,
+          userCount: normalized_users.length,
+          technicianCount: normalized_users.filter(u => u.role === "technician" || u.role === "technicien").length,
+        });
+      } catch (err) {
+        console.error("❌ TeamPerformance data error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   const now = new Date();
 
-  const techniciens = useMemo(
-    () => users.filter(u => u.role === "technician" || u.role === "technicien"),
-    [users]
-  );
+  // ✅ Filter technicians correctly
+  const techniciens = useMemo(() => {
+    return users.filter(u => 
+      u.role === "technician" || 
+      u.role === "technicien" || 
+      u.role === "tech" ||
+      (u.poste && u.poste.toLowerCase().includes("tech"))
+    );
+  }, [users]);
 
   const techStats = useMemo(() =>
     techniciens.map((tech, idx) => {
       const techId = String(tech._id || tech.id || "");
-      // ✅ resolveId gère technicienId populé { _id, nom } ou string
-      const techTickets   = tickets.filter(t => resolveId(t.technicienId) === techId);
-      const thisMonth     = techTickets.filter(t => {
-        const d = new Date(t.dateCreation || t.createdAt);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      // ✅ Match tickets where technicienId equals technician's ID
+      const techTickets = tickets.filter(t => {
+        const assignedId = resolveId(t.technicienId);
+        return assignedId === techId;
       });
-      const resolusMonth  = thisMonth.filter(t => ["resolved","closed"].includes(t.statut)).length;
-      const resolusTotal  = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
-      const enCours       = techTickets.filter(t => t.statut === "in_progress").length;
-      const critiquesLate = techTickets.filter(t => t.priorite === "critical" && !["resolved","closed"].includes(t.statut) && heuresDepuis(t.dateCreation || t.createdAt) > 24).length;
-      const delaiMoyen    = delaiMoyenResolution(techTickets);
-      const note          = noteSimulee(techTickets, idx + 1);
-      const score         = calcScore(techTickets);
-      const specialite    = SPECIALITES[idx % SPECIALITES.length];
-      const statutKey     = enCours >= 3 ? "occupe" : resolusTotal === 0 ? "conge" : "actif";
+
+      const thisMonth = techTickets.filter(t => {
+        try {
+          const d = new Date(t.dateCreation);
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        } catch {
+          return false;
+        }
+      });
+
+      // ✅ Count resolved tickets (handle both statut variations)
+      const resolusMonth = thisMonth.filter(t => {
+        const s = String(t.statut || "").toLowerCase();
+        return s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+      }).length;
+
+      const resolusTotal = techTickets.filter(t => {
+        const s = String(t.statut || "").toLowerCase();
+        return s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+      }).length;
+
+      const enCours = techTickets.filter(t => {
+        const s = String(t.statut || "").toLowerCase();
+        return s === "in_progress" || s === "en_cours" || s === "in progress";
+      }).length;
+
+      const critiquesLate = techTickets.filter(t => {
+        const p = String(t.priorite || "").toLowerCase();
+        const s = String(t.statut || "").toLowerCase();
+        const isCritical = p === "critical" || p === "critique";
+        const isActive = !["resolved", "closed", "résolu", "fermé"].includes(s);
+        const isLate = heuresDepuis(t.dateCreation) > 24;
+        return isCritical && isActive && isLate;
+      }).length;
+
+      const delaiMoyen = delaiMoyenResolution(techTickets);
+      const note = noteSimulee(techTickets, idx + 1);
+      const score = calcScore(techTickets);
+      const specialite = SPECIALITES[idx % SPECIALITES.length];
+      const statutKey = enCours >= 3 ? "occupe" : resolusTotal === 0 ? "conge" : "actif";
       const tauxResolution = techTickets.length > 0 ? Math.round((resolusTotal / techTickets.length) * 100) : 0;
-      return { ...tech, techTickets, totalTickets: techTickets.length, resolusTotal, resolusMonth, enCours, critiquesLate, delaiMoyen, note, score, specialite, statutKey, tauxResolution };
+
+      return {
+        ...tech,
+        techTickets,
+        totalTickets: techTickets.length,
+        resolusTotal,
+        resolusMonth,
+        enCours,
+        critiquesLate,
+        delaiMoyen,
+        note,
+        score,
+        specialite,
+        statutKey,
+        tauxResolution,
+      };
     }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [users, tickets]);
 
   const globalRanking = useMemo(() => [...techStats].sort(sortByRate), [techStats]);
   const top3          = useMemo(() => globalRanking.slice(0, 3), [globalRanking]);
-  const top5Scores    = useMemo(() => [...techStats].sort((a,b) => b.score - a.score).slice(0, 5), [techStats]);
 
   const sorted = useMemo(() => {
     const q = search.toLowerCase();
@@ -306,10 +535,16 @@ export default function TeamPerformance() {
   const { totalTickets, totalResolus, totalEnCours, critiquesAlert } = useMemo(() => {
     let resolus = 0, enCours = 0, critiques = 0;
     for (const t of tickets) {
-      const isResolu = ["resolved","closed"].includes(t.statut);
+      const s = String(t.statut || "").toLowerCase();
+      const isResolu = s === "resolved" || s === "closed" || s === "résolu" || s === "fermé";
+      const isEnCours = s === "in_progress" || s === "en_cours" || s === "in progress";
+      
       if (isResolu) resolus++;
-      else if (t.statut === "in_progress") enCours++;
-      if (t.priorite === "critical" && !isResolu && heuresDepuis(t.dateCreation || t.createdAt) > 24) critiques++;
+      else if (isEnCours) enCours++;
+
+      const p = String(t.priorite || "").toLowerCase();
+      const isCritical = p === "critical" || p === "critique";
+      if (isCritical && !isResolu && heuresDepuis(t.dateCreation) > 24) critiques++;
     }
     return { totalTickets: tickets.length, totalResolus: resolus, totalEnCours: enCours, critiquesAlert: critiques };
   }, [tickets]);
@@ -328,8 +563,27 @@ export default function TeamPerformance() {
   const rankMap    = useMemo(() => new Map(globalRanking.map((t, i) => [t.id, i])), [globalRanking]);
   const maxResolus = Math.max(...techStats.map(t => t.resolusMonth), 1);
 
+  // ✅ Show loading state if data is loading
+  if (loading) {
+    return (
+      <Box sx={{ pb:"80px", display:"flex", alignItems:"center", justifyContent:"center", minHeight:"200px" }}>
+        <Typography sx={{ fontSize:"14px", color:"#9CA3AF" }}>Chargement des données de performance…</Typography>
+      </Box>
+    );
+  }
+
+  // ✅ Show empty state if no data
+  if (techniciens.length === 0) {
+    return (
+      <Box sx={{ pb:"80px", display:"flex", alignItems:"center", justifyContent:"center", minHeight:"200px" }}>
+        <Typography sx={{ fontSize:"14px", color:"#9CA3AF" }}>Aucun technicien trouvé dans votre équipe</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ pb:"80px" }}>
+      {/* ── KPI Cards ── */}
       <Box sx={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", mb:"20px" }}>
         <KpiCard icon={<UsersIcon />}        label="Techniciens"     count={techniciens.length} color="#2563EB" bgColor="#EFF6FF" description="Dans l'équipe" />
         <KpiCard icon={<TicketIcon />}       label="Tickets total"   count={totalTickets}       color="#2563EB" bgColor="#EFF6FF" description="Tous statuts" />
@@ -337,34 +591,36 @@ export default function TeamPerformance() {
         <KpiCard icon={<ClockIcon />}        label="En cours"        count={totalEnCours}       color="#D97706" bgColor="#FFF7ED" description="En traitement" />
       </Box>
 
+      {/* ── Conseil du jour ── */}
       <ConseilDuJour techStats={globalRanking} totalTickets={totalTickets} critiquesAlert={critiquesAlert} />
 
-      <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"20px 24px", mb:"20px" }}>
-        <Box sx={{ display:"flex", alignItems:"center", gap:"8px", mb:"18px" }}>
+      {/* ── Podium Top 3 ── */}
+      <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"14px 18px", mb:"20px" }}>
+        <Box sx={{ display:"flex", alignItems:"center", gap:"8px", mb:"12px" }}>
           <Typography sx={{ fontSize:"10px", fontWeight:800, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.09em", whiteSpace:"nowrap" }}>🏆 Podium du mois — Top 3</Typography>
           <Box sx={{ flex:1, height:"1px", backgroundColor:"#F3F4F6" }}/>
-          <Box sx={{ display:"flex", alignItems:"center", gap:"6px", backgroundColor:"#EFF6FF", border:"1px solid #BFDBFE", borderRadius:"999px", padding:"4px 10px" }}>
+          <Box sx={{ display:"flex", alignItems:"center", gap:"5px", backgroundColor:"#EFF6FF", border:"1px solid #BFDBFE", borderRadius:"999px", padding:"3px 8px" }}>
             <Box sx={{ color:"#3B82F6", display:"flex" }}>{Icon.medal}</Box>
-            <Typography sx={{ fontSize:"11px", fontWeight:700, color:"#2563EB" }}>{techniciens.length} technicien{techniciens.length > 1 ? "s" : ""}</Typography>
+            <Typography sx={{ fontSize:"10px", fontWeight:700, color:"#2563EB" }}>{techniciens.length} technicien{techniciens.length > 1 ? "s" : ""}</Typography>
           </Box>
         </Box>
-        <Box sx={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px" }}>
+        <Box sx={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"10px" }}>
           {top3.map((tech, i) => (
-            <Box key={tech.id} sx={{ background: PODIUM_BG[i], border:`1.5px solid ${PODIUM_BORDER[i]}`, borderRadius:"14px", padding:"18px 16px", position:"relative", overflow:"hidden", transition:"transform 0.18s, box-shadow 0.18s", "&:hover": { transform:"translateY(-3px)", boxShadow:"0 10px 28px rgba(0,0,0,0.10)" } }}>
-              <Box sx={{ position:"absolute", top:"14px", right:"14px", fontSize:"24px", lineHeight:1 }}>{MEDALS[i]}</Box>
-              <Box sx={{ display:"flex", alignItems:"center", gap:"10px", mb:"10px" }}>
-                <Box sx={{ width:42, height:42, borderRadius:"12px", background:"rgba(255,255,255,0.75)", border:"2px solid rgba(255,255,255,0.95)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:900, color:"#374151", flexShrink:0, letterSpacing:"-0.5px" }}>{tech.avatar || initials(tech.nom)}</Box>
-                <Box sx={{ minWidth:0, pr:"32px" }}>
-                  <Typography sx={{ fontSize:"14px", fontWeight:900, color:"#111827", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", letterSpacing:"-0.3px" }}>{tech.nom || "Technicien"}</Typography>
-                  <Typography sx={{ fontSize:"10px", color:"#6B7280", fontWeight:500 }}>{tech.specialite}</Typography>
+            <Box key={tech.id} sx={{ background: PODIUM_BG[i], border:`1px solid ${PODIUM_BORDER[i]}`, borderRadius:"11px", padding:"12px 12px", position:"relative", overflow:"hidden", transition:"transform 0.18s, box-shadow 0.18s", "&:hover": { transform:"translateY(-2px)", boxShadow:"0 8px 20px rgba(0,0,0,0.08)" } }}>
+              <Box sx={{ position:"absolute", top:"10px", right:"10px", fontSize:"18px", lineHeight:1 }}>{MEDALS[i]}</Box>
+              <Box sx={{ display:"flex", alignItems:"center", gap:"8px", mb:"8px" }}>
+                <Box sx={{ width:34, height:34, borderRadius:"9px", background:"rgba(255,255,255,0.75)", border:"1.5px solid rgba(255,255,255,0.95)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", fontWeight:800, color:"#374151", flexShrink:0, letterSpacing:"-0.5px" }}>{tech.avatar || initials(tech.nom)}</Box>
+                <Box sx={{ minWidth:0, pr:"24px" }}>
+                  <Typography sx={{ fontSize:"12px", fontWeight:700, color:"#111827", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", letterSpacing:"-0.2px" }}>{tech.nom || "Technicien"}</Typography>
+                  <Typography sx={{ fontSize:"10px", color:"#6B7280", fontWeight:400 }}>{tech.specialite}</Typography>
                 </Box>
               </Box>
-              <Box sx={{ mb:"12px" }}><StarRating note={tech.note} /></Box>
-              <Box sx={{ display:"flex", gap:"6px" }}>
+              <Box sx={{ mb:"8px" }}><StarRating note={tech.note} /></Box>
+              <Box sx={{ display:"flex", gap:"4px" }}>
                 {[{ val:`${tech.tauxResolution}%`, label:"Taux" },{ val: tech.resolusTotal, label:"Résolus" },{ val: tech.score, label:"Score" }].map(s => (
-                  <Box key={s.label} sx={{ flex:1, backgroundColor:"rgba(255,255,255,0.65)", borderRadius:"9px", padding:"7px 4px", textAlign:"center" }}>
-                    <Typography sx={{ fontSize:"17px", fontWeight:900, color:"#111827", lineHeight:1, letterSpacing:"-0.5px" }}>{s.val}</Typography>
-                    <Typography sx={{ fontSize:"9px", color:"#6B7280", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", mt:"2px" }}>{s.label}</Typography>
+                  <Box key={s.label} sx={{ flex:1, backgroundColor:"rgba(255,255,255,0.65)", borderRadius:"7px", padding:"5px 3px", textAlign:"center" }}>
+                    <Typography sx={{ fontSize:"13px", fontWeight:800, color:"#111827", lineHeight:1, letterSpacing:"-0.3px" }}>{s.val}</Typography>
+                    <Typography sx={{ fontSize:"9px", color:"#6B7280", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.04em", mt:"2px" }}>{s.label}</Typography>
                   </Box>
                 ))}
               </Box>
@@ -373,44 +629,18 @@ export default function TeamPerformance() {
         </Box>
       </Paper>
 
+      {/* ── Pie chart + Activité mensuelle ── */}
       <Box sx={{ display:"grid", gridTemplateColumns:"1.2fr 0.8fr", gap:"14px", mb:"20px" }}>
         <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"20px 24px" }}>
           <PurePieChart data={pieData} total={totalTickets} title="Répartition des tickets" subtitle={`${totalTickets} tickets assignés à l'équipe`} />
         </Paper>
-        <Box sx={{ display:"flex", flexDirection:"column", gap:"14px" }}>
-          <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"18px 20px", flex:1 }}>
-            <Box sx={{ display:"flex", alignItems:"center", justifyContent:"space-between", mb:"14px" }}>
-              <Box>
-                <Typography sx={{ fontSize:"10px", fontWeight:800, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.08em" }}>Score performance</Typography>
-                <Typography sx={{ fontSize:"11px", color:"#6B7280" }}>Classement équipe</Typography>
-              </Box>
-              <Box sx={{ color:"#2563EB", display:"flex" }}>{Icon.trend}</Box>
-            </Box>
-            <Box sx={{ display:"flex", flexDirection:"column", gap:"9px" }}>
-              {top5Scores.map((tech,i) => (
-                <Box key={tech.id}>
-                  <Box sx={{ display:"flex", alignItems:"center", justifyContent:"space-between", mb:"3px" }}>
-                    <Box sx={{ display:"flex", alignItems:"center", gap:"6px" }}>
-                      <Typography sx={{ fontSize:"10px", fontWeight:700, color:"#9CA3AF", width:"14px" }}>#{i+1}</Typography>
-                      <Box sx={{ width:20, height:20, borderRadius:"6px", background:"linear-gradient(135deg,#EFF6FF,#DBEAFE)", color:"#2563EB", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"8px", fontWeight:800 }}>{tech.avatar || initials(tech.nom)}</Box>
-                      <Typography sx={{ fontSize:"11px", fontWeight:600, color:"#111827", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"90px" }}>{(tech.nom||"Tech").split(" ")[0]}</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize:"11px", fontWeight:800, color:scoreColor(tech.score) }}>{tech.score}</Typography>
-                  </Box>
-                  <Box sx={{ height:"4px", backgroundColor:"#F3F4F6", borderRadius:"999px", overflow:"hidden" }}>
-                    <Box sx={{ height:"100%", width:`${tech.score}%`, backgroundColor:scoreColor(tech.score), borderRadius:"999px", transition:"width 0.6s ease" }}/>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-          <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"18px 20px" }}>
-            <Typography sx={{ fontSize:"10px", fontWeight:800, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.08em", mb:"12px" }}>Activité mensuelle équipe</Typography>
-            <TeamBarChart allTickets={tickets}/>
-          </Paper>
-        </Box>
+        <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", p:"18px 20px" }}>
+          <Typography sx={{ fontSize:"10px", fontWeight:800, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.08em", mb:"12px" }}>Activité mensuelle équipe</Typography>
+          <TeamBarChart allTickets={tickets}/>
+        </Paper>
       </Box>
 
+      {/* ── Tableau de l'équipe ── */}
       <Paper elevation={0} sx={{ borderRadius:"14px", border:"1px solid #E5E7EB", backgroundColor:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.05)", overflow:"hidden" }}>
         <Box sx={{ padding:"16px 24px 14px", borderBottom:"1px solid #F3F4F6" }}>
           <Box sx={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>

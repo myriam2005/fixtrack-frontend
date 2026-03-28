@@ -8,7 +8,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useAuth }         from "../context/AuthContext";
-import { ticketService, userService, exportService } from "../services/api";
+import { ticketService, userService } from "../services/api";
 import Badge               from "../components/common/badge/Badge";
 import Button              from "../components/common/Button";
 import {
@@ -456,33 +456,156 @@ export default function ReportsPage() {
     pending:   generating ? 1 : 0,
   }), [history, generating]);
 
+  // ✅ Rapport rapide avec les données correctes par rôle
+  const getQuickExportReport = () => {
+    // Pour manager: Performance par technicien
+    if (role === "manager") {
+      const techs = users.filter(u => u.role === "technician" || u.role === "technicien");
+      const rows = techs.map(tech => {
+        const tid = resolveId(tech._id || tech.id);
+        const techTickets = tickets.filter(t => resolveId(t.technicienId) === tid);
+        const resolved = techTickets.filter(t => ["resolved","closed"].includes(t.statut)).length;
+        const inProgress = techTickets.filter(t => t.statut === "in_progress").length;
+        const rate = techTickets.length > 0 ? Math.round((resolved / techTickets.length) * 100) : 0;
+        return {
+          id: tid,
+          nom: tech.nom || "—",
+          competences: tech.competences?.join(", ") || "—",
+          assigned: techTickets.length,
+          resolved,
+          inProgress,
+          rate,
+        };
+      });
+      return {
+        type: "performance",
+        rows,
+        summary: { total: rows.length, scope: "Performance Équipe", generatedAt: new Date().toLocaleString("fr-FR") },
+      };
+    }
+
+    // Pour admin: Audit système
+    if (role === "admin") {
+      const byStatus = {}, byPriority = {};
+      tickets.forEach(t => {
+        byStatus[t.statut] = (byStatus[t.statut] || 0) + 1;
+        byPriority[t.priorite] = (byPriority[t.priorite] || 0) + 1;
+      });
+      const rows = tickets.map(t => ({
+        id: t._id || t.id,
+        titre: t.titre || "—",
+        auteur: getName(t.auteurId, users) || "—",
+        technicien: getName(t.technicienId, users) || "—",
+        statut: t.statut || "—",
+        priorite: t.priorite || "—",
+        date: getDate(t),
+      }));
+      return {
+        type: "audit",
+        rows,
+        summary: { total: rows.length, scope: "Audit Système Complet", generatedAt: new Date().toLocaleString("fr-FR"), totalUsers: users.length, byStatus, byPriority },
+      };
+    }
+
+    // Pour technicien: Worklog personnel
+    const techTickets = tickets.filter(t => resolveId(t.technicienId) === String(userId));
+    const byStatus = {}, byPriority = {};
+    techTickets.forEach(t => {
+      byStatus[t.statut] = (byStatus[t.statut] || 0) + 1;
+      byPriority[t.priorite] = (byPriority[t.priorite] || 0) + 1;
+    });
+    const rows = techTickets.map(t => ({
+      id: t._id || t.id,
+      titre: t.titre || "—",
+      technicien: user?.nom || "—",
+      statut: t.statut || "—",
+      categorie: t.categorie || "—",
+      localisation: t.localisation || "—",
+      date: getDate(t),
+      notes: "—",
+    }));
+    return {
+      type: "worklog",
+      rows,
+      summary: { total: rows.length, scope: "Worklog Personnel", generatedAt: new Date().toLocaleString("fr-FR"), byStatus, byPriority },
+    };
+  };
+
   const handleQuickExport = async (format) => {
     setQuickExporting(format);
     try {
+      const report = getQuickExportReport();
+      const date = new Date().toISOString().slice(0, 10);
+      const scopeName = {
+        admin: "Audit",
+        manager: "Performance",
+        technician: "Worklog",
+      }[role] || "Export";
+      const filename = `FixTrack_${scopeName}_Rapide_${date}`;
+
+      // ✅ Ajouter au historique permanent
+      const now = new Date();
+      const histEntry = {
+        id: `R${Date.now()}`,
+        type: report.type,
+        fmt: format,
+        generatedAt: now,
+        report,
+        dateFrom: date,
+        dateTo: date,
+        description: `Export Rapide ${scopeName} - Temps réel`,
+        rowCount: report.rows?.length ?? 0,
+        reportData: report,
+      };
+      setHistory(prev => [histEntry, ...prev]);
+      showToast(`✓ ${scopeName} ajouté à l'historique`);
+
       if (format === "excel") {
-        const response = await exportService.excel();
-        const blob = response.data || response;
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `FixTrack_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        showToast("✓ Export Excel lancé");
+        if (!window.XLSX) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+        const wb = window.XLSX.utils.book_new();
+        
+        const statsWs = window.XLSX.utils.aoa_to_sheet([
+          ["RAPPORT RAPIDE", report.summary.scope],
+          ["Généré", report.summary.generatedAt],
+          [],
+          ["Métrique", "Valeur"],
+          ["Total", report.summary.total],
+          ...(report.summary.byStatus ? [[], ["Statut", "Nombre"], ...Object.entries(report.summary.byStatus).map(([k,v]) => [k, v])] : []),
+        ]);
+        window.XLSX.utils.book_append_sheet(wb, statsWs, "Résumé");
+        
+        const { cols, rows: dataRows } = getExportData(report);
+        const detailsWs = window.XLSX.utils.aoa_to_sheet([cols, ...dataRows]);
+        window.XLSX.utils.book_append_sheet(wb, detailsWs, "Détails");
+        
+        window.XLSX.writeFile(wb, filename + ".xlsx");
+        showToast("✓ Export Excel téléchargé");
       } else if (format === "pdf") {
-        const response = await exportService.pdf();
-        const blob = response.data || response;
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `FixTrack_Export_${new Date().toISOString().slice(0, 10)}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        showToast("✓ Export PDF lancé");
+        if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+        if (!window.jspdf?.jsPDF?.prototype?.autoTable) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape" });
+
+        doc.setFontSize(18);
+        doc.setTextColor(37, 99, 235);
+        doc.text("FixTrack — " + report.summary.scope, 14, 18);
+        doc.setFontSize(10);
+        doc.setTextColor(107, 114, 128);
+        doc.text(`Généré: ${report.summary.generatedAt} | Total: ${report.summary.total}`, 14, 26);
+
+        let startY = 36;
+        const { cols, rows: dataRows } = getExportData(report);
+        doc.autoTable({
+          head: [cols],
+          body: dataRows,
+          startY,
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [239, 246, 255] },
+          margin: { left: 14, right: 14 },
+        });
+        doc.save(filename + ".pdf");
+        showToast("✓ Export PDF téléchargé");
       }
     } catch (err) {
       console.error("Quick export error:", err);
@@ -609,14 +732,22 @@ export default function ReportsPage() {
           <KpiCard icon={<ClockIcon stroke="#d97706" width="20" height="20"/>}       value={quickStats.pending}   label="En cours"           color="#d97706"/>
         </div>
 
-        {(role === "admin" || role === "manager") && (
+        {(role === "admin" || role === "manager" || role === "technician") && (
           <div style={{ background:"#fff", border:`1px solid ${BORDER}`, borderRadius:14, padding:"24px 28px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
               <div>
                 <div style={{ fontSize:15, fontWeight:800, color:TEXT, marginBottom:4 }}>Export Rapide</div>
-                <div style={{ fontSize:13, color:MUTED }}>Exportez l'intégralité du système sans configuration préalable</div>
+                <div style={{ fontSize:13, color:MUTED }}>
+                  {role === "admin" && "Exportez l'intégralité du système en temps réel"}
+                  {role === "manager" && "Exportez les tickets de votre équipe en temps réel"}
+                  {role === "technician" && "Exportez vos tickets assignés en temps réel"}
+                </div>
               </div>
-              <div style={{ fontSize:11, fontWeight:700, color:BLUE, background:"#eff6ff", padding:"6px 12px", borderRadius:8, whiteSpace:"nowrap" }}>Toutes données</div>
+              <div style={{ fontSize:11, fontWeight:700, color:BLUE, background:"#eff6ff", padding:"6px 12px", borderRadius:8, whiteSpace:"nowrap" }}>
+                {role === "admin" && "Complet"}
+                {role === "manager" && "Équipe"}
+                {role === "technician" && "Personnel"}
+              </div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
               <button
@@ -678,7 +809,9 @@ export default function ReportsPage() {
               </button>
             </div>
             <div style={{ fontSize:11, color:MUTED, marginTop:14, paddingTop:14, borderTop:`1px solid ${BORDER}` }}>
-              ✓ Inclut tous les tickets, utilisateurs et statistiques du système
+              ✓ {role === "admin" && `${tickets.length} tickets + ${users.length} utilisateurs du système`}
+              {role === "manager" && `${tickets.length} tickets de votre équipe`}
+              {role === "technician" && `${tickets.length} tickets assignés à vous`}
             </div>
           </div>
         )}
