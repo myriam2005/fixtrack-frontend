@@ -102,9 +102,52 @@ function mapLog(log, index) {
   };
 }
 
+// ✅ Filtre les logs en fonction de la plage de temps sélectionnée
+function getFilteredLogsByRange(logs, range) {
+  const now = new Date();
+  const logDates = logs.map(log => {
+    const d = new Date(log.createdAt || log.date || 0);
+    return { log, date: d };
+  });
+
+  let filtered = logDates;
+  if (range === "1w") {
+    // Cette semaine (depuis lundi)
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - cutoff.getDay() + (cutoff.getDay() === 0 ? -6 : 1));
+    cutoff.setHours(0, 0, 0, 0);
+    filtered = logDates.filter(({ date }) => date >= cutoff);
+  } else if (range === "30j") {
+    // 30 derniers jours
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - 30);
+    filtered = logDates.filter(({ date }) => date >= cutoff);
+  } else if (range === "3m") {
+    // 3 derniers mois
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - 3);
+    filtered = logDates.filter(({ date }) => date >= cutoff);
+  } else if (range === "6m") {
+    // 6 derniers mois
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - 6);
+    filtered = logDates.filter(({ date }) => date >= cutoff);
+  } else if (range === "1y") {
+    // Cette année
+    const cutoff = new Date(now.getFullYear(), 0, 1);
+    filtered = logDates.filter(({ date }) => date >= cutoff);
+  }
+  // "all" retourne tous les logs
+
+  return filtered.map(({ log }) => log);
+}
+
 // ✅ Génère et télécharge un fichier CSV depuis les logs
-function downloadLogsCSV(logs, allLogs) {
-  const rows = (allLogs.length > 0 ? allLogs : logs).map(log => {
+function downloadLogsCSV(logs, allLogs, range = "all") {
+  const logsToDownload = allLogs.length > 0 ? allLogs : logs;
+  const filteredLogs = getFilteredLogsByRange(logsToDownload, range);
+
+  const rows = filteredLogs.map(log => {
     const actor  = (log.userId && typeof log.userId === "object" ? log.userId.nom : null) || log.actor || "Système";
     const action = log.details ? `${log.action} — ${log.details}` : (log.action || "");
     const type   = log.type || "info";
@@ -121,7 +164,12 @@ function downloadLogsCSV(logs, allLogs) {
   const url    = URL.createObjectURL(blob);
   const link   = document.createElement("a");
   link.href     = url;
-  link.download = `journal_activite_${new Date().toISOString().slice(0, 10)}.csv`;
+
+  // Génère un nom de fichier avecle label du filtre
+  const rangeLabels = { "30j": "30j", "3m": "3m", "6m": "6m", "1y": "2026", "all": "complet" };
+  const rangeLabel = rangeLabels[range] || "journal";
+  link.download = `journal_activite_${rangeLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -133,10 +181,11 @@ export default function AdminDashboard() {
 
   const [loading,     setLoading]     = useState(true);
   const [tickets,     setTickets]     = useState([]);
-  const [users,       setUsers]       = useState([]);   // ✅ tous les utilisateurs actifs, tous rôles
+  const [users,       setUsers]       = useState([]);
   const [logs,        setLogs]        = useState([]);
   const [rawLogs,     setRawLogs]     = useState([]);
   const [downloading, setDownloading] = useState(false);
+  const [downloadFilter, setDownloadFilter] = useState("all"); // Filtre de téléchargement
 
   useEffect(() => {
     // ✅ Récupère le token depuis le localStorage (même logique que le fetch des logs)
@@ -255,7 +304,7 @@ export default function AdminDashboard() {
   const handleDownload = () => {
     setDownloading(true);
     try {
-      downloadLogsCSV(displayedLogs, rawLogs);
+      downloadLogsCSV(displayedLogs, rawLogs, downloadFilter);
     } finally {
       setTimeout(() => setDownloading(false), 1000);
     }
@@ -326,39 +375,76 @@ export default function AdminDashboard() {
       <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden", mb: "16px" }}>
         <SectionHeader
           title="Journal d'activité"
-          subtitle={logs.length > 0 ? `${rawLogs.length} entrées au total` : "Statistiques système"}
+          subtitle={logs.length > 0 ? `6 derniéres activités` : "Statistiques système"}
         />
         <Box sx={{ maxHeight: "340px", overflowY: "auto", "&::-webkit-scrollbar": { width: "6px" }, "&::-webkit-scrollbar-track": { background: "#F1F5F9" }, "&::-webkit-scrollbar-thumb": { background: "#CBD5E1", borderRadius: "3px" } }}>
           {displayedLogs.map((e, i) => (
             <AuditRow key={e.id} entry={e} isLast={i === displayedLogs.length - 1} />
           ))}
         </Box>
-        <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
-          <Box
-            onClick={handleDownload}
-            sx={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              fontSize: "12px", fontWeight: 600, color: downloading ? "#9CA3AF" : "#2563EB",
-              cursor: downloading ? "not-allowed" : "pointer",
-              transition: "color 0.15s",
-              "&:hover": { textDecoration: downloading ? "none" : "underline" },
-            }}
-          >
-            {downloading ? (
-              <>
-                <Box component="span" sx={{ display: "inline-block", width: 12, height: 12, border: "2px solid #D1D5DB", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.6s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }} />
-                Téléchargement…
-              </>
-            ) : (
-              <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Télécharger le journal complet (.csv)
-              </>
-            )}
+        <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 20px" }}>
+          {/* Options de filtre */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: "8px", mb: "10px" }}>
+            <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "#6B7280" }}>Période :</Typography>
+            {[
+              { value: "30j", label: "30j" },
+              { value: "3m", label: "3 mois" },
+              { value: "6m", label: "6 mois" },
+              { value: "1y", label: "Cette année" },
+              { value: "all", label: "Tous" },
+            ].map(option => (
+              <Box
+                key={option.value}
+                onClick={() => setDownloadFilter(option.value)}
+                sx={{
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: downloadFilter === option.value ? "1.5px solid #2563EB" : "1px solid #E5E7EB",
+                  backgroundColor: downloadFilter === option.value ? "#EFF6FF" : "#fff",
+                  fontSize: "11px",
+                  fontWeight: downloadFilter === option.value ? 600 : 500,
+                  color: downloadFilter === option.value ? "#2563EB" : "#6B7280",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  "&:hover": {
+                    borderColor: "#2563EB",
+                    backgroundColor: downloadFilter === option.value ? "#EFF6FF" : "#F9FAFB",
+                  },
+                }}
+              >
+                {option.label}
+              </Box>
+            ))}
+          </Box>
+
+          {/* Bouton télécharger */}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Box
+              onClick={handleDownload}
+              sx={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                fontSize: "12px", fontWeight: 600, color: downloading ? "#9CA3AF" : "#2563EB",
+                cursor: downloading ? "not-allowed" : "pointer",
+                transition: "color 0.15s",
+                "&:hover": { textDecoration: downloading ? "none" : "underline" },
+              }}
+            >
+              {downloading ? (
+                <>
+                  <Box component="span" sx={{ display: "inline-block", width: 12, height: 12, border: "2px solid #D1D5DB", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.6s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }} />
+                  Téléchargement…
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Télécharger le journal (.csv)
+                </>
+              )}
+            </Box>
           </Box>
         </Box>
       </Paper>
