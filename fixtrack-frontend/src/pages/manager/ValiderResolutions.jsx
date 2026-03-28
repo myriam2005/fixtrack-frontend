@@ -8,6 +8,7 @@ import Badge from "../../components/common/badge/Badge";
 import StarRating from "../../components/common/StarRating";
 import Modal from "../../components/common/Modal";
 import Button from "../../components/common/Button";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import { ticketService } from "../../services/api";
 
 const Icon = {
@@ -269,11 +270,7 @@ export default function ValiderResolutions() {
 
         <Box sx={{ padding: "20px" }}>
           {loading ? (
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
-              {[1,2].map(i => (
-                <Box key={i} sx={{ height: 280, borderRadius: 12, background: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite", "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.5 } } }} />
-              ))}
-            </Box>
+            <SkeletonLoader type="card" height={280} count={2} gap={16} br={12} />
           ) : filteredTickets.length === 0 ? (
             <Box sx={{ textAlign: "center", padding: "60px 24px" }}>
               <Box sx={{ color: "#22C55E", display: "flex", justifyContent: "center", mb: "12px", opacity: 0.7 }}>{Icon.checkBig}</Box>

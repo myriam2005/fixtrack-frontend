@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import styles from "./MyTickets.module.css";
 import Badge from "../../../components/common/badge/Badge";
+import SkeletonLoader from "../../../components/common/SkeletonLoader";
 import { TOKENS, LABELS } from "../../../components/common/badge/BadgeConstants";
 import { ticketService } from "../../../services/api";
 import DetailTicket from "../../ticketDetails";
@@ -49,18 +50,6 @@ const ArrowIcon = () => (
 const toggle = (arr, setArr, val) =>
   setArr((prev) => prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]);
 
-function SkeletonRow() {
-  return (
-    <tr>
-      {[1,2,3,4,5,6,7].map(i => (
-        <td key={i} style={{ padding: "14px 16px" }}>
-          <div style={{ height: 16, borderRadius: 6, background: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite" }} />
-        </td>
-      ))}
-    </tr>
-  );
-}
-
 export default function MyTickets() {
   const [tickets,     setTickets]     = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -68,7 +57,6 @@ export default function MyTickets() {
   const [search,      setSearch]      = useState("");
   const [statuts,     setStatuts]     = useState([]);
   const [priorites,   setPriorites]   = useState([]);
-  const [categories,  setCategories]  = useState([]);
   const [selectedId,  setSelectedId]  = useState(null);
 
   useEffect(() => {
@@ -97,17 +85,15 @@ export default function MyTickets() {
       t.localisation?.toLowerCase().includes(q);
     const matchStatut    = statuts.length === 0    || statuts.includes(t.statut);
     const matchPriorite  = priorites.length === 0  || priorites.includes(t.priorite);
-    const matchCategorie = categories.length === 0 || categories.includes(t.categorie);
-    return matchSearch && matchStatut && matchPriorite && matchCategorie;
+    return matchSearch && matchStatut && matchPriorite;
   });
 
-  const hasFilters = statuts.length > 0 || priorites.length > 0 || categories.length > 0 || !!search;
-  const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); setCategories([]); };
+  const hasFilters = statuts.length > 0 || priorites.length > 0 || !!search;
+  const clearAll   = () => { setSearch(""); setStatuts([]); setPriorites([]); };
 
   const activeTags = [
     ...statuts.map((s)    => ({ key: `s-${s}`, label: LABELS[s], remove: () => toggle(statuts, setStatuts, s) })),
     ...priorites.map((p)  => ({ key: `p-${p}`, label: LABELS[p], remove: () => toggle(priorites, setPriorites, p) })),
-    ...categories.map((c) => ({ key: `c-${c}`, label: c,         remove: () => toggle(categories, setCategories, c) })),
     ...(search ? [{ key: "q", label: `"${search}"`, remove: () => setSearch("") }] : []),
   ];
 
@@ -217,7 +203,7 @@ export default function MyTickets() {
               </tr>
             </thead>
             <tbody>
-              {[1,2,3,4].map(i => <SkeletonRow key={i} />)}
+              <tr><td colSpan="7"><SkeletonLoader type="row" height={16} count={4} gap={0} /></td></tr>
             </tbody>
           </table>
         ) : filtered.length === 0 ? (

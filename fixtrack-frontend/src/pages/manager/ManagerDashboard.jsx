@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Link }                         from "react-router-dom";
 import { Box, Typography, Paper, Divider, Avatar } from "@mui/material";
 import Badge                            from "../../components/common/badge/Badge";
+import SkeletonLoader                   from "../../components/common/SkeletonLoader";
 import { DashboardHeader, KpiCard }     from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate }      from "../../components/common/dashboard/DashboardSharedUtils";
 import { useAuth }                      from "../../context/AuthContext";
@@ -58,12 +59,6 @@ if (typeof document !== "undefined" && !document.getElementById("mgr-dash-styles
 }
 
 const NOW = Date.now();
-
-function Skeleton({ h = 20, w = "100%", mb = 0, br = 8 }) {
-  return (
-    <Box sx={{ height: h, width: w, borderRadius: br, mb: `${mb}px`, backgroundColor: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite", "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.5 } } }} />
-  );
-}
 
 // ── Panel urgence : tickets non-assignés + tickets refusés en attente ─────────
 function UnassignedUrgentPanel({ unassignedTickets, refusedTickets, techCount }) {
@@ -398,7 +393,7 @@ export default function MgrDashboard() {
         {loading ? (
           [1,2,3,4].map(i => (
             <Paper key={i} elevation={0} sx={{ borderRadius: "14px", p: "18px", border: "1px solid #E5E7EB" }}>
-              <Skeleton h={40} mb={10} /><Skeleton h={14} w="60%" />
+              <SkeletonLoader type="block" height={40} count={2} gap={10} />
             </Paper>
           ))
         ) : (
@@ -421,7 +416,7 @@ export default function MgrDashboard() {
             Non assignés critiques{refusedUrgent.length > 0 ? " + tickets refusés" : ""}
           </Typography>
           {loading
-            ? <Box sx={{ mt: "14px" }}><Skeleton h={60} mb={8} /><Skeleton h={60} /></Box>
+            ? <Box sx={{ mt: "14px" }}><SkeletonLoader type="block" height={60} count={2} gap={8} /></Box>
             : <UnassignedUrgentPanel unassignedTickets={unassignedUrgent} refusedTickets={refusedUrgent} techCount={techniciens.length} />
           }
         </Paper>
@@ -430,7 +425,7 @@ export default function MgrDashboard() {
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>Charge des techniciens</Typography>
           <Typography sx={{ fontSize: "12px", color: "#6B7280", mt: "2px" }}>Cliquez pour voir les compétences</Typography>
           {loading
-            ? <Box sx={{ mt: "14px" }}><Skeleton h={80} mb={8} /><Skeleton h={80} /></Box>
+            ? <Box sx={{ mt: "14px" }}><SkeletonLoader type="block" height={80} count={2} gap={8} /></Box>
             : <TechComparisonPanel techniciens={techniciens} allTickets={allTickets} />
           }
         </Paper>
@@ -448,7 +443,7 @@ export default function MgrDashboard() {
         </Box>
         <Box sx={{ padding: "8px 6px 12px" }}>
           {loading
-            ? <Box sx={{ p: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>{[1,2,3].map(i => <Skeleton key={i} h={60} />)}</Box>
+            ? <Box sx={{ p: "16px", display: "flex", flexDirection: "column", gap: "12px" }}><SkeletonLoader type="block" height={60} count={3} gap={12} /></Box>
             : recentTickets.map((ticket, index) => (
                 <RecentTicketRow key={ticket._id || ticket.id} ticket={ticket} isLast={index === recentTickets.length - 1} index={index} />
               ))

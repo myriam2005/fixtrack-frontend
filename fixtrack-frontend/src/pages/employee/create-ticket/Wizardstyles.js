@@ -98,7 +98,7 @@ export const CSS = `
 .wz-layout {
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 0;
+  gap: 28px;
   max-width: 1160px;
   margin: 0 auto;
   padding: 40px 40px 80px;
@@ -150,7 +150,7 @@ export const CSS = `
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-left: 28px;
+  padding-left: 0;
 }
 
 .wz-ai-card {

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import { DashboardHeader } from "../../components/common/dashboard/DashboardShared";
 import { getGreeting } from "../../components/common/dashboard/DashboardSharedUtils";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import { ticketService, userService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
@@ -130,6 +131,7 @@ function downloadLogsCSV(logs, allLogs) {
 export default function AdminDashboard() {
   const { user: authUser } = useAuth();
 
+  const [loading,     setLoading]     = useState(true);
   const [tickets,     setTickets]     = useState([]);
   const [users,       setUsers]       = useState([]);   // ✅ tous les utilisateurs actifs, tous rôles
   const [logs,        setLogs]        = useState([]);
@@ -148,6 +150,7 @@ export default function AdminDashboard() {
 
     // ✅ FIX : fetch direct avec token pour garantir que tous les rôles sont retournés
     //    (userService.getAll() peut utiliser un token périmé ou mal transmis)
+    setLoading(true);
     Promise.all([
       ticketService.getAll(),
       fetch(`${API}/users`, { headers }).then(r => {
@@ -164,8 +167,9 @@ export default function AdminDashboard() {
           .map(normalizeUser)
           .filter(u => u.actif !== false);
         setUsers(active);
+        setLoading(false);
       })
-      .catch(console.error);
+      .catch(err => { console.error(err); setLoading(false); });
 
     // Logs
     fetch(`${API}/logs?limit=500`, { headers })
@@ -273,12 +277,36 @@ export default function AdminDashboard() {
       />
 
       {/* ── KPI Cards ── */}
+      {/* ── KPI Cards ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", mb: "18px" }}>
         <KpiCardSpark icon={DashboardIcon.ticket}        label="Total tickets"     count={totalTickets}        color="#2563EB" bgColor="#EFF6FF" description="Tous statuts confondus"        sparkData={sparkTickets}  trend={trendTickets}  />
         <KpiCardSpark icon={DashboardIcon.alertTriangle} label="Tickets critiques" count={criticalTickets}     color="#EF4444" bgColor="#FEF2F2" description="Nécessitent attention"          sparkData={sparkCritical} trend={criticalTickets > 0 ? -5 : 0} />
         <KpiCardSpark icon={DashboardIcon.users}         label="Utilisateurs"      count={totalUsers}          color="#8B5CF6" bgColor="#F5F3FF" description="Comptes enregistrés"           sparkData={sparkUsers}    trend={0}             />
         <KpiCardSpark icon={DashboardIcon.check}         label="Taux résolution"   count={`${pctResolution}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedTickets} clôturés`} sparkData={sparkResolved} trend={trendResolved} />
       </Box>
+
+      {/* ── Tickets urgents (PRIORITAIRE) ── */}
+      <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden", mb: "16px" }}>
+        <SectionHeader title="Tickets urgents" subtitle="Ouverts et critiques"
+          right={<Box sx={{ display: "flex", alignItems: "center", gap: "5px", backgroundColor: "#FEF2F2", borderRadius: "8px", padding: "3px 9px" }}><Box sx={{ color: "#EF4444", display: "flex" }}>{DashboardIcon.alertTriangle}</Box><Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#EF4444" }}>{openTickets} ouverts</Typography></Box>}
+        />
+        <Box sx={{ padding: "6px 6px 8px" }}>
+          {urgentTickets.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: "24px", color: "#9CA3AF", fontSize: "13px" }}>Aucun ticket urgent</Box>
+          ) : (
+            urgentTickets.map((t, i) => (
+              <UrgentRow key={t.id || t._id} ticket={t} isLast={i === urgentTickets.length - 1} />
+            ))
+          )}
+        </Box>
+        <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
+          <Link to="/admin/tickets" style={{ textDecoration: "none" }}>
+            <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB", "&:hover": { textDecoration: "underline" } }}>
+              Voir tous les tickets →
+            </Typography>
+          </Link>
+        </Box>
+      </Paper>
 
       {/* ── Graphes mensuels ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "16px", mb: "16px" }}>
@@ -294,9 +322,49 @@ export default function AdminDashboard() {
         </Paper>
       </Box>
 
-      {/* ── Stats + Urgents ── */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1.1fr 1.2fr", gap: "16px", mb: "16px" }}>
+      {/* ── Journal d'activité ── */}
+      <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden", mb: "16px" }}>
+        <SectionHeader
+          title="Journal d'activité"
+          subtitle={logs.length > 0 ? `${rawLogs.length} entrées au total` : "Statistiques système"}
+        />
+        <Box sx={{ maxHeight: "340px", overflowY: "auto", "&::-webkit-scrollbar": { width: "6px" }, "&::-webkit-scrollbar-track": { background: "#F1F5F9" }, "&::-webkit-scrollbar-thumb": { background: "#CBD5E1", borderRadius: "3px" } }}>
+          {displayedLogs.map((e, i) => (
+            <AuditRow key={e.id} entry={e} isLast={i === displayedLogs.length - 1} />
+          ))}
+        </Box>
+        <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
+          <Box
+            onClick={handleDownload}
+            sx={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              fontSize: "12px", fontWeight: 600, color: downloading ? "#9CA3AF" : "#2563EB",
+              cursor: downloading ? "not-allowed" : "pointer",
+              transition: "color 0.15s",
+              "&:hover": { textDecoration: downloading ? "none" : "underline" },
+            }}
+          >
+            {downloading ? (
+              <>
+                <Box component="span" sx={{ display: "inline-block", width: 12, height: 12, border: "2px solid #D1D5DB", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.6s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }} />
+                Téléchargement…
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Télécharger le journal complet (.csv)
+              </>
+            )}
+          </Box>
+        </Box>
+      </Paper>
 
+      {/* ── Répartition statuts & priorités ── */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", mb: "16px" }}>
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", padding: "20px" }}>
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "16px" }}>Répartition statuts</Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -328,105 +396,28 @@ export default function AdminDashboard() {
           <Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", mb: "16px" }}>Répartition priorités</Typography>
           <StackedPriorityBar counts={priorityCounts} total={totalTickets} />
         </Paper>
-
-        <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader title="Tickets urgents" subtitle="Ouverts et critiques"
-            right={<Box sx={{ display: "flex", alignItems: "center", gap: "5px", backgroundColor: "#FEF2F2", borderRadius: "8px", padding: "3px 9px" }}><Box sx={{ color: "#EF4444", display: "flex" }}>{DashboardIcon.alertTriangle}</Box><Typography sx={{ fontSize: "11px", fontWeight: 700, color: "#EF4444" }}>{openTickets} ouverts</Typography></Box>}
-          />
-          <Box sx={{ padding: "6px 6px 8px" }}>
-            {urgentTickets.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: "24px", color: "#9CA3AF", fontSize: "13px" }}>Aucun ticket urgent</Box>
-            ) : (
-              urgentTickets.map((t, i) => (
-                <UrgentRow key={t.id || t._id} ticket={t} isLast={i === urgentTickets.length - 1} />
-              ))
-            )}
-          </Box>
-          <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
-            <Link to="/admin/tickets" style={{ textDecoration: "none" }}>
-              <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB", "&:hover": { textDecoration: "underline" } }}>
-                Voir tous les tickets →
-              </Typography>
-            </Link>
-          </Box>
-        </Paper>
       </Box>
 
-      {/* ── Utilisateurs + Charge + Logs ── */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "16px" }}>
-
-        <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader title="Utilisateurs" subtitle={`${totalUsers} comptes actifs`}
-            right={<Link to="/admin/users" style={{ textDecoration: "none" }}><Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB" }}>Gérer →</Typography></Link>}
-          />
-          <Box>
-            {/* ✅ FIX : affiche tous les rôles (employee, technician, manager, admin) */}
-            {users.slice(0, 6).map((u, i) => (
-              <UserRow key={u.id || u._id} user={u} isLast={i === Math.min(users.length, 6) - 1} />
-            ))}
-          </Box>
-        </Paper>
-
-        <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader title="Charge techniciens" subtitle="Taux d'activité en temps réel" />
-          <Box sx={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            {techWorkload.length === 0 ? (
-              <Typography sx={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", py: "16px" }}>Aucun technicien</Typography>
-            ) : (
-              techWorkload.map(tech => (
-                <TechGauge key={tech.id || tech._id} tech={tech} assigned={tech.assigned} total={tech.total} resolved={tech.resolved} />
-              ))
-            )}
-          </Box>
-          <Divider sx={{ borderColor: "#F3F4F6", mx: "12px" }} />
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px" }}>
-            <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>Disponibles maintenant</Typography>
-            <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#22C55E" }}>
-              {techWorkload.filter(t => t.assigned === 0).length} / {technicians.length}
-            </Typography>
-          </Box>
-        </Paper>
-
-        <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader
-            title="Journal d'activité"
-            subtitle={logs.length > 0 ? `${rawLogs.length} entrées au total` : "Statistiques système"}
-          />
-          <Box>
-            {displayedLogs.map((e, i) => (
-              <AuditRow key={e.id} entry={e} isLast={i === displayedLogs.length - 1} />
-            ))}
-          </Box>
-          <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
-            <Box
-              onClick={handleDownload}
-              sx={{
-                display: "inline-flex", alignItems: "center", gap: "6px",
-                fontSize: "12px", fontWeight: 600, color: downloading ? "#9CA3AF" : "#2563EB",
-                cursor: downloading ? "not-allowed" : "pointer",
-                transition: "color 0.15s",
-                "&:hover": { textDecoration: downloading ? "none" : "underline" },
-              }}
-            >
-              {downloading ? (
-                <>
-                  <Box component="span" sx={{ display: "inline-block", width: 12, height: 12, border: "2px solid #D1D5DB", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.6s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }} />
-                  Téléchargement…
-                </>
-              ) : (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  Télécharger le journal complet (.csv)
-                </>
-              )}
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
+      {/* ── Charge techniciens ── */}
+      <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+        <SectionHeader title="Charge techniciens" subtitle="Taux d'activité en temps réel" />
+        <Box sx={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          {techWorkload.length === 0 ? (
+            <Typography sx={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", py: "16px" }}>Aucun technicien</Typography>
+          ) : (
+            techWorkload.map(tech => (
+              <TechGauge key={tech.id || tech._id} tech={tech} assigned={tech.assigned} total={tech.total} resolved={tech.resolved} />
+            ))
+          )}
+        </Box>
+        <Divider sx={{ borderColor: "#F3F4F6", mx: "12px" }} />
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px" }}>
+          <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>Disponibles maintenant</Typography>
+          <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#22C55E" }}>
+            {techWorkload.filter(t => t.assigned === 0).length} / {technicians.length}
+          </Typography>
+        </Box>
+      </Paper>
 
     </Box>
   );

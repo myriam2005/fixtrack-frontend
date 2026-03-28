@@ -9,6 +9,7 @@ import { useNavigate }                  from "react-router-dom";
 import { Box, Typography, Paper, Divider } from "@mui/material";
 import Badge                            from "../../components/common/badge/Badge";
 import LoadingSpinner                   from "../../components/common/LoadingSpinner";
+import SkeletonLoader                   from "../../components/common/SkeletonLoader";
 import { DashboardHeader, KpiCard }     from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate }      from "../../components/common/dashboard/DashboardSharedUtils";
 import { useAuth }                      from "../../context/AuthContext";
@@ -244,7 +245,9 @@ export default function TechnicianDashboard() {
         </Box>
 
         <Box sx={{ padding: { xs: "6px 4px 10px", sm: "8px 6px 12px" } }}>
-          {filteredTickets.length === 0 ? (
+          {loading ? (
+            <SkeletonLoader type="row" height={14} count={6} gap={0} />
+          ) : filteredTickets.length === 0 ? (
             <Box sx={{ textAlign: "center", padding: { xs: "28px 16px", sm: "40px 24px" } }}>
               <Box sx={{ fontSize: "34px", mb: "10px" }}>🔧</Box>
               <Typography sx={{ fontWeight: 600, color: "#6B7280", mb: "4px", fontSize: "14px" }}>Aucun ticket dans cette catégorie</Typography>

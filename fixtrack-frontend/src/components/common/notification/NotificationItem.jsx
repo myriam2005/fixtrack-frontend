@@ -50,6 +50,12 @@ const IcoRefused = () => (
     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
   </svg>
 );
+const IcoProfile = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
 const IcoArrowRight = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12"/>
@@ -67,6 +73,7 @@ const TYPE_MAP = {
   ticket_critical:   { Icon: IcoCritical, alertColor: "#DC2626" },
   ticket_deleted:    { Icon: IcoTicket,   alertColor: null      },
   ticket_refused:    { Icon: IcoRefused,  alertColor: "#DC2626" },
+  profile_updated:   { Icon: IcoProfile,  alertColor: null      },
   status_changed:    { Icon: IcoRefresh,  alertColor: null      },
   warning:           { Icon: IcoCritical, alertColor: "#D97706" },
   error:             { Icon: IcoRefused,  alertColor: "#DC2626" },

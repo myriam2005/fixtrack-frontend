@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate }                 from "react-router-dom";
 import { Box, Divider }                from "@mui/material";
 import Badge                           from "../../components/common/badge/Badge";
+import SkeletonLoader                  from "../../components/common/SkeletonLoader";
 import Button                          from "../../components/common/Button";
 import { ticketService, userService }  from "../../services/api";
 import styles                          from "../employee/my-ticket/MyTickets.module.css";
@@ -328,7 +329,7 @@ export default function AssignTicket() {
 
   const visible = tickets.filter(t => {
     const inTab    = activeTab === "all" || t.statut === activeTab;
-    const inSearch = !search || t.titre?.toLowerCase().includes(search.toLowerCase()) || t.localisation?.toLowerCase().includes(search.toLowerCase());
+    const inSearch = !search || t.titre?.toLowerCase().includes(search.toLowerCase()) || t.localisation?.toLowerCase().includes(search.toLowerCase()) || t.categorie?.toLowerCase().includes(search.toLowerCase());
     return inTab && inSearch;
   });
 
@@ -405,8 +406,8 @@ export default function AssignTicket() {
 
         <Box sx={{ padding: { xs: "4px 2px 12px", md: "4px 6px 12px" } }}>
           {loading ? (
-            <Box sx={{ p: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-              {[1,2,3,4].map(i => <Box key={i} sx={{ height: 60, borderRadius: 8, background: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite", "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.5 } } }} />)}
+            <Box sx={{ p: "20px" }}>
+              <SkeletonLoader type="block" height={60} count={4} gap={12} />
             </Box>
           ) : visible.length === 0 ? (
             <div className={styles.empty}>

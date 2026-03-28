@@ -2,6 +2,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Box, Typography, Paper, Divider, TextField, Tooltip } from "@mui/material";
 import Badge from "../../../components/common/badge/Badge";
+import SkeletonLoader from "../../../components/common/SkeletonLoader";
 import { ticketService, userService } from "../../../services/api";
 import { formatDate } from "../../../components/common/dashboard/DashboardSharedUtils";
 import { EditModal, DeleteModal, StatusTracker, UserAvatar } from "./TicketsModal";
@@ -168,6 +169,7 @@ function TicketRow({ ticket, employee, technician, isLast, onEdit, onDelete }) {
 export default function Tickets() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [search,       setSearch]       = useState("");
+  const [loading,      setLoading]      = useState(true);
   const [rawTickets,   setRawTickets]   = useState([]);
   const [allUsers,     setAllUsers]     = useState([]);
   const [editTarget,   setEditTarget]   = useState(null);
@@ -175,6 +177,7 @@ export default function Tickets() {
   const [toast,        setToast]        = useState(null);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([ticketService.getAll(), userService.getAll()])
       .then(([tRes, uRes]) => {
         const t = tRes.data || tRes;
@@ -187,6 +190,7 @@ export default function Tickets() {
           _createdAt: extractCreatedAt(x),
         })));
         setAllUsers(u.map(x => ({ ...x, id: x._id || x.id })));
+        setLoading(false);
       })
       .catch(console.error);
   }, []);
@@ -325,7 +329,9 @@ export default function Tickets() {
         </Box>
 
         <Box sx={{ padding: "8px 6px 12px" }}>
-          {filteredTickets.length === 0 ? (
+          {loading ? (
+            <SkeletonLoader type="row" height={14} count={8} gap={0} />
+          ) : filteredTickets.length === 0 ? (
             <Box sx={{ textAlign: "center", padding: "48px 24px" }}>
               <Box sx={{ fontSize: "36px", mb: "12px" }}>🔍</Box>
               <Typography sx={{ fontWeight: 600, color: "#6B7280", mb: "4px", fontSize: "14px" }}>Aucun ticket trouvé</Typography>

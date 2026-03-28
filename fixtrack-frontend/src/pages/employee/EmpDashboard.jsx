@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Box, Typography, Paper, Divider, LinearProgress } from "@mui/material";
 
 import Badge from "../../components/common/badge/Badge";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import { DashboardHeader, KpiCard } from "../../components/common/dashboard/DashboardShared";
 import { getGreeting, formatDate } from "../../components/common/dashboard/DashboardSharedUtils";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
@@ -290,22 +291,6 @@ function ProfileCard({ user, totalTickets, resolvedCount }) {
   );
 }
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
-function Skeleton({ h = 20, w = "100%", mb = 0 }) {
-  return (
-    <Box sx={{
-      height: h, width: w, borderRadius: 2,
-      backgroundColor: "#F1F5F9",
-      mb: `${mb}px`,
-      animation: "pulse 1.5s ease-in-out infinite",
-      "@keyframes pulse": {
-        "0%,100%": { opacity: 1 },
-        "50%": { opacity: 0.5 },
-      },
-    }} />
-  );
-}
-
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function EmpDashboard() {
   const { user: authUser } = useAuth();
@@ -375,8 +360,7 @@ setNotifications((notifs || []).slice(0, 4));
         {loading ? (
           [1,2,3].map(i => (
             <Paper key={i} elevation={0} sx={{ borderRadius: "14px", p: "18px", border: "1px solid #E5E7EB" }}>
-              <Skeleton h={40} mb={10} />
-              <Skeleton h={14} w="60%" />
+              <SkeletonLoader type="block" height={40} count={2} gap={10} />
             </Paper>
           ))
         ) : (
@@ -440,7 +424,7 @@ setNotifications((notifs || []).slice(0, 4));
           <Box sx={{ py: "4px" }}>
             {loading ? (
               <Box sx={{ p: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                {[1,2,3].map(i => <Skeleton key={i} h={60} />)}
+                <SkeletonLoader type="block" height={60} count={3} gap={16} />
               </Box>
             ) : filteredTickets.length === 0 ? (
               <Box sx={{ textAlign: "center", py: "40px" }}>
@@ -471,40 +455,7 @@ setNotifications((notifs || []).slice(0, 4));
 
           <ProfileCard user={authUser} totalTickets={totalCount} resolvedCount={resolvedCount} />
 
-          {/* Notifications */}
-          <Paper elevation={0} sx={{ borderRadius: "16px", border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
-            <Box sx={{ padding: "14px 18px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Box sx={{ color: "#F59E0B" }}><BellIcon /></Box>
-                <Typography sx={{ fontWeight: 700, fontSize: "14px", color: "#111827" }}>Notifications</Typography>
-                {unreadCount > 0 && (
-                  <Box sx={{ backgroundColor: "#EF4444", color: "#fff", borderRadius: "20px", px: "6px", py: "1px", fontSize: "10px", fontWeight: 800, lineHeight: "16px" }}>
-                    {unreadCount}
-                  </Box>
-                )}
-              </Box>
-              {unreadCount > 0 && (
-                <Typography onClick={handleMarkAllRead} sx={{ fontSize: "11px", color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
-                  Tout marquer lu
-                </Typography>
-              )}
-            </Box>
-            <Divider sx={{ borderColor: "#F3F4F6" }} />
-            {loading ? (
-              <Box sx={{ p: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                {[1,2,3].map(i => <Skeleton key={i} h={40} />)}
-              </Box>
-            ) : notifications.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: "30px" }}>
-                <Typography sx={{ fontSize: "26px", mb: "8px" }}>🔔</Typography>
-                <Typography sx={{ fontSize: "12px", color: "#9CA3AF" }}>Aucune notification</Typography>
-              </Box>
-            ) : (
-              notifications.map((notif, index) => (
-                <NotifItem key={notif._id || notif.id} notif={notif} isLast={index === notifications.length - 1} />
-              ))
-            )}
-          </Paper>
+         
 
           {/* Conseil du jour */}
           <Paper elevation={0} sx={{

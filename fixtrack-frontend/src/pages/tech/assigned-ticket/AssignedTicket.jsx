@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth }            from "../../../context/AuthContext";
+import SkeletonLoader         from "../../../components/common/SkeletonLoader";
 import { ticketService }      from "../../../services/api";
 import { useNotifications }   from "../../../context/NotificationContext";
 import { CSS, FILTERS, PRIORITY_FILTERS } from "./ticketsUtils";
@@ -111,6 +112,7 @@ export default function AssignedTicket() {
     const matchSearch   = !q
       || (t.titre       || "").toLowerCase().includes(q)
       || (t.localisation|| "").toLowerCase().includes(q)
+      || (t.categorie   || "").toLowerCase().includes(q)
       || (t.id          || "").toLowerCase().includes(q);
     return matchStatut && matchPriority && matchSearch;
   });
@@ -246,14 +248,7 @@ export default function AssignedTicket() {
       {/* Loading skeleton */}
       {loading && (
         <div className="ta-grid">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{ borderRadius: 12, border: "1px solid #E5E7EB", padding: 20, background: "#fff", display: "flex", flexDirection: "column", gap: 10 }}>
-              {[80, 100, 60].map((w, j) => (
-                <div key={j} style={{ height: 14, width: `${w}%`, borderRadius: 6, background: "#F1F5F9", animation: "pulse 1.5s ease-in-out infinite" }} />
-              ))}
-            </div>
-          ))}
-          <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
+          <SkeletonLoader type="card" height={140} count={4} gap={12} br={12} />
         </div>
       )}
 
