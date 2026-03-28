@@ -24,6 +24,29 @@ const resolveId = (val) => {
   return String(val);
 };
 
+// ✅ Génère un avatar (initiales) depuis le nom ou l'email
+const buildAvatar = (user) => {
+  if (user.avatar && user.avatar.trim().length > 0) return user.avatar;
+  const name = user.nom || user.name || user.email || "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+// ✅ Normalise un utilisateur venant du backend (champs variables selon version)
+const normalizeUser = (x) => ({
+  ...x,
+  id:     x._id || x.id,
+  nom:    x.nom || x.name || x.username || "Utilisateur",
+  email:  x.email || "—",
+  role:   x.role || "employee",
+  actif:  x.actif !== false, // undefined → considéré actif
+  avatar: buildAvatar(x),
+});
+
 function buildMonthlyData(tickets) {
   const now = new Date();
   const months = [];
@@ -68,20 +91,18 @@ function mapLog(log, index) {
     : log.action || "Action système";
   const iconMap = { error: "shield", warning: "settings", info: "check" };
   return {
-    id:     log._id || log.id || index,
+    id:      log._id || log.id || index,
     actor,
     action,
-    time:   formatRelativeTime(log.createdAt || log.date),
-    // On garde aussi la date ISO pour l'export CSV
+    time:    formatRelativeTime(log.createdAt || log.date),
     dateISO: log.createdAt || log.date || null,
-    icon:   iconMap[log.type] || "shield",
-    type:   log.type || "info",
+    icon:    iconMap[log.type] || "shield",
+    type:    log.type || "info",
   };
 }
 
 // ✅ Génère et télécharge un fichier CSV depuis les logs
 function downloadLogsCSV(logs, allLogs) {
-  // On utilise allLogs (données brutes complètes) si disponibles, sinon logs affichés
   const rows = (allLogs.length > 0 ? allLogs : logs).map(log => {
     const actor  = (log.userId && typeof log.userId === "object" ? log.userId.nom : null) || log.actor || "Système";
     const action = log.details ? `${log.action} — ${log.details}` : (log.action || "");
@@ -89,13 +110,12 @@ function downloadLogsCSV(logs, allLogs) {
     const date   = log.createdAt || log.date
       ? new Date(log.createdAt || log.date).toLocaleString("fr-FR")
       : "—";
-    // Échappe les guillemets dans les champs
     const escape = (s) => `"${String(s).replace(/"/g, '""')}"`;
     return [escape(date), escape(actor), escape(type.toUpperCase()), escape(action)].join(";");
   });
 
   const header = ["Date", "Acteur", "Type", "Action"].map(h => `"${h}"`).join(";");
-  const csv    = "\uFEFF" + [header, ...rows].join("\n"); // \uFEFF = BOM pour Excel UTF-8
+  const csv    = "\uFEFF" + [header, ...rows].join("\n");
   const blob   = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url    = URL.createObjectURL(blob);
   const link   = document.createElement("a");
@@ -110,28 +130,45 @@ function downloadLogsCSV(logs, allLogs) {
 export default function AdminDashboard() {
   const { user: authUser } = useAuth();
 
-  const [tickets,  setTickets]  = useState([]);
-  const [users,    setUsers]    = useState([]);
-  const [logs,     setLogs]     = useState([]);      // logs mappés pour affichage
-  const [rawLogs,  setRawLogs]  = useState([]);      // logs bruts pour export complet
+  const [tickets,     setTickets]     = useState([]);
+  const [users,       setUsers]       = useState([]);   // ✅ tous les utilisateurs actifs, tous rôles
+  const [logs,        setLogs]        = useState([]);
+  const [rawLogs,     setRawLogs]     = useState([]);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    Promise.all([ticketService.getAll(), userService.getAll()])
-      .then(([t, u]) => {
-        setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
-        setUsers((u || []).map(x => ({ ...x, id: x._id || x.id })));
-      })
-      .catch(console.error);
-
+    // ✅ Récupère le token depuis le localStorage (même logique que le fetch des logs)
     const token = (() => {
       try { return JSON.parse(localStorage.getItem("currentUser") || "{}")?.token || ""; }
       catch { return ""; }
     })();
 
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/logs?limit=500`, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    })
+    const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+    // ✅ FIX : fetch direct avec token pour garantir que tous les rôles sont retournés
+    //    (userService.getAll() peut utiliser un token périmé ou mal transmis)
+    Promise.all([
+      ticketService.getAll(),
+      fetch(`${API}/users`, { headers }).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }),
+    ])
+      .then(([t, u]) => {
+        setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
+
+        // ✅ Normalise ET filtre : on exclut les comptes désactivés (actif === false)
+        const raw = Array.isArray(u) ? u : u.users || u.data || [];
+        const active = raw
+          .map(normalizeUser)
+          .filter(u => u.actif !== false);
+        setUsers(active);
+      })
+      .catch(console.error);
+
+    // Logs
+    fetch(`${API}/logs?limit=500`, { headers })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
         const raw = Array.isArray(data) ? data
@@ -140,8 +177,8 @@ export default function AdminDashboard() {
         const sorted = [...raw].sort(
           (a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)
         );
-        setRawLogs(sorted);                          // garde tous les logs pour export
-        setLogs(sorted.slice(0, 6).map(mapLog));     // affiche les 6 plus récents
+        setRawLogs(sorted);
+        setLogs(sorted.slice(0, 6).map(mapLog));
       })
       .catch(() => { setLogs([]); setRawLogs([]); });
   }, []);
@@ -162,6 +199,8 @@ export default function AdminDashboard() {
   };
 
   const totalUsers  = users.length;
+
+  // ✅ FIX : filtre uniquement les techniciens parmi tous les utilisateurs (tous rôles chargés)
   const technicians = users.filter(u => u.role === "technician");
 
   const techWorkload = useMemo(() => technicians.map(tech => {
@@ -209,7 +248,6 @@ export default function AdminDashboard() {
   ];
   const displayedLogs = logs.length > 0 ? logs : fallbackLogs;
 
-  // ✅ Handler téléchargement CSV
   const handleDownload = () => {
     setDownloading(true);
     try {
@@ -318,10 +356,11 @@ export default function AdminDashboard() {
       <Box sx={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "16px" }}>
 
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <SectionHeader title="Utilisateurs" subtitle={`${totalUsers} comptes enregistrés`}
+          <SectionHeader title="Utilisateurs" subtitle={`${totalUsers} comptes actifs`}
             right={<Link to="/admin/users" style={{ textDecoration: "none" }}><Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#2563EB" }}>Gérer →</Typography></Link>}
           />
           <Box>
+            {/* ✅ FIX : affiche tous les rôles (employee, technician, manager, admin) */}
             {users.slice(0, 6).map((u, i) => (
               <UserRow key={u.id || u._id} user={u} isLast={i === Math.min(users.length, 6) - 1} />
             ))}
@@ -348,7 +387,6 @@ export default function AdminDashboard() {
           </Box>
         </Paper>
 
-        {/* ✅ Journal d'activité avec téléchargement CSV fonctionnel */}
         <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E5E7EB", backgroundColor: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", overflow: "hidden" }}>
           <SectionHeader
             title="Journal d'activité"
@@ -360,7 +398,6 @@ export default function AdminDashboard() {
             ))}
           </Box>
           <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "9px 20px", textAlign: "center" }}>
-            {/* ✅ Bouton téléchargement CSV — déclenche downloadLogsCSV() */}
             <Box
               onClick={handleDownload}
               sx={{
@@ -378,7 +415,6 @@ export default function AdminDashboard() {
                 </>
               ) : (
                 <>
-                  {/* Icône download */}
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import Badge from "../../components/common/badge/Badge";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
+
 export const ROLE_CONFIG = {
   employee:   { label: "Employé",    color: "#3B82F6", bg: "#EFF6FF" },
   technician: { label: "Technicien", color: "#8B5CF6", bg: "#F5F3FF" },
@@ -23,6 +24,7 @@ const Ico = {
   shield:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
   user:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="17" y1="11" x2="23" y2="11" /></svg>,
   settings: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
+  check:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>,
   upload:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>,
 };
 
@@ -44,19 +46,55 @@ export function SectionHeader({ title, subtitle, right }) {
 // ── UserRow ───────────────────────────────────────────────────────────────────
 export function UserRow({ user, isLast }) {
   const roleCfg = ROLE_CONFIG[user.role] || ROLE_CONFIG.employee;
-  const isOnline = ["u1", "u2"].includes(user.id);
+
+  // ✅ FIX : `actif` vient du vrai champ MongoDB — plus de hardcoded mock IDs
+  const isOnline = user.actif === true || user.actif === undefined;
+
+  // ✅ FIX : avatar = initiales générées si pas de valeur en DB
+  const avatarLabel = user.avatar && user.avatar.trim().length > 0
+    ? user.avatar
+    : (user.nom || user.name || "?")
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+  // ✅ FIX : couleur de l'avatar varie selon le rôle pour distinguer visuellement
+  const avatarGradient = {
+    admin:      "linear-gradient(135deg, #F87171, #EF4444)",
+    manager:    "linear-gradient(135deg, #FCD34D, #F59E0B)",
+    technician: "linear-gradient(135deg, #818CF8, #6366F1)",
+    employee:   "linear-gradient(135deg, #60A5FA, #3B82F6)",
+  }[user.role] || "linear-gradient(135deg, #818CF8, #6366F1)";
+
   return (
     <>
       <Box sx={{ display: "flex", alignItems: "center", gap: "11px", padding: "10px 18px", transition: "background 0.15s", "&:hover": { backgroundColor: "#F8FAFF" } }}>
         <Box sx={{ position: "relative", flexShrink: 0 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #818CF8, #6366F1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "10px", fontWeight: 700 }}>
-            {user.avatar}
+          <Box sx={{
+            width: 32, height: 32, borderRadius: "50%",
+            background: avatarGradient,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: "10px", fontWeight: 700,
+          }}>
+            {avatarLabel}
           </Box>
-          <Box sx={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", backgroundColor: isOnline ? "#22C55E" : "#D1D5DB", border: "2px solid #fff" }} />
+          {/* ✅ FIX : point vert = actif en DB, gris = désactivé */}
+          <Box sx={{
+            position: "absolute", bottom: 0, right: 0,
+            width: 9, height: 9, borderRadius: "50%",
+            backgroundColor: isOnline ? "#22C55E" : "#D1D5DB",
+            border: "2px solid #fff",
+          }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: "12.5px", fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.nom}</Typography>
-          <Typography sx={{ fontSize: "10.5px", color: "#9CA3AF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</Typography>
+          <Typography sx={{ fontSize: "12.5px", fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {user.nom || user.name || "Utilisateur"}
+          </Typography>
+          <Typography sx={{ fontSize: "10.5px", color: "#9CA3AF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {user.email || "—"}
+          </Typography>
         </Box>
         <Box sx={{ padding: "2px 9px", borderRadius: "999px", backgroundColor: roleCfg.bg, color: roleCfg.color, fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
           {roleCfg.label}
@@ -73,7 +111,7 @@ export function AuditRow({ entry, isLast }) {
     <>
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "10px 18px", transition: "background 0.15s", "&:hover": { backgroundColor: "#F8FAFF" } }}>
         <Box sx={{ width: 28, height: 28, borderRadius: "8px", backgroundColor: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366F1", flexShrink: 0, mt: "1px" }}>
-          {Ico[entry.icon]}
+          {Ico[entry.icon] || Ico.shield}
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#111827", lineHeight: 1.35, mb: "2px" }}>{entry.action}</Typography>
@@ -96,15 +134,15 @@ export function UrgentRow({ ticket, isLast }) {
       <Box sx={{
         display: "flex", alignItems: "center", gap: "11px",
         padding: "11px 18px 11px 15px",
-        borderLeft: `3px solid ${PRIORITY_COLOR[ticket.priorite]}`,
+        borderLeft: `3px solid ${PRIORITY_COLOR[ticket.priorite] || "#E5E7EB"}`,
         borderRadius: "0 10px 10px 0",
         transition: "background 0.15s, padding-left 0.15s",
         "&:hover": { backgroundColor: "#FAFAFA", paddingLeft: "19px" },
       }}>
         <Box sx={{
           width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-          backgroundColor: PRIORITY_COLOR[ticket.priorite],
-          boxShadow: `0 0 0 3px ${PRIORITY_COLOR[ticket.priorite]}22`,
+          backgroundColor: PRIORITY_COLOR[ticket.priorite] || "#E5E7EB",
+          boxShadow: `0 0 0 3px ${(PRIORITY_COLOR[ticket.priorite] || "#E5E7EB")}22`,
           animation: ticket.priorite === "critical" ? "kpulse 1.4s ease-in-out infinite" : "none",
           "@keyframes kpulse": { "0%,100%": { opacity: 1, transform: "scale(1)" }, "50%": { opacity: 0.4, transform: "scale(1.6)" } },
         }} />
@@ -112,7 +150,7 @@ export function UrgentRow({ ticket, isLast }) {
           <Typography sx={{ fontWeight: 600, fontSize: "12.5px", color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "2px" }}>{ticket.titre}</Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
             {DashboardIcon.pin}
-            <Typography sx={{ fontSize: "10.5px", color: "#9CA3AF" }}>{ticket.localisation}</Typography>
+            <Typography sx={{ fontSize: "10.5px", color: "#9CA3AF" }}>{ticket.localisation || "—"}</Typography>
           </Box>
         </Box>
         <Badge status={ticket.priorite} />
@@ -131,6 +169,16 @@ export function TechGauge({ tech, assigned, total, resolved }) {
   const SIZE = 52, r = 19, cx = SIZE / 2, cy = SIZE / 2;
   const circ  = 2 * Math.PI * r;
   const score = Math.max(resPct, 5);
+
+  // ✅ FIX : avatar = initiales si pas de champ avatar en DB
+  const avatarLabel = tech.avatar && tech.avatar.trim().length > 0
+    ? tech.avatar
+    : (tech.nom || tech.name || "?")
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
 
   return (
     <Box onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -152,15 +200,15 @@ export function TechGauge({ tech, assigned, total, resolved }) {
         </svg>
         <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Box sx={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #818CF8, #6366F1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "9px", fontWeight: 700 }}>
-            {tech.avatar}
+            {avatarLabel}
           </Box>
         </Box>
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: "#111827", mb: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {tech.nom}
+          {tech.nom || tech.name || "Technicien"}
         </Typography>
-        {tech.competences && (
+        {tech.competences && tech.competences.length > 0 && (
           <Typography sx={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", mb: "5px" }}>
             {tech.competences.join(" · ")}
           </Typography>

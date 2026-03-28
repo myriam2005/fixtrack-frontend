@@ -37,8 +37,6 @@
 
 /* ════════════════════════════════════════════════════════════
    PAGE ROOT
-   Même structure que le Box root d'AllTickets :
-   pb 80px, position relative, pleine largeur
    ════════════════════════════════════════════════════════════ */
 .ft-page {
   font-family: 'Inter', -apple-system, sans-serif;
@@ -50,7 +48,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   HEADER — identique à AllTickets (Playfair 32px/800)
+   HEADER
    ════════════════════════════════════════════════════════════ */
 .ft-header {
   margin-bottom: 28px;
@@ -262,8 +260,6 @@
 
 /* ════════════════════════════════════════════════════════════
    TABLE CARD
-   Paper AllTickets : radius 14px, border 1px, shadow douce
-   table-layout fixed pour distribuer les colonnes = pas d'espace vide
    ════════════════════════════════════════════════════════════ */
 .ft-table-card {
   background: #FFFFFF;
@@ -273,8 +269,6 @@
   box-shadow: 0 2px 12px rgba(0,0,0,.05);
   width: 100%;
 }
-
-/* ── Card inner header (Liste + search) ─────────────────────── */
 .ft-table-card__head {
   padding: 16px 24px 0;
   border-bottom: 1px solid #F3F4F6;
@@ -308,7 +302,6 @@
   scrollbar-width: none;
 }
 .ft-tabs::-webkit-scrollbar { display: none; }
-
 .ft-tab {
   display: inline-flex;
   align-items: center;
@@ -350,18 +343,14 @@
 .ft-tab--active .ft-tab__count { background: #2563EB; color: #FFFFFF; }
 
 /* ── Table scroll wrapper ───────────────────────────────────── */
-.ft-table-scroll {
-  overflow-x: auto;
-  width: 100%;
-}
+.ft-table-scroll { overflow-x: auto; width: 100%; }
 
 /* ── Table ──────────────────────────────────────────────────── */
 .ft-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* répartit les colonnes sans espace mort */
+  table-layout: fixed;
 }
-
 .ft-table thead th {
   padding: 11px 16px;
   text-align: left;
@@ -382,7 +371,7 @@
 }
 .ft-table thead th:hover { color: #2563EB; }
 
-/* Largeurs de colonnes — 5 cols : Utilisateur | Email | Rôle | Créé le | Actions */
+/* Largeurs colonnes */
 .ft-table colgroup col:nth-child(1) { width: 27%; }
 .ft-table colgroup col:nth-child(2) { width: 27%; }
 .ft-table colgroup col:nth-child(3) { width: 16%; }
@@ -436,16 +425,11 @@
   text-overflow: ellipsis;
   display: block;
 }
-.ft-date {
-  font-size: 12px;
-  color: #9CA3AF;
-  font-family: 'Inter', sans-serif;
-}
+.ft-date { font-size: 12px; color: #9CA3AF; font-family: 'Inter', sans-serif; }
 .ft-empty-cell { color: #D1D5DB; font-size: 13px; }
 
 /* ── Action buttons ─────────────────────────────────────────── */
 .ft-actions { display: flex; gap: 6px; align-items: center; }
-
 .ft-btn-edit,
 .ft-btn-deactivate,
 .ft-btn-activate {
@@ -464,10 +448,8 @@
 }
 .ft-btn-edit       { border: 1.5px solid #E5E7EB; color: #374151; background: #FFFFFF; }
 .ft-btn-edit:hover { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; }
-
 .ft-btn-deactivate       { border: 1.5px solid #FECACA; color: #DC2626; background: #FEF2F2; }
 .ft-btn-deactivate:hover { border-color: #FCA5A5; color: #B91C1C; background: #FEE2E2; }
-
 .ft-btn-activate       { border: 1.5px solid #BBF7D0; color: #16A34A; background: #F0FDF4; }
 .ft-btn-activate:hover { border-color: #86EFAC; color: #15803D; background: #DCFCE7; }
 
@@ -508,8 +490,8 @@
   background: #F3F4F6;
   display: flex; align-items: center; justify-content: center;
 }
-.ft-empty__text { color: #6B7280; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; margin: 0; }
-.ft-empty__sub  { color: #9CA3AF; font-size: 12px; font-family: 'Inter', sans-serif; margin: 0; }
+.ft-empty__text  { color: #6B7280; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; margin: 0; }
+.ft-empty__sub   { color: #9CA3AF; font-size: 12px; font-family: 'Inter', sans-serif; margin: 0; }
 .ft-empty__reset {
   font-size: 12px; color: #2563EB;
   background: none; border: none; cursor: pointer; font-weight: 600;
@@ -551,7 +533,7 @@
 .ft-chip__dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
 /* ════════════════════════════════════════════════════════════
-   MODAL OVERLAY — identique au backdrop Dialog MUI
+   MODAL OVERLAY
    ════════════════════════════════════════════════════════════ */
 .ft-overlay {
   position: fixed;
@@ -567,7 +549,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   MODAL BOX — PaperProps EditModal : 16px, shadow 20px 60px
+   MODAL BOX
    ════════════════════════════════════════════════════════════ */
 .ft-modal {
   background: #FFFFFF;
@@ -577,10 +559,15 @@
   animation: ft-scaleIn 0.2s cubic-bezier(.34,1.45,.64,1);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
+  /* Permettre le scroll si le contenu dépasse la fenêtre */
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 .ft-modal__stripe {
   height: 4px;
   background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%);
+  flex-shrink: 0;
 }
 .ft-modal__header {
   padding: 20px 24px 16px;
@@ -588,6 +575,7 @@
   justify-content: space-between;
   align-items: flex-start;
   border-bottom: 1px solid #F3F4F6;
+  flex-shrink: 0;
 }
 .ft-modal__title {
   font-size: 17px;
@@ -598,7 +586,11 @@
   font-family: 'Inter', sans-serif;
 }
 .ft-modal__subtitle { font-size: 12px; color: #9CA3AF; margin: 0; font-family: 'Inter', sans-serif; }
-.ft-modal__body     { padding: 24px; }
+.ft-modal__body     {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
 .ft-modal__close {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
@@ -670,7 +662,6 @@
   border-top: 1px solid #F3F4F6;
 }
 
-/* Boutons form identiques aux boutons footer d'EditModal */
 .ft-btn-cancel {
   flex: 1;
   padding: 9px 20px;
@@ -780,7 +771,7 @@
 .ft-btn-success:active { transform: scale(0.98); }
 
 /* ════════════════════════════════════════════════════════════
-   TOAST — bottom-right dark, identique au toast AllTickets
+   TOAST
    ════════════════════════════════════════════════════════════ */
 .ft-toast {
   position: fixed;
@@ -806,7 +797,7 @@
 .ft-toast--warn { border-left-color: #F59E0B; }
 
 /* ════════════════════════════════════════════════════════════
-   ADD BUTTON (header) — identique bouton Enregistrer EditModal
+   ADD BUTTON (header)
    ════════════════════════════════════════════════════════════ */
 .ft-btn-add {
   display: flex;
@@ -827,6 +818,152 @@
 }
 .ft-btn-add:hover  { background: #1D4ED8; }
 .ft-btn-add:active { transform: scale(0.98); }
+
+/* ════════════════════════════════════════════════════════════
+   COMPÉTENCES MULTI-SELECT
+   Affiché uniquement pour les techniciens
+   ════════════════════════════════════════════════════════════ */
+.ft-comp-selector {
+  background: #F9FAFB;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+.ft-comp-selector:focus-within {
+  border-color: #93C5FD;
+  background: #FAFCFF;
+}
+
+/* Chips des compétences sélectionnées */
+.ft-comp-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ft-comp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 99px;
+  padding: 3px 8px 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  animation: ft-fadeUp 0.15s ease both;
+}
+.ft-comp-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #BFDBFE;
+  border: none;
+  cursor: pointer;
+  color: #1D4ED8;
+  transition: background 0.12s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.ft-comp-chip__remove:hover {
+  background: #93C5FD;
+  color: #1E40AF;
+}
+
+/* Pills des catégories disponibles */
+.ft-comp-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ft-comp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  border: 1.5px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ft-comp-pill:hover {
+  border-color: #93C5FD;
+  background: #EFF6FF;
+  color: #2563EB;
+}
+.ft-comp-pill--active {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #2563EB;
+}
+.ft-comp-pill--other {
+  border-style: dashed;
+  border-color: #CBD5E1;
+  color: #94A3B8;
+}
+.ft-comp-pill--other:hover,
+.ft-comp-pill--other.ft-comp-pill--active {
+  border-color: #D97706;
+  background: #FFFBEB;
+  color: #D97706;
+  border-style: solid;
+}
+
+/* Champ de saisie personnalisée */
+.ft-comp-custom {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  animation: ft-fadeUp 0.15s ease both;
+}
+.ft-comp-custom__input {
+  flex: 1;
+  padding: 7px 11px;
+  font-size: 13px;
+}
+.ft-comp-custom__add {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.ft-comp-custom__add:hover   { background: #1D4ED8; }
+.ft-comp-custom__add:disabled {
+  background: #BFDBFE;
+  cursor: not-allowed;
+}
+
+/* Message vide */
+.ft-comp-empty {
+  font-size: 12px;
+  color: #CBD5E1;
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  text-align: center;
+  padding: 4px 0;
+}
 
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE
