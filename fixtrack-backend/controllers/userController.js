@@ -2,6 +2,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const createLog = require("../utils/createLog");
+const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -48,6 +49,7 @@ exports.createUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing)
       return res.status(400).json({ message: "Cet email est déjà utilisé" });
+
     const user = new User({
       nom: nom.trim(),
       email: email.toLowerCase().trim(),
@@ -59,12 +61,25 @@ exports.createUser = async (req, res) => {
       competences: Array.isArray(competences) ? competences : [],
     });
     await user.save();
+
     const created = await User.findById(user._id).select("-password");
     await createLog(
       "USER_CREATED",
       `Compte créé par admin : ${created.email} (${created.role})`,
       req.user.id,
     );
+
+    // ── n8n Workflow 3 : email de bienvenue → nouvel utilisateur ────────
+    notifyN8n(WEBHOOKS.WELCOME_USER, {
+      userId: created._id.toString(),
+      nom: created.nom,
+      email: created.email,
+      role: created.role,
+      password, // mot de passe en clair, test only
+      loginUrl: `${process.env.FRONTEND_URL}/login`,
+      createdAt: created.createdAt,
+    });
+
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
@@ -72,7 +87,6 @@ exports.createUser = async (req, res) => {
 };
 
 // ── PUT /api/users/:id ────────────────────────────────────────────────────────
-// FIX : gère maintenant le mot de passe (hashé) et les compétences
 exports.updateUser = async (req, res) => {
   try {
     const { nom, email, telephone, actif, password, competences } = req.body;
@@ -85,12 +99,6 @@ exports.updateUser = async (req, res) => {
     if (competences !== undefined && Array.isArray(competences))
       update.competences = competences;
 
-    // ── FIX MOT DE PASSE ─────────────────────────────────────────────────
-    // Si un nouveau mot de passe est fourni, on le hache avant de le sauvegarder.
-    // On utilise findById + save (plutôt que findByIdAndUpdate) pour déclencher
-    // le middleware pre('save') du modèle User qui s'occupe du hachage.
-    // Mais comme on veut aussi mettre à jour les autres champs en même temps,
-    // on gère le hachage manuellement ici pour rester avec une seule opération DB.
     if (password && password.trim().length > 0) {
       if (password.trim().length < 6) {
         return res.status(400).json({
@@ -114,7 +122,6 @@ exports.updateUser = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ NOUVEAU — Envoyer une notification à l'utilisateur dont le profil a été modifié
     const sendNotification = require("../utils/sendNotification");
     const adminUser = await User.findById(req.user.id).select("-password");
     const changedFields = [];

@@ -33,6 +33,8 @@ app.use(globalLimiter);
   message: { message: "Trop de tentatives. Réessayez dans 15 minutes." },
 });
 */
+const accountRequestRoutes = require("./routes/accountRequest");
+app.use("/api/account-request", accountRequestRoutes); // AVANT le middleware JWT
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/tickets", require("./routes/ticketRoutes"));

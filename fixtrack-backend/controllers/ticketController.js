@@ -4,6 +4,7 @@ const User = require("../models/User");
 const createLog = require("../utils/createLog");
 const sendNotification = require("../utils/sendNotification");
 const calculatePriority = require("../utils/priorityAI");
+const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 
 const VALID_TRANSITIONS = {
   open: ["assigned", "in_progress", "closed"],
@@ -107,6 +108,7 @@ exports.createTicket = async (req, res) => {
       role: { $in: ["manager", "admin"] },
       actif: true,
     });
+
     await Promise.all(
       managers.map((m) =>
         sendNotification({
@@ -129,6 +131,22 @@ exports.createTicket = async (req, res) => {
           }),
         ),
       );
+
+      // ── n8n Workflow 1 : email critique → manager ──────────────────────
+      const manager = managers[0];
+      notifyN8n(WEBHOOKS.CRITICAL_TICKET, {
+        ticketId: ticket._id.toString(),
+        titre: ticket.titre,
+        description: ticket.description,
+        localisation: ticket.localisation,
+        categorie: ticket.categorie,
+        priorite: ticket.priorite,
+        statut: ticket.statut,
+        createdAt: ticket.createdAt,
+        managerEmail: manager?.email || process.env.MANAGER_FALLBACK_EMAIL,
+        managerNom: manager?.nom || "Manager",
+        ticketUrl: `${process.env.FRONTEND_URL}/tickets/${ticket._id}`,
+      });
     }
 
     const populated = await Ticket.findById(ticket._id)
@@ -252,8 +270,6 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // ✅ Si le manager remet en "in_progress" (rejet de résolution),
-    //    notifier le technicien concerné par son nom
     if (statut === "in_progress" && oldStatut === "resolved") {
       const techId = ticket.technicienId?._id || ticket.technicienId;
       const managerNom = req.user?.nom || "Le manager";
@@ -277,7 +293,6 @@ exports.updateStatus = async (req, res) => {
 };
 
 // ── PATCH /api/tickets/:id/refuse ─────────────────────────────────────────────
-// Technicien refuse un ticket assigné
 exports.refuseTicket = async (req, res) => {
   try {
     const { reason } = req.body;
@@ -321,7 +336,6 @@ exports.refuseTicket = async (req, res) => {
       "warning",
     );
 
-    // ── Notif managers — avec le nom exact du technicien ──────────────────────
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -346,7 +360,6 @@ exports.refuseTicket = async (req, res) => {
       ),
     );
 
-    // ── Notif auteur ──────────────────────────────────────────────────────────
     if (ticket.auteurId) {
       await sendNotification({
         userId: ticket.auteurId._id || ticket.auteurId,
@@ -398,7 +411,6 @@ exports.assignTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notif technicien — avec le nom du manager
     await sendNotification({
       userId: technicienId,
       message: `${managerNom} vous a assigné le ticket "${ticket.titre}"`,
@@ -411,6 +423,21 @@ exports.assignTicket = async (req, res) => {
       message: `Votre ticket "${ticket.titre}" a été assigné à ${tech.nom}`,
       type: "status_changed",
       ticketId: ticket._id,
+    });
+
+    // ── n8n Workflow 2 : email assigné → technicien ────────────────────
+    notifyN8n(WEBHOOKS.TICKET_ASSIGNED, {
+      ticketId: ticket._id.toString(),
+      titre: ticket.titre,
+      description: ticket.description,
+      localisation: ticket.localisation,
+      categorie: ticket.categorie,
+      priorite: ticket.priorite,
+      statut: ticket.statut,
+      createdAt: ticket.createdAt,
+      technicienEmail: tech.email,
+      technicienNom: tech.nom,
+      ticketUrl: `${process.env.FRONTEND_URL}/tickets/${ticket._id}`,
     });
 
     res.json(ticket);
@@ -512,13 +539,11 @@ exports.addNote = async (req, res) => {
 exports.resolveTicket = async (req, res) => {
   try {
     const { solution } = req.body;
-    const ticket = await Ticket.findById(req.params.id).populate(
-      "technicienId",
-      "nom email",
-    );
+    const ticket = await Ticket.findById(req.params.id)
+      .populate("auteurId", "nom email")
+      .populate("technicienId", "nom email");
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
 
-    // ✅ Récupère le nom du technicien avant modification
     const techNom =
       ticket.technicienId?.nom || req.user?.nom || "Un technicien";
 
@@ -538,7 +563,7 @@ exports.resolveTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notif auteur
+    // ── Notification in-app → auteur ───────────────────────────────────
     await sendNotification({
       userId: ticket.auteurId,
       message: `Votre ticket "${ticket.titre}" a été résolu par ${techNom}. En attente de validation.`,
@@ -546,7 +571,6 @@ exports.resolveTicket = async (req, res) => {
       ticketId: ticket._id,
     });
 
-    // ✅ Notif managers — avec le nom exact du technicien
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
       actif: true,
@@ -561,6 +585,31 @@ exports.resolveTicket = async (req, res) => {
         }),
       ),
     );
+
+    // ── n8n Workflow 4 : email résolution → employé ────────────────────
+    const auteur = ticket.auteurId;
+    if (auteur?.email) {
+      notifyN8n(WEBHOOKS.TICKET_RESOLVED, {
+        ticketId: ticket._id.toString(),
+        titre: ticket.titre,
+        description: ticket.description,
+        localisation: ticket.localisation,
+        categorie: ticket.categorie,
+        priorite: ticket.priorite,
+        solution: solution || null,
+        resolvedAt: new Date().toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        employeeEmail: auteur.email,
+        employeeNom: auteur.nom,
+        technicienNom: techNom,
+        ticketUrl: `${process.env.FRONTEND_URL}/tickets/${ticket._id}`,
+      });
+    }
 
     const updated = await Ticket.findById(ticket._id)
       .populate("auteurId", "nom email")
@@ -600,7 +649,6 @@ exports.validateTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ✅ Notif technicien — avec le nom du manager
     if (ticket.technicienId) {
       await sendNotification({
         userId: ticket.technicienId._id || ticket.technicienId,

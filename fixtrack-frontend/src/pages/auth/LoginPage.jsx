@@ -1,11 +1,9 @@
 // src/pages/auth/LoginPage.jsx
-// même design, authentification via API
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 
 const ROLE_META = {
-  employee:   { label: "utilisateur",  color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },
+  employee:   { label: "Employé",    color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },
   technician: { label: "Technicien", color: "#f59e0b", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.3)" },
   manager:    { label: "Manager",    color: "#3b82f6", bg: "rgba(59,130,246,0.15)", border: "rgba(59,130,246,0.3)" },
   admin:      { label: "Admin",      color: "#ef4444", bg: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.3)"  },
@@ -17,6 +15,14 @@ const DEMO_ACCOUNTS = [
   { id: "d3", nom: "Lina Trabelsi", email: "lina@fst.tn",  password: "123456", role: "manager",    avatar: "LT" },
   { id: "d4", nom: "Admin FST",     email: "admin@fst.tn", password: "123456", role: "admin",      avatar: "AF" },
 ];
+
+const ROLE_OPTIONS = [
+  { value: "employee",   label: "Employé" },
+  { value: "technician", label: "Technicien" },
+  { value: "manager",    label: "Manager" },
+];
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function ParticleCanvas() {
   const ref = useRef(null);
@@ -71,7 +77,6 @@ function ParticleCanvas() {
   );
 }
 
-// Icône clé anglaise — identique à celle du Layout
 function WrenchIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -80,15 +85,11 @@ function WrenchIcon() {
   );
 }
 
-// Logo identique au sidebar du Layout
 function AppLogo() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 24 }}>
-      {/* Carré bleu gradient avec icône clé — copie exacte du Layout */}
       <div style={{
-        width: 40, height: 40,
-        borderRadius: 11,
-        flexShrink: 0,
+        width: 40, height: 40, borderRadius: 11, flexShrink: 0,
         background: "linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%)",
         display: "flex", alignItems: "center", justifyContent: "center",
         boxShadow: "0 2px 14px rgba(37,99,235,0.45)",
@@ -98,7 +99,6 @@ function AppLogo() {
           <WrenchIcon />
         </div>
       </div>
-      {/* Texte "FixTrack" + sous-titre "Maintenance" — copie exacte du Layout */}
       <div>
         <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, letterSpacing: "-0.4px", lineHeight: 1.1 }}>
           Fix<span style={{ color: "black" }}>Track</span>
@@ -111,6 +111,282 @@ function AppLogo() {
   );
 }
 
+// ── Modal Demande de Compte ───────────────────────────────────────────────────
+function AccountRequestModal({ onClose }) {
+  const [form, setForm] = useState({ nom: "", email: "", telephone: "", role: "employee", message: "" });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [apiErr, setApiErr] = useState("");
+
+  const set = (field) => (e) => {
+    setForm(f => ({ ...f, [field]: e.target.value }));
+    setErrors(errs => ({ ...errs, [field]: undefined }));
+    setApiErr("");
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.nom.trim())   e.nom   = "Le nom est requis";
+    if (!form.email.trim()) e.email = "L'email est requis";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Format invalide";
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setLoading(true);
+    setApiErr("");
+    try {
+      const res = await fetch(`${API_BASE}/account-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setApiErr(data.message || "Une erreur est survenue");
+        setLoading(false);
+        return;
+      }
+      setSuccess(true);
+    } catch {
+      setApiErr("Impossible de contacter le serveur. Réessayez.");
+    }
+    setLoading(false);
+  };
+
+  const inputStyle = (err) => ({
+    width: "100%", height: 42, padding: "0 14px",
+    background: err ? "#fff5f5" : "#f9fafb",
+    border: `1.5px solid ${err ? "#fca5a5" : "#e5e7eb"}`,
+    borderRadius: 9, fontSize: 13.5, color: "#111827",
+    outline: "none", fontFamily: "inherit",
+    boxSizing: "border-box",
+  });
+
+  const CSS = `
+    @keyframes modalFade { from { opacity:0; transform:translateY(16px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes ftSpin { to { transform:rotate(360deg); } }
+    .req-input:focus { border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #f0f7ff !important; }
+    .req-close:hover { background: #f3f4f6 !important; }
+  `;
+
+  return (
+    <>
+      <style>{CSS}</style>
+      {/* Overlay */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(4px)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "20px 16px",
+        }}
+      >
+        {/* Card — stop propagation to prevent close on card click */}
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: "100%", maxWidth: 480,
+            background: "#fff", borderRadius: 18,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)",
+            overflow: "hidden",
+            animation: "modalFade .35s cubic-bezier(.22,1,.36,1) both",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)",
+            padding: "24px 28px 20px",
+            position: "relative",
+          }}>
+            <button
+              className="req-close"
+              onClick={onClose}
+              style={{
+                position: "absolute", top: 14, right: 14,
+                width: 30, height: 30, borderRadius: 8,
+                border: "none", background: "rgba(255,255,255,0.15)",
+                color: "#fff", cursor: "pointer", fontSize: 16,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >×</button>
+            <div style={{ fontSize: 28, marginBottom: 8 }}></div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, letterSpacing: "-0.3px" }}>
+              Demander un compte
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 4 }}>
+              Un administrateur recevra votre demande par email
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: "24px 28px 28px" }}>
+            {success ? (
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <div style={{ fontSize: 52, marginBottom: 14 }}>✅</div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: "#111827", marginBottom: 8 }}>
+                  Demande envoyée !
+                </div>
+                <div style={{ fontSize: 13.5, color: "#6b7280", lineHeight: 1.7, marginBottom: 20 }}>
+                  Votre demande a bien été transmise à l'administrateur.<br />
+                  Vous serez contacté à l'adresse <strong style={{ color: "#111827" }}>{form.email}</strong>.
+                </div>
+                <button
+                  onClick={onClose}
+                  style={{
+                    padding: "10px 28px", background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    border: "none", borderRadius: 10, color: "#fff",
+                    fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >Fermer</button>
+              </div>
+            ) : (
+              <>
+                {apiErr && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 14px", marginBottom: 16,
+                    background: "#fef2f2", border: "1px solid #fecaca",
+                    borderRadius: 9, fontSize: 12.5, color: "#dc2626",
+                  }}>
+                    <span>⚠</span><span>{apiErr}</span>
+                  </div>
+                )}
+
+                {/* Nom */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                    Nom complet <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    className="req-input"
+                    placeholder="Prénom Nom"
+                    value={form.nom}
+                    onChange={set("nom")}
+                    style={inputStyle(errors.nom)}
+                  />
+                  {errors.nom && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>↳ {errors.nom}</div>}
+                </div>
+
+                {/* Email */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                    Adresse email <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    className="req-input"
+                    type="email"
+                    placeholder="prenom@entreprise.com"
+                    value={form.email}
+                    onChange={set("email")}
+                    style={inputStyle(errors.email)}
+                  />
+                  {errors.email && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>↳ {errors.email}</div>}
+                </div>
+
+                {/* Téléphone + Rôle sur 2 colonnes */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                      Téléphone
+                    </label>
+                    <input
+                      className="req-input"
+                      placeholder="+216 XX XXX XXX"
+                      value={form.telephone}
+                      onChange={set("telephone")}
+                      style={inputStyle(false)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                      Rôle souhaité
+                    </label>
+                    <select
+                      className="req-input"
+                      value={form.role}
+                      onChange={set("role")}
+                      style={{
+                        ...inputStyle(false),
+                        cursor: "pointer",
+                        appearance: "none",
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 12px center",
+                        paddingRight: 32,
+                      }}
+                    >
+                      {ROLE_OPTIONS.map(r => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                    Message (optionnel)
+                  </label>
+                  <textarea
+                    className="req-input"
+                    placeholder="Précisez votre service, poste ou toute information utile..."
+                    value={form.message}
+                    onChange={set("message")}
+                    rows={3}
+                    style={{
+                      ...inputStyle(false),
+                      height: "auto",
+                      padding: "10px 14px",
+                      resize: "vertical",
+                      lineHeight: 1.6,
+                    }}
+                  />
+                </div>
+
+                {/* Submit */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  style={{
+                    width: "100%", height: 46,
+                    background: loading ? "#93c5fd" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    border: "none", borderRadius: 11, cursor: loading ? "not-allowed" : "pointer",
+                    color: "#fff", fontFamily: "inherit",
+                    fontSize: 14, fontWeight: 800, letterSpacing: ".4px",
+                    boxShadow: loading ? "none" : "0 4px 18px rgba(37,99,235,0.35)",
+                    transition: "transform .15s, box-shadow .15s",
+                  }}
+                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 7px 24px rgba(37,99,235,0.45)"; } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 18px rgba(37,99,235,0.35)"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+                    {loading
+                      ? <><div style={{ width: 17, height: 17, border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "ftSpin .65s linear infinite" }} /><span>Envoi en cours…</span></>
+                      : <><span>📨</span><span>ENVOYER MA DEMANDE</span></>
+                    }
+                  </div>
+                </button>
+
+                <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
+                  Votre demande sera examinée par un administrateur.<br />
+                  Aucun compte n'est créé automatiquement.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Page principale ───────────────────────────────────────────────────────────
 export default function LoginPage({ onLoginSuccess }) {
   const { loginWithBackend } = useAuth();
 
@@ -124,6 +400,9 @@ export default function LoginPage({ onLoginSuccess }) {
   const [success,  setSuccess]  = useState(false);
   const [succUser, setSuccUser] = useState(null);
   const [time,     setTime]     = useState(new Date());
+
+  // ── Modal état ────────────────────────────────────────────────────────────
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -184,12 +463,19 @@ export default function LoginPage({ onLoginSuccess }) {
     @keyframes ftShimmer { 0%{left:-120%} 100%{left:200%} }
     @keyframes ftSpin    { to{transform:rotate(360deg)} }
     .ft-demo:hover { background:rgba(255,255,255,0.13) !important; transform:translateX(3px); }
+    .ft-req-btn:hover { background:rgba(255,255,255,0.18) !important; border-color:rgba(255,255,255,0.35) !important; }
     @media(max-width:920px){ .ft-card{grid-template-columns:1fr !important;} .ft-left{display:none !important;} .ft-right{padding:32px 22px !important; max-width:100% !important;} }
   `;
 
   return (
     <>
       <style>{CSS}</style>
+
+      {/* Modal demande de compte */}
+      {showRequestModal && (
+        <AccountRequestModal onClose={() => setShowRequestModal(false)} />
+      )}
+
       <div style={{
         minHeight: "100vh", width: "100%",
         display: "flex", flexDirection: "column",
@@ -226,10 +512,8 @@ export default function LoginPage({ onLoginSuccess }) {
             <div style={{ position:"absolute", top:"-100px", left:"-100px", width:"300px", height:"300px", borderRadius:"50%", background:"radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)", pointerEvents:"none", zIndex:1 }} />
             <div style={{ position:"absolute", bottom:"-80px", right:"-80px", width:"250px", height:"250px", borderRadius:"50%", background:"radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)", pointerEvents:"none", zIndex:1 }} />
 
-            {/* LEFT — Section WELCOME */}
+            {/* LEFT */}
             <div className="ft-left" style={{ flex: "0 0 auto", maxWidth: 380, position: "relative", zIndex: 2 }}>
-
-              {/* ← Logo mis à jour : identique au Layout sidebar */}
               <AppLogo />
 
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 26, lineHeight: 1.25, letterSpacing: "-0.4px", marginBottom: 10 }}>Bienvenue</div>
@@ -264,6 +548,28 @@ export default function LoginPage({ onLoginSuccess }) {
                 <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: 7 }}>
                   MDP universel : <span style={{ color: "rgba(255,255,255,0.7)", fontFamily: "monospace", fontWeight: 600 }}>123456</span>
                 </div>
+              </div>
+
+              {/* ── Bouton Demander un compte ── */}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+                <button
+                  className="ft-req-btn"
+                  onClick={() => setShowRequestModal(true)}
+                  style={{
+                    width: "100%", padding: "10px 16px",
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 10, cursor: "pointer",
+                    color: "#fff", fontFamily: "inherit",
+                    fontSize: 12.5, fontWeight: 600,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    transition: "all .18s ease",
+                  }}
+                >
+                  <span style={{ fontSize: 14 }}></span>
+                  <span>Pas de compte ? Faire une demande</span>
+                  <span style={{ fontSize: 12, opacity: 0.6 }}>→</span>
+                </button>
               </div>
             </div>
 
@@ -354,9 +660,23 @@ export default function LoginPage({ onLoginSuccess }) {
                     </div>
                   </button>
 
-                  <div style={{ padding: "11px 15px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: 12, color: "#1d4ed8", textAlign: "center", lineHeight: 1.65 }}>
+                  {/* ── Lien demande de compte (version mobile / formulaire côté droit) ── */}
+                  <div
+                    onClick={() => setShowRequestModal(true)}
+                    style={{
+                      padding: "11px 15px", background: "#eff6ff",
+                      border: "1px solid #bfdbfe", borderRadius: 10,
+                      fontSize: 12, color: "#1d4ed8", textAlign: "center",
+                      lineHeight: 1.65, cursor: "pointer",
+                      transition: "background .18s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#dbeafe"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#eff6ff"}
+                  >
                     Pas encore de compte ?{" "}
-                    <strong style={{ color: "#111827" }}>Contactez votre administrateur.</strong>
+                    <strong style={{ color: "#111827", textDecoration: "underline" }}>
+                      contactez l'administrateur
+                    </strong>
                   </div>
                 </>
               )}
