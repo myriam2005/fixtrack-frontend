@@ -1,10 +1,23 @@
-// controllers/userController.js
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const dns = require("dns").promises;
 const createLog = require("../utils/createLog");
 const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 const { sendVerificationEmail } = require("../utils/emailService");
 
+// ── Helper : vérifie que le domaine email a un enregistrement MX ─────────────
+async function isEmailDomainValid(email) {
+  try {
+    const domain = email.split("@")[1];
+    if (!domain) return false;
+    const records = await dns.resolveMx(domain);
+    return records && records.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// ── GET /api/users ────────────────────────────────────────────────────────────
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
@@ -14,6 +27,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// ── GET /api/users/technicians ────────────────────────────────────────────────
 exports.getTechnicians = async (req, res) => {
   try {
     const techs = await User.find({
@@ -26,6 +40,7 @@ exports.getTechnicians = async (req, res) => {
   }
 };
 
+// ── GET /api/users/:id ────────────────────────────────────────────────────────
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -37,37 +52,59 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+// ── POST /api/users ───────────────────────────────────────────────────────────
 exports.createUser = async (req, res) => {
   try {
     const { nom, email, password, role, competences } = req.body;
+
+    // 1. Champs requis
     if (!nom || !email || !password)
       return res
         .status(400)
         .json({ message: "Nom, email et mot de passe requis" });
+
+    // 2. Rôle valide
     const VALID_ROLES = ["employee", "technician", "manager", "admin"];
     if (role && !VALID_ROLES.includes(role))
       return res.status(400).json({ message: "Rôle invalide" });
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+
+    // 3. Format email basique
+    const emailNormalized = email.toLowerCase().trim();
+    if (!/\S+@\S+\.\S+/.test(emailNormalized))
+      return res.status(400).json({ message: "Format d'email invalide" });
+
+    // ✅ 4. Vérification que le domaine email existe (DNS MX)
+    const domainValid = await isEmailDomainValid(emailNormalized);
+    if (!domainValid) {
+      return res.status(400).json({
+        message:
+          "Adresse email invalide — ce domaine n'existe pas ou n'accepte pas d'emails.",
+        emailDomainInvalid: true,
+      });
+    }
+
+    // 5. Email déjà utilisé
+    const existing = await User.findOne({ email: emailNormalized });
     if (existing)
       return res.status(400).json({ message: "Cet email est déjà utilisé" });
 
+    // 6. Création de l'utilisateur
     const user = new User({
       nom: nom.trim(),
-      email: email.toLowerCase().trim(),
+      email: emailNormalized,
       password,
       role: role || "employee",
       actif: true,
       avatar: "",
       telephone: null,
       competences: Array.isArray(competences) ? competences : [],
-      emailVerified: false, // ✅ NEW: Non vérifié par défaut
+      emailVerified: false,
     });
 
-    // Génération du token de vérification
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Envoi de l'email de vérification
+    // 7. Envoi email de vérification
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const emailResult = await sendVerificationEmail(
       user.email,
@@ -78,16 +115,13 @@ exports.createUser = async (req, res) => {
 
     const created = await User.findById(user._id).select("-password");
 
-    // Seulement si l'email a été envoyé avec succès
     if (!emailResult.success) {
       console.warn("⚠️  Email de vérification non envoyé:", emailResult.error);
-      // On retourne quand même l'utilisateur, mais on signale l'erreur
       await createLog(
         "USER_CREATED_EMAIL_FAILED",
         `Compte créé par admin (email non envoyé) : ${created.email}`,
         req.user.id,
       );
-
       return res.status(201).json({
         message:
           "Utilisateur créé mais l'email de vérification n'a pas pu être envoyé",
@@ -102,17 +136,6 @@ exports.createUser = async (req, res) => {
       `Compte créé par admin : ${created.email} (${created.role}) — email de vérification envoyé`,
       req.user.id,
     );
-
-    // ── n8n Workflow 3 : email de bienvenue (optionnel, peut être commenté si redondant) ────────
-    // notifyN8n(WEBHOOKS.WELCOME_USER, {
-    //   userId: created._id.toString(),
-    //   nom: created.nom,
-    //   email: created.email,
-    //   role: created.role,
-    //   password, // mot de passe en clair, test only
-    //   loginUrl: `${process.env.FRONTEND_URL}/login`,
-    //   createdAt: created.createdAt,
-    // });
 
     res.status(201).json({
       message:
@@ -175,6 +198,7 @@ exports.updateUser = async (req, res) => {
       changedFields.length > 0
         ? " Éléments modifiés : " + changedFields.join(", ") + "."
         : "";
+
     await sendNotification({
       userId: user._id,
       message: `Votre profil a été modifié par l'administrateur ${adminUser?.nom || "Administrateur"}.${fieldList}`,
@@ -191,6 +215,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+// ── PUT /api/users/:id/role ───────────────────────────────────────────────────
 exports.updateRole = async (req, res) => {
   try {
     const { role } = req.body;
@@ -215,6 +240,7 @@ exports.updateRole = async (req, res) => {
   }
 };
 
+// ── DELETE /api/users/:id (désactivation douce) ───────────────────────────────
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
