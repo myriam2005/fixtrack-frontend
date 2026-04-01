@@ -87,19 +87,166 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * loginWithBackend({ email, password })
-   * ✅ Appelle POST /api/auth/login
-   * ✅ Stocke les données fraîches de la DB (email à jour inclus)
+   * registerWithBackend({ nom, email, password, role, telephone, competences })
+   * ✅ Appelle POST /api/auth/register
+   * ✅ Retourne requiresEmailVerification = true si vérification email nécessaire
    */
-  const loginWithBackend = useCallback(async ({ email, password }) => {
+  const registerWithBackend = useCallback(
+    async ({ nom, email, password, role, telephone, competences }) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nom,
+            email,
+            password,
+            role: role || "employee",
+            telephone: telephone || null,
+            competences: competences || [],
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const msg = data.message || "Erreur lors de l'inscription";
+          setError(msg);
+          return {
+            success: false,
+            error: msg,
+            emailAlreadyExists: data.emailAlreadyExists || false,
+            emailSendError: data.emailSendError || false,
+          };
+        }
+
+        // Si la vérification d'email est requise, on stocke l'email pour la résend
+        if (data.requiresEmailVerification) {
+          sessionStorage.setItem("pendingEmailVerification", email);
+        }
+
+        return {
+          success: true,
+          user: data.user,
+          requiresEmailVerification: data.requiresEmailVerification || false,
+          message: data.message,
+        };
+      } catch (err) {
+        const msg =
+          "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
+        setError(msg);
+        return { success: false, error: msg };
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /**
+   * verifyEmailWithToken(token)
+   * ✅ Appelle POST /api/auth/verify-email avec le token
+   */
+  const verifyEmailWithToken = useCallback(async (token) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const msg = data.message || "Vérification échouée";
+        setError(msg);
+        return {
+          success: false,
+          error: msg,
+          tokenInvalid: data.tokenInvalid || false,
+          tokenExpired: data.tokenExpired || false,
+        };
+      }
+
+      // Nettoie le sessionStorage après vérification
+      sessionStorage.removeItem("pendingEmailVerification");
+
+      return {
+        success: true,
+        user: data.user,
+        message: data.message,
+      };
+    } catch {
+      const msg =
+        "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
+      setError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * resendEmailVerification(email)
+   * ✅ Appelle POST /api/auth/resend-verification
+   */
+  const resendEmailVerification = useCallback(async (email) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const msg = data.message || "Erreur lors du renvoi";
+        setError(msg);
+        return {
+          success: false,
+          error: msg,
+          rateLimited: data.rateLimited || false,
+          alreadyVerified: data.alreadyVerified || false,
+        };
+      }
+
+      return {
+        success: true,
+        message: data.message,
+      };
+    } catch {
+      const msg =
+        "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
+      setError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * loginWithBackend(email, password)
+   * ✅ Appelle POST /api/auth/login
+   */
+  const loginWithBackend = useCallback(async (email, password) => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -120,9 +267,9 @@ export function AuthProvider({ children }) {
       setUser(userData);
 
       return { success: true, role: data.user.role, user: data.user };
-
     } catch {
-      const msg = "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
+      const msg =
+        "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
       setError(msg);
       return { success: false, error: msg };
     } finally {
@@ -195,10 +342,13 @@ export function AuthProvider({ children }) {
     user,
     login,
     loginWithBackend,
+    registerWithBackend,
+    verifyEmailWithToken,
+    resendEmailVerification,
     logout,
     getToken,
-    refreshUser,    // ← nouveau : pour forcer un refresh après modif profil
-    isAuth:      !!user,
+    refreshUser,
+    isAuth: !!user,
     loading,
     authChecked,
     error,

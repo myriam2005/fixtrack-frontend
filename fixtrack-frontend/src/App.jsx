@@ -10,6 +10,7 @@ import { NotificationProvider } from "./context/NotificationContext";
 
 // Auth pages
 import LoginPage  from "./pages/auth/LoginPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 
 import Layout from "./components/layout/Layout";
 
@@ -88,6 +89,7 @@ export default function App() {
                   onLoginSuccess={handleLoginSuccess}
                 />
           } />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
         
 
           {/* ── Pages protégées avec Layout ── */}
