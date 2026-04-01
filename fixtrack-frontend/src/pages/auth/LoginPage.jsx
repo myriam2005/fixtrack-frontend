@@ -112,17 +112,46 @@ function AppLogo() {
 }
 
 // ── Modal Demande de Compte — design professionnel sans emoji ─────────────────
+
 function AccountRequestModal({ onClose }) {
-  const [form, setForm] = useState({ nom: "", email: "", telephone: "", role: "employee", message: "" });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [apiErr, setApiErr] = useState("");
+  const [form, setForm] = useState({
+    nom: "", email: "", telephone: "", role: "employee", message: "",
+  });
+  const [errors, setErrors]               = useState({});
+  const [loading, setLoading]             = useState(false);
+  const [success, setSuccess]             = useState(false);
+  const [apiErr, setApiErr]               = useState("");
+  // ✅ NEW : validation domaine email en temps réel
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailDomainErr, setEmailDomainErr] = useState("");
 
   const set = (field) => (e) => {
     setForm(f => ({ ...f, [field]: e.target.value }));
     setErrors(errs => ({ ...errs, [field]: undefined }));
+    if (field === "email") setEmailDomainErr("");
     setApiErr("");
+  };
+
+  // ✅ NEW : vérifie le domaine à la perte de focus sur le champ email
+  const checkEmailDomain = async (email) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return;
+    setEmailChecking(true);
+    setEmailDomainErr("");
+    try {
+      const res = await fetch(`${API_BASE}/auth/check-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!data.valid) {
+        setEmailDomainErr("Ce domaine email n'existe pas ou n'accepte pas d'emails.");
+      }
+    } catch {
+      // silencieux si backend down
+    } finally {
+      setEmailChecking(false);
+    }
   };
 
   const validate = () => {
@@ -130,12 +159,16 @@ function AccountRequestModal({ onClose }) {
     if (!form.nom.trim())   e.nom   = "Le nom est requis";
     if (!form.email.trim()) e.email = "L'email est requis";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Format invalide";
+    // ✅ Bloque le submit si le domaine est invalide
+    if (emailDomainErr) e.email = emailDomainErr;
     return e;
   };
 
   const handleSubmit = async () => {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    // ✅ Bloque aussi si la vérification est encore en cours
+    if (emailChecking) return;
     setLoading(true);
     setApiErr("");
     try {
@@ -157,10 +190,10 @@ function AccountRequestModal({ onClose }) {
     setLoading(false);
   };
 
-  const inputStyle = (err) => ({
+  const inputStyle = (hasErr) => ({
     width: "100%", height: 42, padding: "0 14px",
-    background: err ? "#fff5f5" : "#f9fafb",
-    border: `1.5px solid ${err ? "#fca5a5" : "#e5e7eb"}`,
+    background: hasErr ? "#fff5f5" : "#f9fafb",
+    border: `1.5px solid ${hasErr ? "#fca5a5" : "#e5e7eb"}`,
     borderRadius: 8, fontSize: 13.5, color: "#111827",
     outline: "none", fontFamily: "inherit",
     boxSizing: "border-box",
@@ -190,8 +223,8 @@ function AccountRequestModal({ onClose }) {
         <div
           onClick={e => e.stopPropagation()}
           style={{
-            width: "100%", maxWidth: 500,
-            background: "#fff", borderRadius: 16,
+            width: "100%", maxWidth: 500, background: "#fff",
+            borderRadius: 16,
             boxShadow: "0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.06)",
             overflow: "hidden",
             animation: "modalFade .3s cubic-bezier(.22,1,.36,1) both",
@@ -200,27 +233,20 @@ function AccountRequestModal({ onClose }) {
           {/* Header */}
           <div style={{
             background: "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)",
-            padding: "28px 32px 24px",
-            position: "relative",
+            padding: "28px 32px 24px", position: "relative",
           }}>
-            <button
-              className="req-close"
-              onClick={onClose}
-              style={{
-                position: "absolute", top: 16, right: 16,
-                width: 32, height: 32, borderRadius: 8,
-                border: "none", background: "rgba(255,255,255,0.15)",
-                color: "#fff", cursor: "pointer", fontSize: 18, lineHeight: 1,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "background .15s",
-              }}
-            >
+            <button className="req-close" onClick={onClose} style={{
+              position: "absolute", top: 16, right: 16,
+              width: 32, height: 32, borderRadius: 8,
+              border: "none", background: "rgba(255,255,255,0.15)",
+              color: "#fff", cursor: "pointer", fontSize: 18,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background .15s",
+            }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
               </svg>
             </button>
-
-            {/* Icon */}
             <div style={{
               width: 44, height: 44, borderRadius: 10,
               background: "rgba(255,255,255,0.15)",
@@ -235,7 +261,6 @@ function AccountRequestModal({ onClose }) {
                 <line x1="9" y1="14" x2="15" y2="14"/>
               </svg>
             </div>
-
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", marginBottom: 4 }}>
               Demande d'accès
             </div>
@@ -248,7 +273,6 @@ function AccountRequestModal({ onClose }) {
           <div style={{ padding: "28px 32px 32px" }}>
             {success ? (
               <div style={{ textAlign: "center", padding: "12px 0 4px" }}>
-                {/* Success checkmark */}
                 <div style={{
                   width: 56, height: 56, borderRadius: "50%",
                   background: "#f0fdf4", border: "2px solid #86efac",
@@ -264,18 +288,14 @@ function AccountRequestModal({ onClose }) {
                 </div>
                 <div style={{ fontSize: 13.5, color: "#6b7280", lineHeight: 1.7, marginBottom: 24 }}>
                   Votre demande a été transmise à l'administrateur.<br />
-                  Vous serez contacté à l'adresse <strong style={{ color: "#111827" }}>{form.email}</strong>.
+                  Vous serez contacté à <strong style={{ color: "#111827" }}>{form.email}</strong>.
                 </div>
-                <button
-                  onClick={onClose}
-                  style={{
-                    padding: "10px 28px",
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                    border: "none", borderRadius: 8, color: "#fff",
-                    fontWeight: 600, fontSize: 14, cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >Fermer</button>
+                <button onClick={onClose} style={{
+                  padding: "10px 28px",
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  border: "none", borderRadius: 8, color: "#fff",
+                  fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+                }}>Fermer</button>
               </div>
             ) : (
               <>
@@ -295,7 +315,7 @@ function AccountRequestModal({ onClose }) {
 
                 {/* Nom */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, letterSpacing: ".2px" }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                     Nom complet <span style={{ color: "#ef4444" }}>*</span>
                   </label>
                   <input
@@ -305,29 +325,61 @@ function AccountRequestModal({ onClose }) {
                     onChange={set("nom")}
                     style={inputStyle(errors.nom)}
                   />
-                  {errors.nom && <div style={{ fontSize: 11.5, color: "#ef4444", marginTop: 5 }}>{errors.nom}</div>}
+                  {errors.nom && (
+                    <div style={{ fontSize: 11.5, color: "#ef4444", marginTop: 5 }}>{errors.nom}</div>
+                  )}
                 </div>
 
-                {/* Email */}
+                {/* Email ✅ avec vérification domaine onBlur */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, letterSpacing: ".2px" }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                     Adresse email <span style={{ color: "#ef4444" }}>*</span>
                   </label>
-                  <input
-                    className="req-input"
-                    type="email"
-                    placeholder="prenom@entreprise.com"
-                    value={form.email}
-                    onChange={set("email")}
-                    style={inputStyle(errors.email)}
-                  />
-                  {errors.email && <div style={{ fontSize: 11.5, color: "#ef4444", marginTop: 5 }}>{errors.email}</div>}
+                  <div style={{ position: "relative" }}>
+                    <input
+                      className="req-input"
+                      type="email"
+                      placeholder="prenom@entreprise.com"
+                      value={form.email}
+                      onChange={set("email")}
+                      onBlur={() => checkEmailDomain(form.email)}
+                      style={inputStyle(errors.email || emailDomainErr)}
+                    />
+                    {/* Spinner pendant la vérification */}
+                    {emailChecking && (
+                      <div style={{
+                        position: "absolute", right: 12, top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 14, height: 14,
+                        border: "2px solid #e5e7eb",
+                        borderTopColor: "#2563eb",
+                        borderRadius: "50%",
+                        animation: "ftSpin .65s linear infinite",
+                      }} />
+                    )}
+                    {/* Checkmark si email valide */}
+                    {!emailChecking && form.email && /\S+@\S+\.\S+/.test(form.email) && !emailDomainErr && (
+                      <div style={{
+                        position: "absolute", right: 12, top: "50%",
+                        transform: "translateY(-50%)", color: "#16a34a",
+                      }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {(errors.email || emailDomainErr) && (
+                    <div style={{ fontSize: 11.5, color: "#ef4444", marginTop: 5 }}>
+                      {errors.email || emailDomainErr}
+                    </div>
+                  )}
                 </div>
 
                 {/* Téléphone + Rôle */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, letterSpacing: ".2px" }}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                       Téléphone
                     </label>
                     <input
@@ -339,7 +391,7 @@ function AccountRequestModal({ onClose }) {
                     />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, letterSpacing: ".2px" }}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                       Rôle souhaité
                     </label>
                     <select
@@ -365,7 +417,7 @@ function AccountRequestModal({ onClose }) {
 
                 {/* Message */}
                 <div style={{ marginBottom: 24 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, letterSpacing: ".2px" }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                     Message <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optionnel)</span>
                   </label>
                   <textarea
@@ -374,13 +426,7 @@ function AccountRequestModal({ onClose }) {
                     value={form.message}
                     onChange={set("message")}
                     rows={3}
-                    style={{
-                      ...inputStyle(false),
-                      height: "auto",
-                      padding: "10px 14px",
-                      resize: "vertical",
-                      lineHeight: 1.6,
-                    }}
+                    style={{ ...inputStyle(false), height: "auto", padding: "10px 14px", resize: "vertical", lineHeight: 1.6 }}
                   />
                 </div>
 
@@ -388,15 +434,15 @@ function AccountRequestModal({ onClose }) {
                 <button
                   className="req-submit"
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || emailChecking}
                   style={{
                     width: "100%", height: 44,
-                    background: loading ? "#93c5fd" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    background: (loading || emailChecking) ? "#93c5fd" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                     border: "none", borderRadius: 9,
-                    cursor: loading ? "not-allowed" : "pointer",
+                    cursor: (loading || emailChecking) ? "not-allowed" : "pointer",
                     color: "#fff", fontFamily: "inherit",
-                    fontSize: 13.5, fontWeight: 700, letterSpacing: ".3px",
-                    boxShadow: loading ? "none" : "0 4px 14px rgba(37,99,235,0.3)",
+                    fontSize: 13.5, fontWeight: 700,
+                    boxShadow: (loading || emailChecking) ? "none" : "0 4px 14px rgba(37,99,235,0.3)",
                     transition: "transform .15s, box-shadow .15s",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   }}
@@ -406,12 +452,14 @@ function AccountRequestModal({ onClose }) {
                         <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "ftSpin .65s linear infinite" }} />
                         <span>Envoi en cours...</span>
                       </>
-                    : <>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                        <span>Envoyer la demande</span>
-                      </>
+                    : emailChecking
+                      ? <span>Vérification email...</span>
+                      : <>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                          </svg>
+                          <span>Envoyer la demande</span>
+                        </>
                   }
                 </button>
 
@@ -426,7 +474,6 @@ function AccountRequestModal({ onClose }) {
     </>
   );
 }
-
 // ── Page principale ───────────────────────────────────────────────────────────
 export default function LoginPage({ onLoginSuccess }) {
   const { loginWithBackend } = useAuth();
