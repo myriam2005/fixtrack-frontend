@@ -3,6 +3,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const createLog = require("../utils/createLog");
 const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
+const { sendVerificationEmail } = require("../utils/emailService");
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -59,28 +60,66 @@ exports.createUser = async (req, res) => {
       avatar: "",
       telephone: null,
       competences: Array.isArray(competences) ? competences : [],
+      emailVerified: false, // ✅ NEW: Non vérifié par défaut
     });
+
+    // Génération du token de vérification
+    const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
+    // Envoi de l'email de vérification
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const emailResult = await sendVerificationEmail(
+      user.email,
+      user.nom,
+      verificationToken,
+      baseUrl,
+    );
+
     const created = await User.findById(user._id).select("-password");
+
+    // Seulement si l'email a été envoyé avec succès
+    if (!emailResult.success) {
+      console.warn("⚠️  Email de vérification non envoyé:", emailResult.error);
+      // On retourne quand même l'utilisateur, mais on signale l'erreur
+      await createLog(
+        "USER_CREATED_EMAIL_FAILED",
+        `Compte créé par admin (email non envoyé) : ${created.email}`,
+        req.user.id,
+      );
+
+      return res.status(201).json({
+        message:
+          "Utilisateur créé mais l'email de vérification n'a pas pu être envoyé",
+        user: created,
+        emailSendError: true,
+        requiresEmailVerification: true,
+      });
+    }
+
     await createLog(
       "USER_CREATED",
-      `Compte créé par admin : ${created.email} (${created.role})`,
+      `Compte créé par admin : ${created.email} (${created.role}) — email de vérification envoyé`,
       req.user.id,
     );
 
-    // ── n8n Workflow 3 : email de bienvenue → nouvel utilisateur ────────
-    notifyN8n(WEBHOOKS.WELCOME_USER, {
-      userId: created._id.toString(),
-      nom: created.nom,
-      email: created.email,
-      role: created.role,
-      password, // mot de passe en clair, test only
-      loginUrl: `${process.env.FRONTEND_URL}/login`,
-      createdAt: created.createdAt,
-    });
+    // ── n8n Workflow 3 : email de bienvenue (optionnel, peut être commenté si redondant) ────────
+    // notifyN8n(WEBHOOKS.WELCOME_USER, {
+    //   userId: created._id.toString(),
+    //   nom: created.nom,
+    //   email: created.email,
+    //   role: created.role,
+    //   password, // mot de passe en clair, test only
+    //   loginUrl: `${process.env.FRONTEND_URL}/login`,
+    //   createdAt: created.createdAt,
+    // });
 
-    res.status(201).json(created);
+    res.status(201).json({
+      message:
+        "Utilisateur créé. Un email de vérification a été envoyé à l'adresse email fournie.",
+      user: created,
+      requiresEmailVerification: true,
+    });
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur", error: err.message });
   }

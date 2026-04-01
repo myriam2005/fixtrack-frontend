@@ -102,7 +102,10 @@ exports.createTicket = async (req, res) => {
       req.user.id,
     );
 
-    const auteurNom = req.user?.nom || req.user?.email || "Un utilisateur";
+    // ── Récupère le vrai nom de l'auteur depuis la base ────────────────
+    const auteurDoc = await User.findById(req.user.id).select("nom email");
+    const auteurNom =
+      auteurDoc?.nom || auteurDoc?.email || "Utilisateur inconnu";
 
     const managers = await User.find({
       role: { $in: ["manager", "admin"] },
@@ -143,6 +146,7 @@ exports.createTicket = async (req, res) => {
         priorite: ticket.priorite,
         statut: ticket.statut,
         createdAt: ticket.createdAt,
+        auteurNom: auteurNom,
         managerEmail: manager?.email || process.env.MANAGER_FALLBACK_EMAIL,
         managerNom: manager?.nom || "Manager",
         ticketUrl: `${process.env.FRONTEND_URL}/tickets/${ticket._id}`,
@@ -563,7 +567,6 @@ exports.resolveTicket = async (req, res) => {
       req.user.id,
     );
 
-    // ── Notification in-app → auteur ───────────────────────────────────
     await sendNotification({
       userId: ticket.auteurId,
       message: `Votre ticket "${ticket.titre}" a été résolu par ${techNom}. En attente de validation.`,

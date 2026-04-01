@@ -12,68 +12,68 @@ const Notification = require("./models/Notification");
 const seed = async () => {
   await connectDB();
 
-  // Nettoie les collections existantes
   await User.deleteMany({});
   await Ticket.deleteMany({});
   await Notification.deleteMany({});
   console.log("🗑️  Collections nettoyées");
 
-  // ── Crée les utilisateurs ──────────────────────────────────────────────────
-  // Note : le hook pre('save') hashera automatiquement les passwords
   const users = await User.create([
     {
-      nom: "Jean Dupont",
-      email: "jean@fst.tn",
+      nom: "oumayma",
+      email: "oumayma.jendoubi06@gmail.com",
       password: "123456",
       role: "employee",
-      avatar: "JD",
+      avatar: "OJ",
       telephone: "+216 22 111 222",
+      emailVerified: true,
     },
     {
-      nom: "Sara Ben Ali",
-      email: "sara@fst.tn",
+      nom: "ola",
+      email: "olakhammassy@gmail.com",
       password: "123456",
       role: "technician",
-      avatar: "SB",
+      avatar: "OK",
       competences: ["Électrique", "HVAC"],
+      emailVerified: true,
     },
     {
-      nom: "Karim Maaloul",
-      email: "karim@fst.tn",
+      nom: "emen",
+      email: "emenhm123@gmail.com",
       password: "123456",
       role: "technician",
-      avatar: "KM",
+      avatar: "EH",
       competences: ["Informatique", "Mécanique"],
+      emailVerified: true,
     },
     {
-      nom: "Lina Trabelsi",
-      email: "lina@fst.tn",
+      nom: "chokri",
+      email: "maryemchaker@gmail.com",
       password: "123456",
       role: "manager",
-      avatar: "LT",
+      avatar: "MC",
+      emailVerified: true,
     },
     {
       nom: "Admin FST",
-      email: "admin@fst.tn",
+      email: "myriemkary3@gmail.com",
       password: "123456",
       role: "admin",
       avatar: "AF",
+      emailVerified: true,
     },
   ]);
 
-  // Map des anciens IDs mockData → nouveaux ObjectIds MongoDB
   const u = {};
   users.forEach((user) => {
-    if (user.email === "jean@fst.tn") u.u1 = user._id;
-    if (user.email === "sara@fst.tn") u.u2 = user._id;
-    if (user.email === "karim@fst.tn") u.u3 = user._id;
-    if (user.email === "lina@fst.tn") u.u4 = user._id;
-    if (user.email === "admin@fst.tn") u.u5 = user._id;
+    if (user.email === "oumayma.jendoubi06@gmail.com") u.u1 = user._id;
+    if (user.email === "olakhammassy@gmail.com") u.u2 = user._id;
+    if (user.email === "emenhm123@gmail.com") u.u3 = user._id;
+    if (user.email === "maryemchaker@gmail.com") u.u4 = user._id;
+    if (user.email === "myriemkary3@gmail.com") u.u5 = user._id;
   });
 
   console.log("✅ Utilisateurs créés :", users.length);
 
-  // ── Crée les tickets ───────────────────────────────────────────────────────
   const tickets = await Ticket.create([
     {
       titre: "Climatisation en panne salle B12",
@@ -189,7 +189,6 @@ const seed = async () => {
 
   console.log("✅ Tickets créés :", tickets.length);
 
-  // ── Crée les notifications ─────────────────────────────────────────────────
   await Notification.create([
     {
       userId: u.u2,
@@ -230,17 +229,17 @@ const seed = async () => {
 
   console.log("✅ Notifications créées");
 
-  console.log("\n🎉 Base de données peuplée avec succès !");
-  console.log("\n📋 Comptes disponibles (mot de passe : 123456) :");
-  console.log("   employee@  → jean@fst.tn");
-  console.log("   technician → sara@fst.tn  |  karim@fst.tn");
-  console.log("   manager@   → lina@fst.tn");
-  console.log("   admin@     → admin@fst.tn");
+  console.log("\n Base de données peuplée avec succès !");
+  console.log("\n Comptes disponibles (mot de passe : 123456) :");
+  console.log("   employee   → oumayma.jendoubi06@gmail.com");
+  console.log("   technician → olakhammassy@gmail.com  |  emenhm123@gmail.com");
+  console.log("   manager    → maryemchaker@gmail.com");
+  console.log("   admin      → myriemkary3@gmail.com");
 
   mongoose.disconnect();
 };
 
 seed().catch((err) => {
-  console.error("❌ Erreur seed:", err);
+  console.error("Erreur seed:", err);
   mongoose.disconnect();
 });
