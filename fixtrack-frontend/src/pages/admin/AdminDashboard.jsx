@@ -43,7 +43,7 @@ const normalizeUser = (x) => ({
   id:     x._id || x.id,
   nom:    x.nom || x.name || x.username || "Utilisateur",
   email:  x.email || "—",
-  role:   x.role || "employee",
+  role:   x.role || "utilisateur",
   actif:  x.actif !== false, // undefined → considéré actif
   avatar: buildAvatar(x),
 });
