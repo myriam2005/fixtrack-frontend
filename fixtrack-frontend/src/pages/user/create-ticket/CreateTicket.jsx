@@ -1,4 +1,4 @@
-// src/pages/employee/CreateTicket/CreateTicket.jsx
+// src/pages/user/create-ticket/CreateTicket.jsx
 // Affiche la priorité finale IA (priorite + scoreIA) après soumission
 
 import { useState } from "react";
@@ -149,7 +149,7 @@ function SuccessScreen({ navigate, ticketId, finalPriority, scoreIA }) {
             )}
 
             <div style={{ marginTop: 28 }}>
-              <button className="wz-nav-btn-next" onClick={() => navigate("/employee/tickets")}>
+              <button className="wz-nav-btn-next" onClick={() => navigate("/user/tickets")}>
                 Voir mes tickets <Icon.Next />
               </button>
             </div>

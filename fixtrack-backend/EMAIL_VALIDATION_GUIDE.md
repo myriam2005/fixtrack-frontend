@@ -105,7 +105,7 @@ Utilisateur remplit le formulaire:
 ├─ Nom: "Jean Dupont"
 ├─ Email: "jean@company.com"  ← Validation de format
 ├─ Mot de passe: "SecurePass123"
-└─ Rôle: "employee"
+└─ Rôle: "user"
 
 ✅ Backend:
   ├─ Valide l'email (regex + format)
@@ -193,7 +193,7 @@ GET    /api/auth/me                        → Infos utilisateur (token requis)
   nom: String,
   email: String (unique, lowercase, validated),
   password: String (hashed),
-  role: String (employee|technician|manager|admin),
+  role: String (user|technician|manager|admin),
   avatar: String,
   telephone: String,
   competences: [String],
@@ -329,7 +329,7 @@ curl -X POST http://localhost:5000/api/auth/register \
     "nom": "Test User",
     "email": "test@gmail.com",
     "password": "TestPass123",
-    "role": "employee"
+    "role": "user"
   }'
 
 # Vérifier votre boîte email

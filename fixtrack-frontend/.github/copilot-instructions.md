@@ -21,7 +21,7 @@
 
 Dashboards are organized by user role, each with unique routes under a shared `Layout` wrapper:
 
-- **Employee** (`/employee/dashboard`): View own tickets, create new (MyTickets, CreateTicket)
+- **User** (`/user/dashboard`): View own tickets, create new (MyTickets, CreateTicket)
 - **Technician** (`/technician/dashboard`): Assigned tickets (AssignedTicket)
 - **Manager** (`/manager/*`): All tickets, team, reports (mostly placeholders)
 - **Admin** (`/admin/dashboard`): System analytics (AdminDashboard with charts)

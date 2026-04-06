@@ -1,4 +1,4 @@
-// src/pages/employee/CreateTicket/wizardConstants.js
+// src/pages/user/create-ticket/wizardConstants.js
 
 import { useState, useEffect } from "react";
 import api from "../../../services/api";

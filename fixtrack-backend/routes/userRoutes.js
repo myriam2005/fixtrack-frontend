@@ -42,10 +42,10 @@ router.post(
     check("password").isLength({ min: 6 }).withMessage("Minimum 6 caractères"),
     check("role")
       .optional()
-      .isIn(["employee", "technician", "manager", "admin"])
+      .isIn(["user", "technician", "manager", "admin"])
       .withMessage("Rôle invalide"),
   ],
-  createUser
+  createUser,
 ); // ← nouveau
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);

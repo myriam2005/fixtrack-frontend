@@ -1,4 +1,4 @@
-// src/pages/employee/CreateTicket/AIPanel.jsx
+// src/pages/user/create-ticket/AIPanel.jsx
 // ✅ Mirrors the backend calculatePriority algorithm in real-time
 //    — 5 factors with visual chips, animated score, confidence indicator
 

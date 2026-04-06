@@ -1,4 +1,4 @@
-// src/pages/employee/EmpDashboard.jsx
+// src/pages/user/UserDashboard.jsx
 // ✅ VERSION BACKEND — même design, données réelles via API
 
 import { useMemo, useState, useEffect } from "react";
@@ -429,7 +429,7 @@ setMyTickets(tickets || []);
 
           {activeFilter === "all" && myTickets.length > 6 && (
             <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 20px", textAlign: "center" }}>
-              <Link to="/employee/tickets" style={{ textDecoration: "none" }}>
+              <Link to="/user/tickets" style={{ textDecoration: "none" }}>
                 <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#2563EB" }}>
                   Voir tous mes tickets →
                 </Typography>

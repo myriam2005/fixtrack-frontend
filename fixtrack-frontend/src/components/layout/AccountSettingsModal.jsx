@@ -169,7 +169,7 @@ export default function AccountSettingsModal({ open, onClose, user }) {
 
   const togglePwd = (field) => setShowPwd(p => ({ ...p, [field]: !p[field] }));
 
-  const role        = ROLE_META[user?.role] || ROLE_META.employee;
+  const role        = ROLE_META[user?.role] || ROLE_META.user;
   // ✅ FIX : user.nom est la clé canonique du backend
   const displayName = user?.nom || user?.name || "";
   const initials    = displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";

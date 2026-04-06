@@ -15,14 +15,14 @@ import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import Layout from "./components/layout/Layout";
 
 
-import CreateTicket   from "./pages/employee/create-ticket/CreateTicket";
+import CreateTicket   from "./pages/user/create-ticket/CreateTicket";
 import AssignedTicket from "./pages/tech/assigned-ticket/AssignedTicket";
 
 import MgrDashboard from "./pages/manager/ManagerDashboard";
 import AssignTicket from "./pages/manager/AssignTickets";
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import EmpDashboard  from "./pages/employee/EmpDashboard";   
-import MyTickets from "./pages/employee/my-ticket/MyTickets";
+import UserDashboard  from "./pages/user/UserDashboard";   
+import MyTickets from "./pages/user/my-ticket/MyTickets";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TechnicianDashboard from "./pages/tech/TechDashboard";
 import Tickets from "./pages/admin/tickets/AllTickets";
@@ -59,7 +59,7 @@ function PrivateRoute({ children }) {
 // ─── Redirect selon rôle ─────────────────────────────────────────────────────
 function RoleRedirect() {
   const { user } = useAuth();
-  const role = user?.role || "employee";
+  const role = user?.role || "user";
   return <Navigate to={`/${role}/dashboard`} replace />;
 }
 
@@ -98,10 +98,10 @@ export default function App() {
               <Layout notifCount={3}>
                 <Routes>
 
-                  {/* ── Employee ── */}
-                  <Route path="employee/dashboard"   element={<EmpDashboard />} />
-                  <Route path="employee/tickets"     element={<MyTickets />} />
-                  <Route path="employee/tickets/new" element={<CreateTicket />} /> 
+                  {/* ── User ── */}
+                  <Route path="user/dashboard"   element={<UserDashboard />} />
+                  <Route path="user/tickets"     element={<MyTickets />} />
+                  <Route path="user/tickets/new" element={<CreateTicket />} /> 
 
                   {/* ── Technician ── */}
                   <Route path="technician/dashboard" element={<TechnicianDashboard/>} />

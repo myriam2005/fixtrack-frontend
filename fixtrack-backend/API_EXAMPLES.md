@@ -29,7 +29,7 @@ curl -X POST http://localhost:5000/api/auth/register \
     "nom": "Jean Dupont",
     "email": "jean.dupont@company.com",
     "password": "SecurePassword123",
-    "role": "employee",
+    "role": "user",
     "telephone": "+216 22 000 111",
     "competences": ["JavaScript", "React"]
   }'
@@ -44,7 +44,7 @@ curl -X POST http://localhost:5000/api/auth/register \
     "id": "507f1f77bcf86cd799439011",
     "nom": "Jean Dupont",
     "email": "jean.dupont@company.com",
-    "role": "employee",
+    "role": "user",
     "avatar": "JD",
     "emailVerified": false
   },
@@ -161,7 +161,7 @@ curl -X POST http://localhost:5000/api/auth/verify-email \
     "id": "507f1f77bcf86cd799439011",
     "nom": "Jean Dupont",
     "email": "jean.dupont@company.com",
-    "role": "employee",
+    "role": "user",
     "emailVerified": true
   }
 }
@@ -237,7 +237,7 @@ curl -X POST http://localhost:5000/api/auth/login \
     "id": "507f1f77bcf86cd799439011",
     "nom": "Jean Dupont",
     "email": "jean.dupont@company.com",
-    "role": "employee",
+    "role": "user",
     "avatar": "JD",
     "competences": ["JavaScript", "React"],
     "telephone": "+216 22 000 111",
@@ -276,7 +276,7 @@ curl -X GET http://localhost:5000/api/auth/me \
   "id": "507f1f77bcf86cd799439011",
   "nom": "Jean Dupont",
   "email": "jean.dupont@company.com",
-  "role": "employee",
+  "role": "user",
   "avatar": "JD",
   "competences": ["JavaScript", "React"],
   "telephone": "+216 22 000 111",
@@ -308,7 +308,7 @@ POST /auth/register
   "nom": "Alice Martin",
   "email": "alice@example.com",
   "password": "Pass123!",
-  "role": "employee"
+  "role": "user"
 }
 # ← Reçoit: { emailVerified: false, requiresEmailVerification: true }
 # ← Email envoyé à alice@example.com
@@ -338,7 +338,7 @@ POST /auth/login
 }
 # ← Reçoit: { token: "...", user: { emailVerified: true } }
 # ← Stocké dans localStorage
-# ← Redirigé vers /employee/dashboard
+# ← Redirigé vers /user/dashboard
 ```
 
 ---
@@ -387,7 +387,7 @@ POST /auth/register
   "nom": "John Doe",
   "email": "jean.dupont@company.com",  ← Existe déjà!
   "password": "Password123",
-  "role": "employee"
+  "role": "user"
 }
 ```
 

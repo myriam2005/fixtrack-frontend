@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   // Rôle non autorisé → dashboard du rôle actuel
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     const redirects = {
-      employee:   "/employee/dashboard",
+      user:       "/user/dashboard",
       technician: "/technician/dashboard",
       manager:    "/manager/dashboard",
       admin:      "/admin/dashboard",

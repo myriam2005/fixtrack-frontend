@@ -9,7 +9,7 @@ import Badge                           from "../../components/common/badge/Badge
 import SkeletonLoader                  from "../../components/common/SkeletonLoader";
 import Button                          from "../../components/common/Button";
 import { ticketService, userService }  from "../../services/api";
-import styles                          from "../employee/my-ticket/MyTickets.module.css";
+import styles                          from "../user/my-ticket/MyTickets.module.css";
 
 const PRIORITY_LEFT_COLOR = {
   critical: "#EF4444", high: "#F59E0B", medium: "#3B82F6", low: "#9CA3AF",

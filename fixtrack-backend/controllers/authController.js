@@ -45,7 +45,7 @@ const register = async (req, res) => {
       nom: nom.trim(),
       email: email.toLowerCase().trim(),
       password,
-      role: role || "employee",
+      role: role || "user",
       avatar: initials,
       telephone: telephone || null,
       competences: competences || [],

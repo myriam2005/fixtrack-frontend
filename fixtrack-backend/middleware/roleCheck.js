@@ -3,7 +3,7 @@
 /**
  * roleCheck(roles) — vérifie que l'utilisateur connecté a un rôle autorisé
  * Usage: router.get('/admin', auth, roleCheck(['admin']), controller)
- * Usage: router.post('/tickets', auth, roleCheck(['employee','manager','admin']), controller)
+ * Usage: router.post('/tickets', auth, roleCheck(['user','manager','admin']), controller)
  */
 const roleCheck = (roles) => {
   return (req, res, next) => {

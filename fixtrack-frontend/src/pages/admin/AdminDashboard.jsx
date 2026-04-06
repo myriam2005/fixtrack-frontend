@@ -12,11 +12,11 @@ import { DashboardIcon } from "../../components/common/dashboard/DashboardIconCo
 import {
   KpiCardSpark, DonutChart, CreatedVsResolvedChart,
   AreaLineChart, StackedPriorityBar,
-} from "./adminCharts";
+} from "./AdminCharts";
 
 import {
   SectionHeader, UserRow, AuditRow, UrgentRow, TechGauge,
-} from "./adminRows";
+} from "./AdminRows";
 
 // ✅ Résout technicienId populé ou string
 const resolveId = (val) => {

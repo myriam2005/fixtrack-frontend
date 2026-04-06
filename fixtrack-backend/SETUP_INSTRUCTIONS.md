@@ -122,7 +122,7 @@ curl -X POST http://localhost:5000/api/auth/register \
     "nom": "Test User",
     "email": "test@example.com",
     "password": "TestPass123",
-    "role": "employee"
+    "role": "user"
   }'
 ```
 
@@ -166,7 +166,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 Les comptes de test sont **pré-vérifiés** en développement:
 
 ```
-Email: jean@fst.tn         / Mot de passe: 123456 (Employee)
+Email: jean@fst.tn         / Mot de passe: 123456 (User)
 Email: sara@fst.tn         / Mot de passe: 123456 (Technician)
 Email: lina@fst.tn         / Mot de passe: 123456 (Manager)
 Email: admin@fst.tn        / Mot de passe: 123456 (Admin)

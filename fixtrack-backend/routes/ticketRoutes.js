@@ -22,14 +22,14 @@ const {
 router.get(
   "/",
   auth,
-  roleCheck(["employee", "technician", "manager", "admin"]),
+  roleCheck(["user", "technician", "manager", "admin"]),
   getAllTickets,
 );
 
 router.get(
   "/:id",
   auth,
-  roleCheck(["employee", "technician", "manager", "admin"]),
+  roleCheck(["user", "technician", "manager", "admin"]),
   getTicketById,
 );
 
@@ -42,12 +42,7 @@ router.get(
 );
 
 // ── Création ──────────────────────────────────────────────────────────────────
-router.post(
-  "/",
-  auth,
-  roleCheck(["employee", "manager", "admin"]),
-  createTicket,
-);
+router.post("/", auth, roleCheck(["user", "manager", "admin"]), createTicket);
 
 // ── Modification complète (admin) ─────────────────────────────────────────────
 router.put("/:id", auth, roleCheck(["admin"]), updateTicket);

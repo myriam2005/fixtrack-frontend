@@ -104,7 +104,7 @@ export function AuthProvider({ children }) {
             nom,
             email,
             password,
-            role: role || "employee",
+            role: role || "user",
             telephone: telephone || null,
             competences: competences || [],
           }),

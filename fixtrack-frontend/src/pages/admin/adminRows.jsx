@@ -7,7 +7,7 @@ import Badge from "../../components/common/badge/Badge";
 import { DashboardIcon } from "../../components/common/dashboard/DashboardIconConstants";
 
 export const ROLE_CONFIG = {
-  employee:   { label: "Utilisateur",    color: "#3B82F6", bg: "#EFF6FF" },
+  user:       { label: "Utilisateur",    color: "#3B82F6", bg: "#EFF6FF" },
   technician: { label: "Technicien", color: "#8B5CF6", bg: "#F5F3FF" },
   manager:    { label: "Manager",    color: "#F59E0B", bg: "#FFFBEB" },
   admin:      { label: "Admin",      color: "#EF4444", bg: "#FEF2F2" },
@@ -45,7 +45,7 @@ export function SectionHeader({ title, subtitle, right }) {
 
 // ── UserRow ───────────────────────────────────────────────────────────────────
 export function UserRow({ user, isLast }) {
-  const roleCfg = ROLE_CONFIG[user.role] || ROLE_CONFIG.employee;
+  const roleCfg = ROLE_CONFIG[user.role] || ROLE_CONFIG.user;
 
   // ✅ FIX : `actif` vient du vrai champ MongoDB — plus de hardcoded mock IDs
   const isOnline = user.actif === true || user.actif === undefined;

@@ -1,4 +1,4 @@
-// src/pages/employee/CreateTicket/WizardSteps.jsx
+// src/pages/user/create-ticket/WizardSteps.jsx
 import Badge from "../../../components/common/badge/Badge";
 import {
   Icon, LOC_SUGGESTIONS, URGENCES, STEPS, useDynamicCategories,

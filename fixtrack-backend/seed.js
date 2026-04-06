@@ -22,7 +22,7 @@ const seed = async () => {
       nom: "oumayma",
       email: "oumayma.jendoubi06@gmail.com",
       password: "123456",
-      role: "employee",
+      role: "user",
       avatar: "OJ",
       telephone: "+216 22 111 222",
       emailVerified: true,
@@ -231,7 +231,7 @@ const seed = async () => {
 
   console.log("\n Base de données peuplée avec succès !");
   console.log("\n Comptes disponibles (mot de passe : 123456) :");
-  console.log("   employee   → oumayma.jendoubi06@gmail.com");
+  console.log("   user       → oumayma.jendoubi06@gmail.com");
   console.log("   technician → olakhammassy@gmail.com  |  emenhm123@gmail.com");
   console.log("   manager    → maryemchaker@gmail.com");
   console.log("   admin      → myriemkary3@gmail.com");

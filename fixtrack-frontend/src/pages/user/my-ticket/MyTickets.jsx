@@ -1,4 +1,4 @@
-// src/pages/employee/my-ticket/MyTickets.jsx
+// src/pages/user/my-ticket/MyTickets.jsx
 // ✅ VERSION BACKEND — même design, données réelles via API
 
 import { useState, useEffect } from "react";

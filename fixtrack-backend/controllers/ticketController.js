@@ -22,7 +22,7 @@ exports.getAllTickets = async (req, res) => {
     const { statut, priorite, technicienId, categorie } = req.query;
     const filter = {};
 
-    if (req.user.role === "employee") filter.auteurId = req.user.id;
+    if (req.user.role === "user") filter.auteurId = req.user.id;
     if (req.user.role === "technician") filter.technicienId = req.user.id;
     if (statut) filter.statut = statut;
     if (priorite) filter.priorite = priorite;
@@ -589,7 +589,7 @@ exports.resolveTicket = async (req, res) => {
       ),
     );
 
-    // ── n8n Workflow 4 : email résolution → employé ────────────────────
+    // ── n8n Workflow 4 : email résolution → utilisateur ────────────────────
     const auteur = ticket.auteurId;
     if (auteur?.email) {
       notifyN8n(WEBHOOKS.TICKET_RESOLVED, {
@@ -607,8 +607,8 @@ exports.resolveTicket = async (req, res) => {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        employeeEmail: auteur.email,
-        employeeNom: auteur.nom,
+        userEmail: auteur.email,
+        userNom: auteur.nom,
         technicienNom: techNom,
         ticketUrl: `${process.env.FRONTEND_URL}/tickets/${ticket._id}`,
       });

@@ -88,7 +88,7 @@ exports.createUser = async (req, res) => {
         .json({ message: "Nom, email et mot de passe requis" });
 
     // 2. Rôle valide
-    const VALID_ROLES = ["employee", "technician", "manager", "admin"];
+    const VALID_ROLES = ["user", "technician", "manager", "admin"];
     if (role && !VALID_ROLES.includes(role))
       return res.status(400).json({ message: "Rôle invalide" });
 
@@ -117,7 +117,7 @@ exports.createUser = async (req, res) => {
       nom: nom.trim(),
       email: emailNormalized,
       password,
-      role: role || "employee",
+      role: role || "user",
       actif: true,
       avatar: "",
       telephone: null,
@@ -243,7 +243,7 @@ exports.updateUser = async (req, res) => {
 exports.updateRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const VALID_ROLES = ["employee", "technician", "manager", "admin"];
+    const VALID_ROLES = ["user", "technician", "manager", "admin"];
     if (!VALID_ROLES.includes(role))
       return res.status(400).json({ message: "Rôle invalide" });
     const user = await User.findByIdAndUpdate(

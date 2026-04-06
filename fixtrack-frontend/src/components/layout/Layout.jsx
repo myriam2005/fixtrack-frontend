@@ -26,9 +26,9 @@ const Ico = {
 };
 
 const NAV = {
-  employee: [
-    { label: "Tableau de bord", to: "/employee/dashboard", icon: Ico.dashboard },
-    { label: "Mes tickets",     to: "/employee/tickets",   icon: Ico.ticket    },
+  user: [
+    { label: "Tableau de bord", to: "/user/dashboard", icon: Ico.dashboard },
+    { label: "Mes tickets",     to: "/user/tickets",   icon: Ico.ticket    },
   ],
   technician: [
     { label: "Tableau de bord",  to: "/technician/dashboard", icon: Ico.dashboard },
@@ -52,7 +52,7 @@ const NAV = {
 };
 
 const ROLE_META = {
-  employee:   { label: "utilisateur",      color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
+  user:       { label: "utilisateur",      color: "#059669", bg: "#ECFDF5", dot: "#10b981" },
   technician: { label: "Technicien",     color: "#d97706", bg: "#FFFBEB", dot: "#f59e0b" },
   manager:    { label: "Manager",        color: "#7c3aed", bg: "#F5F3FF", dot: "#8b5cf6" },
   admin:      { label: "Administrateur", color: "#1d4ed8", bg: "#EFF6FF", dot: "#3b82f6" },
@@ -104,7 +104,7 @@ function NavItem({ link, isActive }) {
 }
 
 function SidebarContent({ user, navLinks, location, onLogout, onOpenSettings }) {
-  const role     = ROLE_META[user.role] || ROLE_META.employee;
+  const role     = ROLE_META[user.role] || ROLE_META.user;
 
   const displayName = getDisplayName(user);
   const initials    = getInitials(user);
@@ -178,8 +178,8 @@ export default function Layout({ children }) {
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const user     = ctxUser || { nom: "Utilisateur", role: "employee", email: "" };
-  const navLinks = NAV[user.role] || NAV.employee;
+  const user     = ctxUser || { nom: "Utilisateur", role: "user", email: "" };
+  const navLinks = NAV[user.role] || NAV.user;
   const allLinks = Object.values(NAV).flat();
   const active   = allLinks.find(l => l.to === location.pathname);
 
@@ -277,9 +277,9 @@ export default function Layout({ children }) {
         </Box>
       </Box>
 
-      {/* FAB employee */}
-      {user.role === "employee" && (
-        <Box component={Link} to="/employee/tickets/new" sx={{ position: "fixed", bottom: 28, right: 32, zIndex: 1400, display: "flex", alignItems: "center", gap: "8px", background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)", color: "#FFF", borderRadius: "14px", padding: "12px 22px", fontWeight: 700, fontSize: "14px", fontFamily: "'Inter', sans-serif", textDecoration: "none", boxShadow: "0 6px 20px rgba(37,99,235,0.45)", transition: "transform 0.15s, box-shadow 0.15s", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 10px 28px rgba(37,99,235,0.55)" } }}>
+      {/* FAB user */}
+      {user.role === "user" && (
+        <Box component={Link} to="/user/tickets/new" sx={{ position: "fixed", bottom: 28, right: 32, zIndex: 1400, display: "flex", alignItems: "center", gap: "8px", background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)", color: "#FFF", borderRadius: "14px", padding: "12px 22px", fontWeight: 700, fontSize: "14px", fontFamily: "'Inter', sans-serif", textDecoration: "none", boxShadow: "0 6px 20px rgba(37,99,235,0.45)", transition: "transform 0.15s, box-shadow 0.15s", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 10px 28px rgba(37,99,235,0.55)" } }}>
           {Ico.plus} Nouveau ticket
         </Box>
       )}

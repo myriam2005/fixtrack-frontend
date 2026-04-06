@@ -203,7 +203,7 @@ function CompetencesSelector({ selected, onChange, categories }) {
   );
 }
 
-const BLANK_FORM = { nom:"", email:"", password:"", role:"employee", competences:[] };
+const BLANK_FORM = { nom:"", email:"", password:"", role:"user", competences:[] };
 
 // ── UserForm ─────────────────────────────────────────────────────────────────
 function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
@@ -404,7 +404,7 @@ export default function Users() {
   };
 
   const total     = users.length;
-  const employees = users.filter(u => u.role === "employee").length;
+  const users_count = users.filter(u => u.role === "user").length;
   const techs     = users.filter(u => u.role === "technician").length;
   // ✅ FIX : compte correct — admin ET manager
   const admins    = users.filter(u => u.role === "admin" || u.role === "manager").length;
@@ -538,10 +538,10 @@ export default function Users() {
           onClick={() => { setRoleFilter("all"); setStatFilter("all"); }}
         />
         <StatTile
-          label="Utilisateurs" value={employees} icon="user" color="#059669"
+          label="Utilisateurs" value={users_count} icon="user" color="#059669"
           sub="Personnel de terrain"
-          active={roleFilter === "employee"}
-          onClick={() => setRoleFilter(r => r === "employee" ? "all" : "employee")}
+          active={roleFilter === "user"}
+          onClick={() => setRoleFilter(r => r === "user" ? "all" : "user")}
         />
         <StatTile
           label="Techniciens" value={techs} icon="tag" color="#D97706"
