@@ -5,13 +5,37 @@ const createLog = require("../utils/createLog");
 const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 const { sendVerificationEmail } = require("../utils/emailService");
 
-// ── Helper : vérifie que le domaine email a un enregistrement MX ─────────────
+// ── Helper : vérifie domaine email (MX → A → AAAA) ───────────────────────────
 async function isEmailDomainValid(email) {
   try {
     const domain = email.split("@")[1];
     if (!domain) return false;
-    const records = await dns.resolveMx(domain);
-    return records && records.length > 0;
+
+    // 1. MX
+    try {
+      const mx = await dns.resolveMx(domain);
+      if (mx && mx.length > 0) return true;
+    } catch {
+      /* fallback */
+    }
+
+    // 2. A
+    try {
+      const a = await dns.resolve4(domain);
+      if (a && a.length > 0) return true;
+    } catch {
+      /* fallback */
+    }
+
+    // 3. AAAA
+    try {
+      const aaaa = await dns.resolve6(domain);
+      if (aaaa && aaaa.length > 0) return true;
+    } catch {
+      /* rien */
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -73,7 +97,7 @@ exports.createUser = async (req, res) => {
     if (!/\S+@\S+\.\S+/.test(emailNormalized))
       return res.status(400).json({ message: "Format d'email invalide" });
 
-    // ✅ 4. Vérification que le domaine email existe (DNS MX)
+    // ✅ 4. Vérification domaine email (MX → A → AAAA)
     const domainValid = await isEmailDomainValid(emailNormalized);
     if (!domainValid) {
       return res.status(400).json({

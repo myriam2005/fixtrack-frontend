@@ -50,20 +50,50 @@ router.post(
   resendVerificationEmail,
 );
 
-// ✅ NEW — POST /api/auth/check-email
-// Vérifie que le domaine de l'email existe (enregistrement MX)
-// Utilisé par le frontend avant soumission du formulaire
+// ✅ POST /api/auth/check-email
+// Vérifie MX d'abord, fallback sur A/AAAA si pas de MX
 router.post("/check-email", async (req, res) => {
   const { email } = req.body;
+
   if (!email || !email.includes("@")) {
     return res.json({ valid: false, reason: "format" });
   }
+
   try {
     const domain = email.split("@")[1];
     if (!domain) return res.json({ valid: false, reason: "format" });
-    const records = await dns.resolveMx(domain);
-    const valid = records && records.length > 0;
-    return res.json({ valid, reason: valid ? null : "domain" });
+
+    // 1. Essai MX
+    try {
+      const mxRecords = await dns.resolveMx(domain);
+      if (mxRecords && mxRecords.length > 0) {
+        return res.json({ valid: true, reason: null });
+      }
+    } catch {
+      // pas de MX → fallback
+    }
+
+    // 2. Fallback : enregistrement A
+    try {
+      const aRecords = await dns.resolve4(domain);
+      if (aRecords && aRecords.length > 0) {
+        return res.json({ valid: true, reason: null });
+      }
+    } catch {
+      // pas de A → fallback
+    }
+
+    // 3. Fallback : enregistrement AAAA
+    try {
+      const aaaaRecords = await dns.resolve6(domain);
+      if (aaaaRecords && aaaaRecords.length > 0) {
+        return res.json({ valid: true, reason: null });
+      }
+    } catch {
+      // rien du tout → domaine invalide
+    }
+
+    return res.json({ valid: false, reason: "domain" });
   } catch {
     return res.json({ valid: false, reason: "domain" });
   }
