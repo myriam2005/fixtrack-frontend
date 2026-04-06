@@ -45,7 +45,7 @@ const NAV = {
   admin: [
     { label: "Tableau de bord",  to: "/admin/dashboard", icon: Ico.dashboard },
     { label: "Tous les tickets", to: "/admin/tickets",   icon: Ico.ticket    },
-    { label: "Utilisateurs",     to: "/admin/users",     icon: Ico.users     },
+    { label: "Comptes",     to: "/admin/users",     icon: Ico.users     },
     { label: "Rapports",         to: "/admin/reports",   icon: Ico.report    },
     { label: "Configuration",    to: "/admin/config",    icon: Ico.config    },
   ],

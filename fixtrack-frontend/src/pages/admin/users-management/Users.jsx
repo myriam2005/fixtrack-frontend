@@ -514,8 +514,8 @@ export default function Users() {
             <div className="ft-header__line" />
             <span className="ft-header__label">Administration</span>
           </div>
-          <h1 className="ft-header__title">Gestion des utilisateurs</h1>
-          <p className="ft-header__sub">{loading ? "Chargement…" : `${total} utilisateurs au total`}</p>
+          <h1 className="ft-header__title">Gestion des comptes</h1>
+          <p className="ft-header__sub">{loading ? "Chargement…" : `${total} comptes au total`}</p>
         </div>
         <button className="ft-btn-add" onClick={() => setAddOpen(true)}>
           <Ico k="plus" size={15} />
@@ -532,7 +532,7 @@ export default function Users() {
       {/* ── Stat tiles ──────────────────────────────────────────────────── */}
       <div className="ft-tiles">
         <StatTile
-          label="Tous les utilisateurs" value={total} icon="users2" color="#1D4ED8"
+          label="Tous les comptes" value={total} icon="users2" color="#1D4ED8"
           sub={`${total} comptes créés`}
           active={roleFilter === "all" && statFilter === "all"}
           onClick={() => { setRoleFilter("all"); setStatFilter("all"); }}
@@ -678,7 +678,7 @@ export default function Users() {
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────── */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un utilisateur" subtitle="Créer un nouveau compte sur FixTrack." width={520}>
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un comptes" subtitle="Créer un nouveau compte sur FixTrack." width={520}>
         <UserForm isEdit={false} onSubmit={handleAdd} onCancel={() => setAddOpen(false)} categories={categories} />
       </Modal>
 
