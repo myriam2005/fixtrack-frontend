@@ -24,6 +24,8 @@ services:
     volumes:
       - mongo_data:/data/db
 
+
+
   n8n:
     image: n8nio/n8n
     ports:
@@ -34,3 +36,4 @@ services:
 volumes:
   mongo_data:
   n8n_data:
+  
