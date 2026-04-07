@@ -305,11 +305,11 @@ export default function EmpDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-      const [tickets] = await Promise.all([
+  const [tickets] = await Promise.all([
   ticketService.getAll(),
-  notificationService.getAll(),
+  notificationService.getAll().catch(() => []),  // ← ne bloque plus si erreur
 ]);
-setMyTickets(tickets || []);
+setMyTickets(Array.isArray(tickets) ? tickets : []);
       } catch (err) {
         console.error("Erreur chargement dashboard:", err);
       } finally {

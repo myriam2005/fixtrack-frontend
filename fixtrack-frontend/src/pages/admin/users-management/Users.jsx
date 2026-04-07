@@ -10,7 +10,7 @@ import "./Users.css";
 import { userService } from "../../../services/api";
 
 export const ROLE_META = {
-  employee:   { label:"Utilisateur",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
+  user:       { label:"Utilisateur",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
   technician: { label:"Technicien",     color:"#D97706", bg:"#FFFBEB", border:"#FDE68A", avatar:"#D97706" },
   manager:    { label:"Manager",        color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE", avatar:"#7C3AED" },
   admin:      { label:"Administrateur", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE", avatar:"#1D4ED8" },

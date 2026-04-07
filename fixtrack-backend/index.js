@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -13,7 +12,11 @@ connectDB();
 app.use(helmet());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:4173", // ← ajout Docker frontend
+    ],
     credentials: true,
   }),
 );
@@ -27,24 +30,19 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-/*const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { message: "Trop de tentatives. Réessayez dans 15 minutes." },
-});
-*/
 const accountRequestRoutes = require("./routes/accountRequest");
-app.use("/api/account-request", accountRequestRoutes); // AVANT le middleware JWT
+app.use("/api/account-request", accountRequestRoutes);
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/tickets", require("./routes/ticketRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/stats", require("./routes/statsRoutes"));
 app.use("/api/export", require("./routes/exportRoutes"));
-app.use("/api/config", require("./routes/configRoutes"));
 app.use("/api/logs", require("./routes/logsRoutes"));
+
 const configRoutes = require("./routes/configRoutes");
-app.use("/api/config", configRoutes);
+app.use("/api/config", configRoutes); // ← supprimé le doublon
+
 app.get("/", (req, res) =>
   res.json({ message: "🚀 FixTrack API is running!", status: "OK" }),
 );

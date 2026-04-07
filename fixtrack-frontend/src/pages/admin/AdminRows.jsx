@@ -65,7 +65,7 @@ export function UserRow({ user, isLast }) {
     admin:      "linear-gradient(135deg, #F87171, #EF4444)",
     manager:    "linear-gradient(135deg, #FCD34D, #F59E0B)",
     technician: "linear-gradient(135deg, #818CF8, #6366F1)",
-    employee:   "linear-gradient(135deg, #60A5FA, #3B82F6)",
+    user:       "linear-gradient(135deg, #60A5FA, #3B82F6)",
   }[user.role] || "linear-gradient(135deg, #818CF8, #6366F1)";
 
   return (

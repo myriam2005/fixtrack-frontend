@@ -46,7 +46,7 @@ export const TOKENS = {
   low: { dot: "#9CA3AF", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
 
   // ── Rôles ────────────────────────────────────────────────────────────────
-  employee: {
+  user: {
     dot: "#10B981",
     bg: "#ECFDF5",
     text: "#065F46",
@@ -82,7 +82,7 @@ export const LABELS = {
   medium: "Moyenne",
   low: "Basse",
 
-  employee: "Utilisateur",
+  user: "Utilisateur",
   technician: "Technicien",
   manager: "Manager",
   admin: "Administrateur",

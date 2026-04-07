@@ -11,15 +11,23 @@ export const useAuth = () => {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+// ✅ Normalise les anciens rôles vers les nouveaux
+const normalizeRole = (role) => {
+  const map = {
+    user: "user",
+    technicien: "technician",
+    gestionnaire: "manager",
+    administrateur: "admin",
+  };
+  return map[role] || role || "user";
+};
+
 export function AuthProvider({ children }) {
   const [user,        setUser]        = useState(null);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // ✅ FIX : verifyToken recharge les données FRAÎCHES depuis /api/auth/me
-  // → si l'email a été modifié, le user en contexte reflétera le nouvel email
-  // → le localStorage est mis à jour avec les données fraîches (pas l'inverse)
   useEffect(() => {
     const verifyToken = async () => {
       try {
@@ -38,7 +46,6 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // Appelle GET /api/auth/me avec le token existant
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${parsed.token}` },
         });
@@ -46,34 +53,31 @@ export function AuthProvider({ children }) {
         if (response.ok) {
           const freshData = await response.json();
 
-          // ✅ FIX CRITIQUE : les données fraîches du backend écrasent le localStorage
-          // (et non l'inverse) → email modifié reflété immédiatement
           const freshUser = {
-            token: parsed.token, // on garde le token (inchangé)
-            // Données fraîches en priorité sur le localStorage
+            token:       parsed.token,
             id:          freshData.id          || freshData._id || parsed.id,
             nom:         freshData.nom         || parsed.nom,
-            email:       freshData.email       || parsed.email,  // ← email frais de la DB
-            role:        freshData.role        || parsed.role,
+            email:       freshData.email       || parsed.email,
+            role:        normalizeRole(freshData.role || parsed.role), // ✅ normalisé
             avatar:      freshData.avatar      || parsed.avatar,
             competences: freshData.competences || parsed.competences || [],
             telephone:   freshData.telephone   ?? parsed.telephone ?? null,
           };
 
-          // Met à jour localStorage avec les données fraîches
           localStorage.setItem("currentUser", JSON.stringify(freshUser));
           setUser(freshUser);
         } else {
-          // Token invalide ou expiré → déconnexion silencieuse
           localStorage.removeItem("currentUser");
           setUser(null);
         }
       } catch {
-        // Erreur réseau → mode dégradé : on garde le localStorage tel quel
-        // (ne pas déconnecter si le backend est temporairement down)
         try {
           const stored = localStorage.getItem("currentUser");
-          if (stored) setUser(JSON.parse(stored));
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.role = normalizeRole(parsed.role); // ✅ normalisé même en mode dégradé
+            setUser(parsed);
+          }
         } catch {
           localStorage.removeItem("currentUser");
         }
@@ -86,11 +90,6 @@ export function AuthProvider({ children }) {
     verifyToken();
   }, []);
 
-  /**
-   * registerWithBackend({ nom, email, password, role, telephone, competences })
-   * ✅ Appelle POST /api/auth/register
-   * ✅ Retourne requiresEmailVerification = true si vérification email nécessaire
-   */
   const registerWithBackend = useCallback(
     async ({ nom, email, password, role, telephone, competences }) => {
       setLoading(true);
@@ -123,7 +122,6 @@ export function AuthProvider({ children }) {
           };
         }
 
-        // Si la vérification d'email est requise, on stocke l'email pour la résend
         if (data.requiresEmailVerification) {
           sessionStorage.setItem("pendingEmailVerification", email);
         }
@@ -146,10 +144,6 @@ export function AuthProvider({ children }) {
     []
   );
 
-  /**
-   * verifyEmailWithToken(token)
-   * ✅ Appelle POST /api/auth/verify-email avec le token
-   */
   const verifyEmailWithToken = useCallback(async (token) => {
     setLoading(true);
     setError(null);
@@ -174,7 +168,6 @@ export function AuthProvider({ children }) {
         };
       }
 
-      // Nettoie le sessionStorage après vérification
       sessionStorage.removeItem("pendingEmailVerification");
 
       return {
@@ -192,10 +185,6 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * resendEmailVerification(email)
-   * ✅ Appelle POST /api/auth/resend-verification
-   */
   const resendEmailVerification = useCallback(async (email) => {
     setLoading(true);
     setError(null);
@@ -234,10 +223,6 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * loginWithBackend(email, password)
-   * ✅ Appelle POST /api/auth/login
-   */
   const loginWithBackend = useCallback(async (email, password) => {
     setLoading(true);
     setError(null);
@@ -257,16 +242,19 @@ export function AuthProvider({ children }) {
         return { success: false, error: msg };
       }
 
-      // ✅ data.user contient les données fraîches de la DB
+      // ✅ Normalise le rôle au login
+      const normalizedRole = normalizeRole(data.user.role);
+
       const userData = {
         ...data.user,
+        role: normalizedRole,
         token: data.token,
       };
 
       localStorage.setItem("currentUser", JSON.stringify(userData));
       setUser(userData);
 
-      return { success: true, role: data.user.role, user: data.user };
+      return { success: true, role: normalizedRole, user: userData };
     } catch {
       const msg =
         "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
@@ -277,35 +265,21 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * login(userData) — mise à jour directe du contexte (utilisé par AccountSettingsModal)
-   * ✅ FIX : met à jour à la fois le state ET le localStorage de façon cohérente
-   */
   const login = useCallback((userData) => {
-    localStorage.setItem("currentUser", JSON.stringify(userData));
-    setUser(userData);
+    const normalized = { ...userData, role: normalizeRole(userData.role) };
+    localStorage.setItem("currentUser", JSON.stringify(normalized));
+    setUser(normalized);
   }, []);
 
-  /**
-   * logout()
-   */
   const logout = useCallback(() => {
     localStorage.removeItem("currentUser");
     setUser(null);
   }, []);
 
-  /**
-   * getToken()
-   */
   const getToken = useCallback(() => {
     return user?.token || null;
   }, [user]);
 
-  /**
-   * refreshUser()
-   * ✅ Recharge les données fraîches depuis /api/auth/me
-   * → utile après une modification de profil pour synchroniser immédiatement l'UI
-   */
   const refreshUser = useCallback(async () => {
     const stored = localStorage.getItem("currentUser");
     if (!stored) return;
@@ -324,7 +298,7 @@ export function AuthProvider({ children }) {
           id:          freshData.id          || freshData._id || parsed.id,
           nom:         freshData.nom         || parsed.nom,
           email:       freshData.email       || parsed.email,
-          role:        freshData.role        || parsed.role,
+          role:        normalizeRole(freshData.role || parsed.role), // ✅ normalisé
           avatar:      freshData.avatar      || parsed.avatar,
           competences: freshData.competences || parsed.competences || [],
           telephone:   freshData.telephone   ?? parsed.telephone ?? null,

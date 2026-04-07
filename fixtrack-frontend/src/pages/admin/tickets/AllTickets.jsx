@@ -78,7 +78,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-function TicketRow({ ticket, employee, technician, isLast, onEdit, onDelete }) {
+function TicketRow({ ticket, user, technician, isLast, onEdit, onDelete }) {
   const [hovered, setHovered] = useState(false);
   return (
     <>
@@ -117,11 +117,11 @@ function TicketRow({ ticket, employee, technician, isLast, onEdit, onDelete }) {
             <Box sx={{ color: "#9CA3AF", display: "flex", alignItems: "center" }}><UserIcon /></Box>
             <Typography sx={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>Créé par</Typography>
           </Box>
-          {employee ? (
+          {user ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <UserAvatar name={employee.nom} color="#2563EB" size={24} />
+              <UserAvatar name={user.nom} color="#2563EB" size={24} />
               <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#374151", whiteSpace: "nowrap", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis" }}>
-                {employee.nom.split(" ")[0]}
+                {user.nom.split(" ")[0]}
               </Typography>
             </Box>
           ) : <Typography sx={{ fontSize: "11px", color: "#9CA3AF" }}>—</Typography>}
@@ -209,7 +209,7 @@ export default function Tickets() {
   const enrichedTickets = useMemo(() =>
     rawTickets.map(t => ({
       ...t,
-      employee:   resolveUser(t.auteurId),
+      user:   resolveUser(t.auteurId),
       technician: resolveUser(t.technicienId),
     })),
     [rawTickets, resolveUser]
@@ -235,7 +235,7 @@ export default function Tickets() {
         t.titre?.toLowerCase().includes(q) ||
         t.localisation?.toLowerCase().includes(q) ||
         t.categorie?.toLowerCase().includes(q) ||
-        t.employee?.nom?.toLowerCase().includes(q) ||
+        t.user?.nom?.toLowerCase().includes(q) ||
         t.technician?.nom?.toLowerCase().includes(q)
       );
     }
@@ -340,7 +340,7 @@ export default function Tickets() {
           ) : (
             filteredTickets.map((ticket, index) => (
               <TicketRow key={ticket.id || ticket._id} ticket={ticket}
-                employee={ticket.employee} technician={ticket.technician}
+                user={ticket.user} technician={ticket.technician}
                 isLast={index === filteredTickets.length - 1}
                 onEdit={setEditTarget} onDelete={setDeleteTarget} />
             ))

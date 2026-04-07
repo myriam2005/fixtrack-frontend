@@ -3,21 +3,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 
 const ROLE_META = {
-  employee:   { label: "utilisateur",    color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },
-  technician: { label: "Technicien", color: "#f59e0b", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.3)" },
-  manager:    { label: "Manager",    color: "#3b82f6", bg: "rgba(59,130,246,0.15)", border: "rgba(59,130,246,0.3)" },
-  admin:      { label: "Admin",      color: "#ef4444", bg: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.3)"  },
+  user:       { label: "Utilisateur",  color: "#22c55e", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)"  },
+  technician: { label: "Technicien",   color: "#f59e0b", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.3)" },
+  manager:    { label: "Manager",      color: "#3b82f6", bg: "rgba(59,130,246,0.15)", border: "rgba(59,130,246,0.3)" },
+  admin:      { label: "Admin",        color: "#ef4444", bg: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.3)"  },
 };
 
 const DEMO_ACCOUNTS = [
-  { id: "d1", nom: "oumayma",    email: "oumayma.jendoubi06@gmail.com", password: "123456", role: "employee",   avatar: "OJ" },
+  { id: "d1", nom: "oumayma",    email: "oumayma.jendoubi06@gmail.com", password: "123456", role: "user",       avatar: "OJ" },
   { id: "d2", nom: "ola",        email: "olakhammassy@gmail.com",       password: "123456", role: "technician", avatar: "OK" },
   { id: "d3", nom: "chokri",     email: "maryemchaker@gmail.com",       password: "123456", role: "manager",    avatar: "MC" },
   { id: "d4", nom: "Admin FST",  email: "myriemkary3@gmail.com",        password: "123456", role: "admin",      avatar: "AF" },
 ];
 
 const ROLE_OPTIONS = [
-  { value: "employee",   label: "Employé" },
+  { value: "user",       label: "Utilisateur" },
   { value: "technician", label: "Technicien" },
   { value: "manager",    label: "Manager" },
 ];
@@ -115,7 +115,7 @@ function AppLogo() {
 
 function AccountRequestModal({ onClose }) {
   const [form, setForm] = useState({
-    nom: "", email: "", telephone: "", role: "employee", message: "",
+    nom: "", email: "", telephone: "", role: "user", message: "",
   });
   const [errors, setErrors]               = useState({});
   const [loading, setLoading]             = useState(false);

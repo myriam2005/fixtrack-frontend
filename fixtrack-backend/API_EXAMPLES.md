@@ -428,7 +428,7 @@ REGISTER=$(curl -s -X POST $API/auth/register \
     \"nom\": \"Test User\",
     \"email\": \"$EMAIL\",
     \"password\": \"$PASS\",
-    \"role\": \"employee\"
+    \"role\": \"user\"
   }")
 
 echo $REGISTER | jq '.'

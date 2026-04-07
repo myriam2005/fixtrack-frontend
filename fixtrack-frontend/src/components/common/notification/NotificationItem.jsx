@@ -106,7 +106,7 @@ export default function NotificationItem({ notif, onMarkRead }) {
 
   // ✅ Bouton quick-assign UNIQUEMENT pour manager
   // admin reçoit la notif mais sans bouton (info seulement)
-  // technician et employee ne voient jamais ce bouton
+  // technician et user ne voient jamais ce bouton
   const canReassign = currentRole === "manager";
   const hasReassign = isRefused && !isRead && canReassign &&
     notif.meta?.action === "reassign" && notif.meta?.ticketId;
