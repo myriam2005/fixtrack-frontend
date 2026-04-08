@@ -1,5 +1,5 @@
 // src/pages/auth/VerifyEmailPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -15,17 +15,8 @@ export default function VerifyEmailPage() {
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
 
-  // Vérifier le token s'il est fourni via URL
-  useEffect(() => {
-    const token = searchParams.get("token");
-    if (token) {
-      verifyToken(token);
-    } else {
-      setStatus("input");
-    }
-  }, [searchParams]);
-
-  const verifyToken = async (token) => {
+  // ✅ Defined BEFORE useEffect so it can be referenced
+  const verifyToken = useCallback(async (token) => {
     setStatus("loading");
     const result = await verifyEmailWithToken(token);
 
@@ -36,19 +27,34 @@ export default function VerifyEmailPage() {
         navigate("/login");
       }, 3000);
     } else {
-      setStatus("error");
       if (result.tokenExpired) {
         setMessage(
           "❌ Le lien de vérification a expiré. Demandez un nouveau lien ci-dessous."
         );
         setStatus("input");
       } else if (result.tokenInvalid) {
+        setStatus("error");
         setMessage("❌ Le lien de vérification est invalide.");
       } else {
+        setStatus("error");
         setMessage(result.error || "Erreur lors de la vérification.");
       }
     }
-  };
+  }, [verifyEmailWithToken, navigate]);
+
+  // ✅ useEffect comes AFTER verifyToken is declared
+  useEffect(() => {
+    const token = searchParams.get("token");
+    // Defer state updates to avoid synchronous setState warning in strict mode
+    const timer = setTimeout(() => {
+      if (token) {
+        verifyToken(token);
+      } else {
+        setStatus("input");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [searchParams, verifyToken]);
 
   const handleManualVerify = async () => {
     if (!manualToken.trim()) {
@@ -126,12 +132,7 @@ export default function VerifyEmailPage() {
               textAlign: "center",
             }}
           >
-            <div
-              style={{
-                fontSize: 48,
-                marginBottom: 16,
-              }}
-            >
+            <div style={{ fontSize: 48, marginBottom: 16 }}>
               {status === "success" ? "✅" : "📧"}
             </div>
             <div
@@ -144,12 +145,7 @@ export default function VerifyEmailPage() {
             >
               Vérification d'email
             </div>
-            <div
-              style={{
-                color: "rgba(255,255,255,0.8)",
-                fontSize: 13.5,
-              }}
-            >
+            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13.5 }}>
               Finalisez votre inscription
             </div>
           </div>
@@ -186,13 +182,7 @@ export default function VerifyEmailPage() {
                 >
                   {message}
                 </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#6b7280",
-                    marginTop: 16,
-                  }}
-                >
+                <div style={{ fontSize: 13, color: "#6b7280", marginTop: 16 }}>
                   Redirection vers la connexion...
                 </div>
               </div>
@@ -228,8 +218,7 @@ export default function VerifyEmailPage() {
                     }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = "#2563eb";
-                      e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(37,99,235,0.1)";
+                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = "#e5e7eb";
@@ -298,8 +287,7 @@ export default function VerifyEmailPage() {
                     }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = "#2563eb";
-                      e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(37,99,235,0.1)";
+                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = "#e5e7eb";
@@ -342,13 +330,7 @@ export default function VerifyEmailPage() {
             {status === "error" && (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: "#dc2626",
-                    marginBottom: 24,
-                  }}
-                >
+                <div style={{ fontSize: 14, color: "#dc2626", marginBottom: 24 }}>
                   {message}
                 </div>
                 <button

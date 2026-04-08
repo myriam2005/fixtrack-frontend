@@ -111,18 +111,16 @@ function AppLogo() {
   );
 }
 
-// ── Modal Demande de Compte — design professionnel sans emoji ─────────────────
-
+// ── Modal Demande de Compte ───────────────────────────────────────────────────
 function AccountRequestModal({ onClose }) {
   const [form, setForm] = useState({
     nom: "", email: "", telephone: "", role: "user", message: "",
   });
-  const [errors, setErrors]               = useState({});
-  const [loading, setLoading]             = useState(false);
-  const [success, setSuccess]             = useState(false);
-  const [apiErr, setApiErr]               = useState("");
-  // ✅ NEW : validation domaine email en temps réel
-  const [emailChecking, setEmailChecking] = useState(false);
+  const [errors, setErrors]                 = useState({});
+  const [loading, setLoading]               = useState(false);
+  const [success, setSuccess]               = useState(false);
+  const [apiErr, setApiErr]                 = useState("");
+  const [emailChecking, setEmailChecking]   = useState(false);
   const [emailDomainErr, setEmailDomainErr] = useState("");
 
   const set = (field) => (e) => {
@@ -132,23 +130,37 @@ function AccountRequestModal({ onClose }) {
     setApiErr("");
   };
 
-  // ✅ NEW : vérifie le domaine à la perte de focus sur le champ email
+  // ✅ Vérification domaine robuste — fail open si backend down ou erreur réseau
   const checkEmailDomain = async (email) => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return;
+
     setEmailChecking(true);
     setEmailDomainErr("");
+
     try {
       const res = await fetch(`${API_BASE}/auth/check-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
+      // ✅ Si le backend répond mal (500, 404...) → on laisse passer
+      if (!res.ok) {
+        console.warn("[check-email] Backend KO, on laisse passer");
+        return;
+      }
+
       const data = await res.json();
-      if (!data.valid) {
+
+      // ✅ Seulement bloquer si reason === "domain" (domaine vraiment inexistant)
+      // dns_unavailable = erreur réseau côté serveur → on laisse passer
+      if (!data.valid && data.reason === "domain") {
         setEmailDomainErr("Ce domaine email n'existe pas ou n'accepte pas d'emails.");
       }
+
     } catch {
-      // silencieux si backend down
+      // ✅ Erreur réseau (backend down, CORS...) → on laisse passer silencieusement
+      console.warn("[check-email] Erreur réseau, fail open");
     } finally {
       setEmailChecking(false);
     }
@@ -159,7 +171,6 @@ function AccountRequestModal({ onClose }) {
     if (!form.nom.trim())   e.nom   = "Le nom est requis";
     if (!form.email.trim()) e.email = "L'email est requis";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Format invalide";
-    // ✅ Bloque le submit si le domaine est invalide
     if (emailDomainErr) e.email = emailDomainErr;
     return e;
   };
@@ -167,7 +178,6 @@ function AccountRequestModal({ onClose }) {
   const handleSubmit = async () => {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    // ✅ Bloque aussi si la vérification est encore en cours
     if (emailChecking) return;
     setLoading(true);
     setApiErr("");
@@ -330,7 +340,7 @@ function AccountRequestModal({ onClose }) {
                   )}
                 </div>
 
-                {/* Email ✅ avec vérification domaine onBlur */}
+                {/* Email avec vérification domaine onBlur */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                     Adresse email <span style={{ color: "#ef4444" }}>*</span>
@@ -345,7 +355,6 @@ function AccountRequestModal({ onClose }) {
                       onBlur={() => checkEmailDomain(form.email)}
                       style={inputStyle(errors.email || emailDomainErr)}
                     />
-                    {/* Spinner pendant la vérification */}
                     {emailChecking && (
                       <div style={{
                         position: "absolute", right: 12, top: "50%",
@@ -357,7 +366,6 @@ function AccountRequestModal({ onClose }) {
                         animation: "ftSpin .65s linear infinite",
                       }} />
                     )}
-                    {/* Checkmark si email valide */}
                     {!emailChecking && form.email && /\S+@\S+\.\S+/.test(form.email) && !emailDomainErr && (
                       <div style={{
                         position: "absolute", right: 12, top: "50%",
@@ -474,6 +482,7 @@ function AccountRequestModal({ onClose }) {
     </>
   );
 }
+
 // ── Page principale ───────────────────────────────────────────────────────────
 export default function LoginPage({ onLoginSuccess }) {
   const { loginWithBackend } = useAuth();
