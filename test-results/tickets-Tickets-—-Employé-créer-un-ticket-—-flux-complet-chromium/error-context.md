@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e10]
+        - generic [ref=e12]:
+          - generic [ref=e13]: FixTrack
+          - generic [ref=e14]: Maintenance
+      - generic [ref=e15]: Bienvenue
+      - generic [ref=e16]: Plateforme intelligente de gestion des maintenances industrielles — tickets, techniciens & reporting.
+      - generic [ref=e17]:
+        - text: Système actif ·
+        - strong [ref=e19]: 17:27:57
+      - generic [ref=e20]:
+        - generic [ref=e21]: Comptes démo — clic pour remplir
+        - generic [ref=e22]:
+          - generic [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: JD
+            - generic [ref=e25]:
+              - generic [ref=e26]: Jean Dupont
+              - generic [ref=e27]: jean@fst.tn
+            - generic [ref=e28]: utilisateur
+          - generic [ref=e29] [cursor=pointer]:
+            - generic [ref=e30]: SB
+            - generic [ref=e31]:
+              - generic [ref=e32]: Sara Ben Ali
+              - generic [ref=e33]: sara@fst.tn
+            - generic [ref=e34]: Technicien
+          - generic [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: LT
+            - generic [ref=e37]:
+              - generic [ref=e38]: Lina Trabelsi
+              - generic [ref=e39]: lina@fst.tn
+            - generic [ref=e40]: Manager
+          - generic [ref=e41] [cursor=pointer]:
+            - generic [ref=e42]: AF
+            - generic [ref=e43]:
+              - generic [ref=e44]: Admin FST
+              - generic [ref=e45]: admin@fst.tn
+            - generic [ref=e46]: Admin
+        - generic [ref=e47]: "MDP universel : 123456"
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: Connexion
+        - generic [ref=e51]: Accès réservé aux membres de l'équipe.
+      - generic [ref=e52]:
+        - generic [ref=e53]: ⚠
+        - generic [ref=e54]: Trop de requêtes, réessayez plus tard.
+      - generic [ref=e55]:
+        - generic [ref=e56]: Adresse email
+        - generic [ref=e57]:
+          - generic: ✉
+          - textbox "prenom@fst.tn" [ref=e58]: jean@fst.tn
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]: Mot de passe
+          - button "Mot de passe oublié ?" [ref=e62] [cursor=pointer]
+        - generic [ref=e63]:
+          - generic: 🔒
+          - textbox "••••••••" [ref=e64]: "123456"
+          - button "👁" [ref=e65] [cursor=pointer]
+      - generic [ref=e68] [cursor=pointer]: Rester connecté pendant 30 jours
+      - button "SE CONNECTER →" [ref=e69] [cursor=pointer]:
+        - generic [ref=e71]:
+          - generic [ref=e72]: SE CONNECTER
+          - generic [ref=e73]: →
+      - generic [ref=e74]:
+        - text: Pas encore de compte ?
+        - strong [ref=e75]: Contactez votre administrateur.
+  - generic [ref=e76]: © 2026 FixTrack
+```

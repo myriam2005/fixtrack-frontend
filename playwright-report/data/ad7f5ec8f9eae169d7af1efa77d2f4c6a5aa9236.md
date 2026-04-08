@@ -1,0 +1,206 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e9]
+      - generic [ref=e11]:
+        - paragraph [ref=e12]: FixTrack
+        - paragraph [ref=e13]: Maintenance
+    - generic [ref=e14]:
+      - generic [ref=e16]: JD
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: jean Dupont
+        - paragraph [ref=e22]: utilisateur
+      - button "Paramètres" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+    - paragraph [ref=e28]: Menu
+    - generic [ref=e29]:
+      - link "Tableau de bord" [ref=e30] [cursor=pointer]:
+        - /url: /employee/dashboard
+        - img [ref=e32]
+        - paragraph [ref=e37]: Tableau de bord
+      - link "Mes tickets" [ref=e39] [cursor=pointer]:
+        - /url: /employee/tickets
+        - img [ref=e41]
+        - paragraph [ref=e43]: Mes tickets
+    - button "Déconnexion" [ref=e45] [cursor=pointer]:
+      - img [ref=e46]
+      - paragraph [ref=e49]: Déconnexion
+  - generic [ref=e50]:
+    - banner [ref=e51]:
+      - generic [ref=e52]:
+        - paragraph [ref=e53]: FixTrack
+        - img [ref=e55]
+        - paragraph [ref=e57]: Tableau de bord
+      - button "Notifications" [ref=e59] [cursor=pointer]:
+        - img [ref=e60]
+        - generic [ref=e63]: "7"
+      - button "Paramètres du compte" [ref=e64] [cursor=pointer]:
+        - img [ref=e65]
+      - generic [ref=e68]:
+        - generic [ref=e69] [cursor=pointer]: JD
+        - generic [ref=e70]:
+          - paragraph [ref=e71]: jean Dupont
+          - paragraph [ref=e72]: jean@fst.tn
+    - main [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e76]:
+          - img [ref=e78]
+          - generic [ref=e80]:
+            - paragraph [ref=e81]: Bon après-midi, jean 👋
+            - paragraph [ref=e82]: Voici vos activités de maintenance
+        - generic [ref=e83]:
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - paragraph [ref=e89]: Tickets ouverts
+              - paragraph [ref=e90]: "6"
+              - paragraph [ref=e91]: En attente de prise en charge
+            - img [ref=e93]
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - paragraph [ref=e100]: En cours
+              - paragraph [ref=e101]: "5"
+              - paragraph [ref=e102]: Assignés ou en traitement
+            - img [ref=e104]
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - paragraph [ref=e112]: Résolus
+              - paragraph [ref=e113]: "5"
+              - paragraph [ref=e114]: Clôturés avec succès
+            - img [ref=e116]
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e123]:
+                - paragraph [ref=e124]: Mes tickets
+                - paragraph [ref=e125]: 6 tickets récents
+              - generic [ref=e126]:
+                - generic [ref=e127] [cursor=pointer]:
+                  - paragraph [ref=e128]: Tous
+                  - generic [ref=e129]: "17"
+                - generic [ref=e130] [cursor=pointer]:
+                  - paragraph [ref=e131]: Ouverts
+                  - generic [ref=e132]: "6"
+                - generic [ref=e133] [cursor=pointer]:
+                  - paragraph [ref=e134]: En cours
+                  - generic [ref=e135]: "5"
+                - generic [ref=e136] [cursor=pointer]:
+                  - paragraph [ref=e137]: Résolus
+                  - generic [ref=e138]: "5"
+            - generic [ref=e139]:
+              - generic [ref=e142]:
+                - generic [ref=e143]:
+                  - paragraph [ref=e144]: jjjjjjj
+                  - generic [ref=e145]: Ouvert
+                - generic [ref=e147]:
+                  - generic [ref=e148]:
+                    - img [ref=e149]
+                    - paragraph [ref=e151]: 28 mars 2026
+                  - generic [ref=e152]:
+                    - img [ref=e153]
+                    - paragraph [ref=e156]: Bâtiment B
+                  - paragraph [ref=e158]: Basse
+              - separator [ref=e171]
+              - generic [ref=e174]:
+                - generic [ref=e175]:
+                  - paragraph [ref=e176]: panne de chauffage testt
+                  - generic [ref=e177]: Assigné
+                - generic [ref=e179]:
+                  - generic [ref=e180]:
+                    - img [ref=e181]
+                    - paragraph [ref=e183]: 28 mars 2026
+                  - generic [ref=e184]:
+                    - img [ref=e185]
+                    - paragraph [ref=e188]: sortie de secours
+                  - paragraph [ref=e190]: Critique
+              - separator [ref=e203]
+              - generic [ref=e206]:
+                - generic [ref=e207]:
+                  - paragraph [ref=e208]: FUITE EAUU
+                  - generic [ref=e209]: Ouvert
+                - generic [ref=e211]:
+                  - generic [ref=e212]:
+                    - img [ref=e213]
+                    - paragraph [ref=e215]: 28 mars 2026
+                  - generic [ref=e216]:
+                    - img [ref=e217]
+                    - paragraph [ref=e220]: secours
+                  - paragraph [ref=e222]: Basse
+              - separator [ref=e235]
+              - generic [ref=e238]:
+                - generic [ref=e239]:
+                  - paragraph [ref=e240]: wiiiiii
+                  - generic [ref=e241]: Ouvert
+                - generic [ref=e243]:
+                  - generic [ref=e244]:
+                    - img [ref=e245]
+                    - paragraph [ref=e247]: 28 mars 2026
+                  - generic [ref=e248]:
+                    - img [ref=e249]
+                    - paragraph [ref=e252]: Bâtiment A
+                  - paragraph [ref=e254]: Haute
+              - separator [ref=e267]
+              - generic [ref=e270]:
+                - generic [ref=e271]:
+                  - paragraph [ref=e272]: tsssst
+                  - generic [ref=e273]: Ouvert
+                - generic [ref=e275]:
+                  - generic [ref=e276]:
+                    - img [ref=e277]
+                    - paragraph [ref=e279]: 28 mars 2026
+                  - generic [ref=e280]:
+                    - img [ref=e281]
+                    - paragraph [ref=e284]: Cuisine principale - Bâtiment A
+                  - paragraph [ref=e286]: Moyenne
+              - separator [ref=e299]
+              - generic [ref=e302]:
+                - generic [ref=e303]:
+                  - paragraph [ref=e304]: fuite eauuuuu
+                  - generic [ref=e305]: Résolu
+                - generic [ref=e307]:
+                  - generic [ref=e308]:
+                    - img [ref=e309]
+                    - paragraph [ref=e311]: 28 mars 2026
+                  - generic [ref=e312]:
+                    - img [ref=e313]
+                    - paragraph [ref=e316]: Sous-sol
+                  - paragraph [ref=e318]: Basse
+            - link "Voir tous mes tickets →" [ref=e332] [cursor=pointer]:
+              - /url: /employee/tickets
+              - paragraph [ref=e333]: Voir tous mes tickets →
+          - generic [ref=e334]:
+            - generic [ref=e335]:
+              - generic [ref=e336]:
+                - generic [ref=e337]: JD
+                - generic [ref=e338]:
+                  - paragraph [ref=e339]: jean Dupont
+                  - paragraph [ref=e340]: jean@fst.tn
+                  - generic [ref=e341]:
+                    - img [ref=e342]
+                    - paragraph [ref=e345]: UTILISATEUR
+              - separator [ref=e346]
+              - generic [ref=e347]:
+                - generic [ref=e348]:
+                  - paragraph [ref=e349]: Total tickets soumis
+                  - paragraph [ref=e350]: "17"
+                - generic [ref=e351]:
+                  - paragraph [ref=e352]: Résolus avec succès
+                  - paragraph [ref=e353]: "5"
+                - generic [ref=e354]:
+                  - generic [ref=e355]:
+                    - paragraph [ref=e356]: Taux de résolution
+                    - paragraph [ref=e357]: 29%
+                  - progressbar [ref=e358]
+            - generic [ref=e360]:
+              - generic [ref=e361]:
+                - generic [ref=e362]: 💡
+                - paragraph [ref=e363]: Conseil du jour
+              - paragraph [ref=e364]: Décrivez précisément la localisation et les symptômes du problème pour accélérer l'intervention du technicien.
+    - paragraph [ref=e366]: © 2026 FixTrack
+  - link "Nouveau ticket" [ref=e367] [cursor=pointer]:
+    - /url: /employee/tickets/new
+    - img [ref=e368]
+    - text: Nouveau ticket
+```

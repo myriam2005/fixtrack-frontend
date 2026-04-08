@@ -1,0 +1,80 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e9]
+      - generic [ref=e11]:
+        - paragraph [ref=e12]: FixTrack
+        - paragraph [ref=e13]: Maintenance
+    - generic [ref=e14]:
+      - generic [ref=e16]: LT
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: Lina Trabelsi
+        - paragraph [ref=e22]: Manager
+      - button "Paramètres" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+    - paragraph [ref=e28]: Menu
+    - generic [ref=e29]:
+      - link "Tableau de bord" [ref=e30] [cursor=pointer]:
+        - /url: /manager/dashboard
+        - img [ref=e32]
+        - paragraph [ref=e37]: Tableau de bord
+      - link "Tous les tickets" [ref=e39] [cursor=pointer]:
+        - /url: /manager/tickets
+        - img [ref=e41]
+        - paragraph [ref=e43]: Tous les tickets
+      - link "Valider résolutions" [ref=e44] [cursor=pointer]:
+        - /url: /manager/resolutions
+        - img [ref=e46]
+        - paragraph [ref=e48]: Valider résolutions
+      - link "Équipe" [ref=e49] [cursor=pointer]:
+        - /url: /manager/team
+        - img [ref=e51]
+        - paragraph [ref=e55]: Équipe
+      - link "Rapports" [ref=e56] [cursor=pointer]:
+        - /url: /manager/reports
+        - img [ref=e58]
+        - paragraph [ref=e61]: Rapports
+    - button "Déconnexion" [ref=e63] [cursor=pointer]:
+      - img [ref=e64]
+      - paragraph [ref=e67]: Déconnexion
+  - generic [ref=e68]:
+    - banner [ref=e69]:
+      - generic [ref=e70]:
+        - paragraph [ref=e71]: FixTrack
+        - img [ref=e73]
+        - paragraph [ref=e75]: Tableau de bord
+      - button "Notifications" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+      - button "Paramètres du compte" [ref=e81] [cursor=pointer]:
+        - img [ref=e82]
+      - generic [ref=e85]:
+        - generic [ref=e86] [cursor=pointer]: LT
+        - generic [ref=e87]:
+          - paragraph [ref=e88]: Lina Trabelsi
+          - paragraph [ref=e89]: lina@fst.tn
+    - main [ref=e90]:
+      - generic [ref=e91]:
+        - generic [ref=e93]:
+          - img [ref=e95]
+          - generic [ref=e97]:
+            - paragraph [ref=e98]: Bon après-midi, Lina 👋
+            - paragraph [ref=e99]: Supervision globale de la maintenance
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - paragraph [ref=e119]: À assigner en urgence
+            - paragraph [ref=e120]: Non assignés critiques
+          - generic [ref=e125]:
+            - paragraph [ref=e126]: Charge des techniciens
+            - paragraph [ref=e127]: Cliquez pour voir les compétences
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - paragraph [ref=e135]: Tickets récents
+            - paragraph [ref=e136]: Les 3 derniers tickets créés sur la plateforme
+          - link "Voir tous →" [ref=e137] [cursor=pointer]:
+            - /url: /manager/tickets
+            - paragraph [ref=e138]: Voir tous →
+    - paragraph [ref=e146]: © 2026 FixTrack
+```

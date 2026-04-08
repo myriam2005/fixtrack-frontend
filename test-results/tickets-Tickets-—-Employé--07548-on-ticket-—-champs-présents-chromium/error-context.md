@@ -1,0 +1,129 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e9]
+      - generic [ref=e11]:
+        - paragraph [ref=e12]: FixTrack
+        - paragraph [ref=e13]: Maintenance
+    - generic [ref=e14]:
+      - generic [ref=e16]: JD
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: jean Dupont
+        - paragraph [ref=e22]: utilisateur
+      - button "Paramètres" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+    - paragraph [ref=e28]: Menu
+    - generic [ref=e29]:
+      - link "Tableau de bord" [ref=e30] [cursor=pointer]:
+        - /url: /employee/dashboard
+        - img [ref=e32]
+        - paragraph [ref=e37]: Tableau de bord
+      - link "Mes tickets" [ref=e39] [cursor=pointer]:
+        - /url: /employee/tickets
+        - img [ref=e41]
+        - paragraph [ref=e43]: Mes tickets
+    - button "Déconnexion" [ref=e45] [cursor=pointer]:
+      - img [ref=e46]
+      - paragraph [ref=e49]: Déconnexion
+  - generic [ref=e50]:
+    - banner [ref=e51]:
+      - generic [ref=e52]:
+        - paragraph [ref=e53]: FixTrack
+        - img [ref=e55]
+        - paragraph [ref=e57]: Tableau de bord
+      - button "Notifications" [ref=e59] [cursor=pointer]:
+        - img [ref=e60]
+        - generic [ref=e63]: "7"
+      - button "Paramètres du compte" [ref=e64] [cursor=pointer]:
+        - img [ref=e65]
+      - generic [ref=e68]:
+        - generic [ref=e69] [cursor=pointer]: JD
+        - generic [ref=e70]:
+          - paragraph [ref=e71]: jean Dupont
+          - paragraph [ref=e72]: jean@fst.tn
+    - main [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e76]:
+          - img [ref=e78]
+          - generic [ref=e80]:
+            - paragraph [ref=e81]: Bon après-midi, jean 👋
+            - paragraph [ref=e82]: Voici vos activités de maintenance
+        - generic [ref=e83]:
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - paragraph [ref=e89]: Tickets ouverts
+              - paragraph [ref=e90]: "0"
+              - paragraph [ref=e91]: En attente de prise en charge
+            - img [ref=e93]
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - paragraph [ref=e100]: En cours
+              - paragraph [ref=e101]: "0"
+              - paragraph [ref=e102]: Assignés ou en traitement
+            - img [ref=e104]
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - paragraph [ref=e112]: Résolus
+              - paragraph [ref=e113]: "0"
+              - paragraph [ref=e114]: Clôturés avec succès
+            - img [ref=e116]
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e123]:
+                - paragraph [ref=e124]: Mes tickets
+                - paragraph [ref=e125]: 0 tickets récents
+              - generic [ref=e126]:
+                - generic [ref=e127] [cursor=pointer]:
+                  - paragraph [ref=e128]: Tous
+                  - generic [ref=e129]: "0"
+                - generic [ref=e130] [cursor=pointer]:
+                  - paragraph [ref=e131]: Ouverts
+                  - generic [ref=e132]: "0"
+                - generic [ref=e133] [cursor=pointer]:
+                  - paragraph [ref=e134]: En cours
+                  - generic [ref=e135]: "0"
+                - generic [ref=e136] [cursor=pointer]:
+                  - paragraph [ref=e137]: Résolus
+                  - generic [ref=e138]: "0"
+            - generic [ref=e140]:
+              - paragraph [ref=e141]: 📋
+              - paragraph [ref=e142]: Aucun ticket dans cette catégorie
+              - paragraph [ref=e143]: Vos tickets apparaîtront ici dès leur création
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - generic [ref=e147]: JD
+                - generic [ref=e148]:
+                  - paragraph [ref=e149]: jean Dupont
+                  - paragraph [ref=e150]: jean@fst.tn
+                  - generic [ref=e151]:
+                    - img [ref=e152]
+                    - paragraph [ref=e155]: UTILISATEUR
+              - separator [ref=e156]
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - paragraph [ref=e159]: Total tickets soumis
+                  - paragraph [ref=e160]: "0"
+                - generic [ref=e161]:
+                  - paragraph [ref=e162]: Résolus avec succès
+                  - paragraph [ref=e163]: "0"
+                - generic [ref=e164]:
+                  - generic [ref=e165]:
+                    - paragraph [ref=e166]: Taux de résolution
+                    - paragraph [ref=e167]: 0%
+                  - progressbar [ref=e168]
+            - generic [ref=e170]:
+              - generic [ref=e171]:
+                - generic [ref=e172]: 💡
+                - paragraph [ref=e173]: Conseil du jour
+              - paragraph [ref=e174]: Décrivez précisément la localisation et les symptômes du problème pour accélérer l'intervention du technicien.
+    - paragraph [ref=e176]: © 2026 FixTrack
+  - link "Nouveau ticket" [ref=e177] [cursor=pointer]:
+    - /url: /employee/tickets/new
+    - img [ref=e178]
+    - text: Nouveau ticket
+```
