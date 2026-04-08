@@ -1,2 +1,10 @@
 node_modules
 node_modules
+
+# n8n storage
+n8n/storage/database.sqlite
+n8n/storage/database.sqlite-shm
+n8n/storage/database.sqlite-wal
+n8n/storage/crash.journal
+n8n/storage/n8nEventLog.log
+n8n/storage/config
