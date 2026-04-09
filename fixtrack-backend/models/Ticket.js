@@ -32,7 +32,7 @@ const ticketSchema = new Schema(
         "pending",
         "resolved",
         "closed",
-        "refused", // ✅ NOUVEAU
+        "refused",
       ],
       default: "open",
     },
@@ -65,15 +65,18 @@ const ticketSchema = new Schema(
     auteurTel: { type: String, default: null },
     technicienId: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
-    // ✅ NOUVEAU — raison du refus renseignée par le technicien
     refusedReason: { type: String, default: null },
     refusedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     refusedAt: { type: Date, default: null },
 
     notes: [noteSchema],
+
+    // ✅ CORRIGÉ — champs alignés avec le controller (rating/comment)
     feedback: {
-      note: { type: Number, min: 1, max: 5, default: null },
-      commentaire: { type: String, default: "" },
+      rating: { type: Number, min: 1, max: 5, default: null },
+      comment: { type: String, default: "" },
+      date: { type: Date, default: null },
+      auteurId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     },
   },
   { timestamps: true },

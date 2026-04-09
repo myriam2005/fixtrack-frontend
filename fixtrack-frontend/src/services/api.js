@@ -58,6 +58,8 @@ export const ticketService = {
     api.patch(`/tickets/${id}/validate`, { commentaire }),
   refuse: (id, reason) =>
     api.patch(`/tickets/${id}/refuse`, { reason }).then((r) => r.data),
+  saveFeedback: (id, data) =>
+    api.patch(`/tickets/${id}/feedback`, data).then((r) => r.data),
 };
 
 export const userService = {

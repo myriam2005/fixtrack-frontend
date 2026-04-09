@@ -5,11 +5,43 @@ const createLog = require("../utils/createLog");
 const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 const { sendVerificationEmail } = require("../utils/emailService");
 
-// ── Helper : vérifie domaine email (MX → A → AAAA) ───────────────────────────
+// ── Helper : vérifie domaine email (connus → MX → A → AAAA → fail open) ──────
+const KNOWN_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.fr",
+  "yahoo.co.uk",
+  "hotmail.com",
+  "hotmail.fr",
+  "outlook.com",
+  "outlook.fr",
+  "live.com",
+  "live.fr",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "protonmail.com",
+  "proton.me",
+  "tutanota.com",
+  "tutanota.de",
+  "gmx.com",
+  "gmx.net",
+  "gmx.fr",
+  "mail.com",
+  // Domaines du projet
+  "fst.tn",
+  "fixtrack.app",
+  "fixtrack.local",
+]);
+
 async function isEmailDomainValid(email) {
   try {
-    const domain = email.split("@")[1];
+    const domain = email.split("@")[1]?.toLowerCase();
     if (!domain) return false;
+
+    // ✅ Domaine connu → valide immédiatement sans DNS
+    if (KNOWN_DOMAINS.has(domain)) return true;
 
     // 1. MX
     try {
@@ -37,7 +69,8 @@ async function isEmailDomainValid(email) {
 
     return false;
   } catch {
-    return false;
+    // ✅ Erreur inattendue → fail open (ne pas bloquer un email valide)
+    return true;
   }
 }
 
@@ -179,11 +212,43 @@ exports.updateUser = async (req, res) => {
     const update = {};
 
     if (nom !== undefined) update.nom = nom;
-    if (email !== undefined) update.email = email.toLowerCase().trim();
     if (telephone !== undefined) update.telephone = telephone;
     if (actif !== undefined) update.actif = actif;
     if (competences !== undefined && Array.isArray(competences))
       update.competences = competences;
+
+    // ✅ Vérification email si modifié
+    if (email !== undefined) {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Format basique
+      if (!/\S+@\S+\.\S+/.test(normalizedEmail)) {
+        return res.status(400).json({ message: "Format d'email invalide" });
+      }
+
+      // Vérification domaine DNS
+      const domainValid = await isEmailDomainValid(normalizedEmail);
+      if (!domainValid) {
+        return res.status(400).json({
+          message: "Ce domaine email n'existe pas ou n'accepte pas d'emails.",
+          emailDomainInvalid: true,
+        });
+      }
+
+      // Email déjà utilisé par un autre compte
+      const existing = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: req.params.id },
+      });
+      if (existing) {
+        return res.status(400).json({
+          message: "Cet email est déjà utilisé par un autre compte.",
+          emailAlreadyExists: true,
+        });
+      }
+
+      update.email = normalizedEmail;
+    }
 
     if (password && password.trim().length > 0) {
       if (password.trim().length < 6) {
@@ -227,10 +292,7 @@ exports.updateUser = async (req, res) => {
       userId: user._id,
       message: `Votre profil a été modifié par l'administrateur ${adminUser?.nom || "Administrateur"}.${fieldList}`,
       type: "profile_updated",
-      meta: {
-        adminName: adminUser?.nom || "Administrateur",
-        changedFields,
-      },
+      meta: { adminName: adminUser?.nom || "Administrateur", changedFields },
     });
 
     res.json(user);
@@ -295,22 +357,44 @@ exports.updateProfile = async (req, res) => {
     const update = {};
     if (nom !== undefined && nom !== null) update.nom = nom.trim();
     if (telephone !== undefined) update.telephone = telephone;
+
+    // ✅ Vérification email si modifié
     if (email !== undefined && email !== null) {
       const normalizedEmail = email.toLowerCase().trim();
+
+      // Format basique
+      if (!/\S+@\S+\.\S+/.test(normalizedEmail)) {
+        return res.status(400).json({ message: "Format d'email invalide" });
+      }
+
+      // ✅ Vérification domaine DNS (MX → A → AAAA → fail open)
+      const domainValid = await isEmailDomainValid(normalizedEmail);
+      if (!domainValid) {
+        return res.status(400).json({
+          message: "Ce domaine email n'existe pas ou n'accepte pas d'emails.",
+          emailDomainInvalid: true,
+        });
+      }
+
+      // ✅ Email déjà utilisé par un autre compte
       const existing = await User.findOne({
         email: normalizedEmail,
         _id: { $ne: req.user.id },
       });
-      if (existing)
-        return res
-          .status(400)
-          .json({ message: "Email déjà utilisé par un autre compte" });
+      if (existing) {
+        return res.status(400).json({
+          message: "Cet email est déjà utilisé par un autre compte.",
+          emailAlreadyExists: true,
+        });
+      }
+
       update.email = normalizedEmail;
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, update, {
       new: true,
     }).select("-password");
+
     if (!user)
       return res.status(404).json({ message: "Utilisateur introuvable" });
 
