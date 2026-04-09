@@ -1,5 +1,5 @@
 // routes/userRoutes.js
-// IMPORTANT : /profile et /password AVANT /:id pour éviter le conflit
+// IMPORTANT : /profile et /password AVANT /:id pour éviter le conflit de routes
 const express = require("express");
 const router = express.Router();
 const { check } = require("express-validator");
@@ -9,7 +9,7 @@ const {
   getAllUsers,
   getTechnicians,
   getUserById,
-  createUser, // ← nouveau
+  createUser,
   updateUser,
   updateRole,
   deleteUser,
@@ -17,11 +17,11 @@ const {
   changePassword,
 } = require("../controllers/userController");
 
-// ── Routes du profil connecté (pas de rôle requis, juste auth) ───────────────
-router.put("/profile", auth, updateProfile); // ← AVANT /:id
-router.put("/password", auth, changePassword); // ← AVANT /:id
+// ── Routes du profil connecté (auth seulement, pas de rôle requis) ───────────
+router.put("/profile", auth, updateProfile); // ← DOIT être AVANT /:id
+router.put("/password", auth, changePassword); // ← DOIT être AVANT /:id
 
-// ── Techniciens (manager/admin — liste pour assignation) ─────────────────────
+// ── Techniciens (manager/admin — liste pour assignation tickets) ──────────────
 router.get(
   "/technicians",
   auth,
@@ -30,8 +30,10 @@ router.get(
 );
 
 // ── CRUD admin ────────────────────────────────────────────────────────────────
-// FIX : POST / → createUser (admin) au lieu de passer par /auth/register
 router.get("/", auth, roleCheck(["admin", "manager"]), getAllUsers);
+
+// POST / → createUser (admin crée un compte)
+// ✅ Vérifie domaine email + envoie email de vérification → compte inaccessible tant que non vérifié
 router.post(
   "/",
   auth,
@@ -46,9 +48,14 @@ router.post(
       .withMessage("Rôle invalide"),
   ],
   createUser,
-); // ← nouveau
+);
+
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
+
+// PUT /:id → updateUser (admin modifie un compte)
+// ✅ Si email change : vérification DNS + re-vérification par email
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);
+
 router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);
 router.delete("/:id", auth, roleCheck(["admin"]), deleteUser);
 

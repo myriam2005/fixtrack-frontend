@@ -519,7 +519,7 @@ export default function Users() {
         </div>
         <button className="ft-btn-add" onClick={() => setAddOpen(true)}>
           <Ico k="plus" size={15} />
-          Ajouter un utilisateur
+          Ajouter un compte
         </button>
       </div>
 

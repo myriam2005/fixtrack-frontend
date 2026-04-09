@@ -1,3 +1,4 @@
+
 // routes/ticketRoutes.js
 const express = require("express");
 const router = express.Router();
@@ -16,6 +17,7 @@ const {
   resolveTicket,
   validateTicket,
   refuseTicket,
+  saveFeedback,
 } = require("../controllers/ticketController");
 
 // ── Lecture ───────────────────────────────────────────────────────────────────
@@ -84,5 +86,6 @@ router.patch(
   roleCheck(["manager", "admin"]),
   validateTicket,
 );
+router.patch("/:id/feedback", auth, roleCheck(["user"]), saveFeedback);
 
 module.exports = router;
