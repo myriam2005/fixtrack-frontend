@@ -51,14 +51,13 @@ router.post(
   resendVerificationEmail,
 );
 
-// ✅ POST /api/auth/check-email
-// Vérifie que le domaine email existe réellement
-// Logique : domaines connus → valide direct | DNS MX → valide | DNS A/AAAA → valide | échec total → invalide
-// En cas d'erreur réseau inattendue → on laisse passer (fail open)
+// ── POST /api/auth/check-email ────────────────────────────────────────────────
+// Vérifie que le domaine email existe réellement (utilisé par le frontend avant soumission)
+// Logique : domaines connus → valide direct | DNS MX → valide | DNS A/AAAA → valide | rien → invalide
+// En cas d'erreur réseau globale → fail open (on laisse passer)
 router.post("/check-email", async (req, res) => {
   const { email } = req.body;
 
-  // Validation format basique
   if (!email || !email.includes("@")) {
     return res.json({ valid: false, reason: "format" });
   }
@@ -69,7 +68,6 @@ router.post("/check-email", async (req, res) => {
       return res.json({ valid: false, reason: "format" });
     }
 
-    // ── 1. Domaines connus — toujours valides sans DNS ────────────────────────
     const KNOWN_DOMAINS = new Set([
       "gmail.com",
       "googlemail.com",
@@ -93,7 +91,6 @@ router.post("/check-email", async (req, res) => {
       "gmx.net",
       "gmx.fr",
       "mail.com",
-      // Domaines du projet
       "fst.tn",
       "fixtrack.app",
       "fixtrack.local",
@@ -103,41 +100,29 @@ router.post("/check-email", async (req, res) => {
       return res.json({ valid: true, reason: null });
     }
 
-    // ── 2. Vérification DNS MX (enregistrements mail) ─────────────────────────
+    // MX
     try {
       const mxRecords = await dns.resolveMx(domain);
-      if (mxRecords && mxRecords.length > 0) {
+      if (mxRecords && mxRecords.length > 0)
         return res.json({ valid: true, reason: null });
-      }
-    } catch {
-      // Pas de MX → fallback A
-    }
+    } catch {}
 
-    // ── 3. Fallback : enregistrement A (IPv4) ─────────────────────────────────
+    // A
     try {
       const aRecords = await dns.resolve4(domain);
-      if (aRecords && aRecords.length > 0) {
+      if (aRecords && aRecords.length > 0)
         return res.json({ valid: true, reason: null });
-      }
-    } catch {
-      // Pas de A → fallback AAAA
-    }
+    } catch {}
 
-    // ── 4. Fallback : enregistrement AAAA (IPv6) ──────────────────────────────
+    // AAAA
     try {
       const aaaaRecords = await dns.resolve6(domain);
-      if (aaaaRecords && aaaaRecords.length > 0) {
+      if (aaaaRecords && aaaaRecords.length > 0)
         return res.json({ valid: true, reason: null });
-      }
-    } catch {
-      // Rien du tout → domaine vraiment invalide
-    }
+    } catch {}
 
-    // Aucun enregistrement DNS trouvé → domaine n'existe pas
     return res.json({ valid: false, reason: "domain" });
   } catch (err) {
-    // ✅ Erreur réseau globale inattendue → on laisse passer
-    // Mieux vaut accepter un email douteux que bloquer un email valide
     console.warn(
       "[check-email] Erreur DNS inattendue, fail open:",
       err.message,

@@ -11,7 +11,7 @@ const generateToken = (id, role) => {
 };
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
-// ✅ NEW: Envoie un email de vérification et empêche la connexion sans vérification
+// Inscription publique : envoie un email de vérification, bloque la connexion tant que non vérifié
 const register = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -21,10 +21,10 @@ const register = async (req, res) => {
 
     const { nom, email, password, role, telephone, competences } = req.body;
 
-    // Vérification que l'email n'existe pas déjà
-    const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Vérification unicité
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({
         message: "Cet email est déjà utilisé",
@@ -32,7 +32,6 @@ const register = async (req, res) => {
       });
     }
 
-    // Génération des initiales pour le avatar
     const initials = nom
       .split(" ")
       .map((n) => n[0])
@@ -40,10 +39,10 @@ const register = async (req, res) => {
       .toUpperCase()
       .slice(0, 2);
 
-    // Création de l'utilisateur (non vérifié par défaut)
+    // Création du compte (emailVerified: false par défaut)
     const user = await User.create({
       nom: nom.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       password,
       role: role || "user",
       avatar: initials,
@@ -52,11 +51,10 @@ const register = async (req, res) => {
       emailVerified: false,
     });
 
-    // Génération du token de vérification
+    // Token de vérification
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Envoi de l'email de vérification
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const emailResult = await sendVerificationEmail(
       user.email,
@@ -67,9 +65,7 @@ const register = async (req, res) => {
 
     if (!emailResult.success) {
       console.warn("⚠️  Email de vérification non envoyé:", emailResult.error);
-      // On peut soit renvoyer une erreur, soit créer l'utilisateur quand même
-      // Pour l'UX, on va renvoyer une erreur
-      await User.deleteOne({ _id: user._id }); // Nettoyer l'utilisateur
+      await User.deleteOne({ _id: user._id });
       return res.status(500).json({
         message:
           "Impossible d'envoyer l'email de vérification. Veuillez réessayer.",
@@ -102,7 +98,6 @@ const register = async (req, res) => {
 };
 
 // ── POST /api/auth/verify-email ───────────────────────────────────────────────
-// ✅ NEW: Vérifie le token d'email et marque l'utilisateur comme vérifié
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
@@ -111,9 +106,9 @@ const verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "Token de vérification requis" });
     }
 
-    // Cherche l'utilisateur avec ce token (hachés)
+    const crypto = require("crypto");
     const user = await User.findOne({
-      emailVerificationToken: require("crypto")
+      emailVerificationToken: crypto
         .createHash("sha256")
         .update(token)
         .digest("hex"),
@@ -126,7 +121,6 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // Vérification que le token n'est pas expiré
     if (!user.verifyEmailToken(token)) {
       return res.status(400).json({
         message: "Token expiré. Veuillez en demander un nouveau.",
@@ -134,7 +128,6 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // Marquage de l'email comme vérifié
     user.emailVerified = true;
     user.emailVerificationToken = null;
     user.emailVerificationTokenExpires = null;
@@ -163,7 +156,6 @@ const verifyEmail = async (req, res) => {
 };
 
 // ── POST /api/auth/resend-verification ────────────────────────────────────────
-// ✅ NEW: Renvoie un email de vérification
 const resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
@@ -172,9 +164,7 @@ const resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ message: "Email requis" });
     }
 
-    const user = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -187,7 +177,7 @@ const resendVerificationEmail = async (req, res) => {
       });
     }
 
-    // Vérification du rate limiting (max 3 envois par jour)
+    // Rate limiting : 5 min entre deux envois
     if (user.emailVerificationSentAt) {
       const timeSinceLastSend =
         Date.now() - user.emailVerificationSentAt.getTime();
@@ -200,11 +190,9 @@ const resendVerificationEmail = async (req, res) => {
       }
     }
 
-    // Génération du nouveau token
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Envoi de l'email
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const emailResult = await sendVerificationEmail(
       user.email,
@@ -219,9 +207,7 @@ const resendVerificationEmail = async (req, res) => {
       });
     }
 
-    res.json({
-      message: "Email de vérification renvoyé avec succès",
-    });
+    res.json({ message: "Email de vérification renvoyé avec succès" });
   } catch (error) {
     console.error("Erreur renvoi email vérification:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
@@ -229,18 +215,16 @@ const resendVerificationEmail = async (req, res) => {
 };
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
-// ✅ FIX: Vérification que l'email est validé avant de permettre la connexion
+// ✅ Bloque la connexion si emailVerified === false (comptes admin-créés inclus)
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
 
-    // Cherche par email normalisé
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res
@@ -248,12 +232,12 @@ const login = async (req, res) => {
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // ✅ NEW: Vérification que l'email est validé
+    // ✅ Vérification email obligatoire — s'applique aux comptes auto-inscrits ET admin-créés
     if (!user.emailVerified) {
       return res.status(403).json({
-        message: "Veuillez vérifier votre email avant de vous connecter",
+        message:
+          "Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte mail.",
         emailNotVerified: true,
-        userId: user._id,
         requiresEmailVerification: true,
       });
     }
@@ -271,7 +255,6 @@ const login = async (req, res) => {
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Génération du token JWT
     const token = generateToken(user._id, user.role);
     await createLog("LOGIN", `Connexion de ${user.email}`, user._id);
 

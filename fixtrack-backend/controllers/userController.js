@@ -1,11 +1,12 @@
-const User = require("../models/User");
-const bcrypt = require("bcryptjs");
+// controllers/userController.js
+const { validationResult } = require("express-validator");
 const dns = require("dns").promises;
+const User = require("../models/User");
 const createLog = require("../utils/createLog");
-const { notifyN8n, WEBHOOKS } = require("../utils/notifyN8n");
 const { sendVerificationEmail } = require("../utils/emailService");
 
-// ── Helper : vérifie domaine email (connus → MX → A → AAAA → fail open) ──────
+// ── Helper: vérification DNS du domaine email ─────────────────────────────────
+// Retourne true si le domaine est valide, false sinon
 const KNOWN_DOMAINS = new Set([
   "gmail.com",
   "googlemail.com",
@@ -29,139 +30,135 @@ const KNOWN_DOMAINS = new Set([
   "gmx.net",
   "gmx.fr",
   "mail.com",
-  // Domaines du projet
   "fst.tn",
   "fixtrack.app",
   "fixtrack.local",
 ]);
 
 async function isEmailDomainValid(email) {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain || domain.length < 3) return false;
+
+  if (KNOWN_DOMAINS.has(domain)) return true;
+
+  // MX
   try {
-    const domain = email.split("@")[1]?.toLowerCase();
-    if (!domain) return false;
+    const mx = await dns.resolveMx(domain);
+    if (mx && mx.length > 0) return true;
+  } catch {}
 
-    // ✅ Domaine connu → valide immédiatement sans DNS
-    if (KNOWN_DOMAINS.has(domain)) return true;
+  // A
+  try {
+    const a = await dns.resolve4(domain);
+    if (a && a.length > 0) return true;
+  } catch {}
 
-    // 1. MX
-    try {
-      const mx = await dns.resolveMx(domain);
-      if (mx && mx.length > 0) return true;
-    } catch {
-      /* fallback */
-    }
+  // AAAA
+  try {
+    const aaaa = await dns.resolve6(domain);
+    if (aaaa && aaaa.length > 0) return true;
+  } catch {}
 
-    // 2. A
-    try {
-      const a = await dns.resolve4(domain);
-      if (a && a.length > 0) return true;
-    } catch {
-      /* fallback */
-    }
-
-    // 3. AAAA
-    try {
-      const aaaa = await dns.resolve6(domain);
-      if (aaaa && aaaa.length > 0) return true;
-    } catch {
-      /* rien */
-    }
-
-    return false;
-  } catch {
-    // ✅ Erreur inattendue → fail open (ne pas bloquer un email valide)
-    return true;
-  }
+  return false;
 }
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
-exports.getAllUsers = async (req, res) => {
+const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
     res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
 // ── GET /api/users/technicians ────────────────────────────────────────────────
-exports.getTechnicians = async (req, res) => {
+const getTechnicians = async (req, res) => {
   try {
-    const techs = await User.find({
-      role: "technician",
-      actif: { $ne: false },
-    }).select("-password");
-    res.json(techs);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+    const technicians = await User.find({ role: "technician", actif: true })
+      .select("-password")
+      .sort({ nom: 1 });
+    res.json(technicians);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
 // ── GET /api/users/:id ────────────────────────────────────────────────────────
-exports.getUserById = async (req, res) => {
+const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
     res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// ── POST /api/users ───────────────────────────────────────────────────────────
-exports.createUser = async (req, res) => {
+// ── POST /api/users (admin crée un compte) ────────────────────────────────────
+// ✅ Vérifie le domaine email, crée le compte non vérifié, envoie un email de vérification.
+// Le compte ne peut PAS être utilisé avant que l'utilisateur clique sur le lien.
+const createUser = async (req, res) => {
   try {
-    const { nom, email, password, role, competences } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-    // 1. Champs requis
-    if (!nom || !email || !password)
-      return res
-        .status(400)
-        .json({ message: "Nom, email et mot de passe requis" });
+    const { nom, email, password, role, telephone, competences } = req.body;
 
-    // 2. Rôle valide
-    const VALID_ROLES = ["user", "technician", "manager", "admin"];
-    if (role && !VALID_ROLES.includes(role))
-      return res.status(400).json({ message: "Rôle invalide" });
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // 3. Format email basique
-    const emailNormalized = email.toLowerCase().trim();
-    if (!/\S+@\S+\.\S+/.test(emailNormalized))
-      return res.status(400).json({ message: "Format d'email invalide" });
+    // ── 1. Vérification unicité email ─────────────────────────────────────────
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(400).json({
+        message: "Cet email est déjà utilisé",
+        emailAlreadyExists: true,
+      });
+    }
 
-    // ✅ 4. Vérification domaine email (MX → A → AAAA)
-    const domainValid = await isEmailDomainValid(emailNormalized);
+    // ── 2. Vérification que le domaine email existe réellement ───────────────
+    let domainValid = true;
+    try {
+      domainValid = await isEmailDomainValid(normalizedEmail);
+    } catch {
+      // Erreur réseau → fail open (on laisse passer)
+      console.warn("[createUser] DNS check failed, fail open");
+    }
+
     if (!domainValid) {
       return res.status(400).json({
         message:
-          "Adresse email invalide — ce domaine n'existe pas ou n'accepte pas d'emails.",
+          "Le domaine de cet email n'existe pas ou n'accepte pas d'emails. Le compte n'a pas été créé.",
         emailDomainInvalid: true,
       });
     }
 
-    // 5. Email déjà utilisé
-    const existing = await User.findOne({ email: emailNormalized });
-    if (existing)
-      return res.status(400).json({ message: "Cet email est déjà utilisé" });
+    // ── 3. Création du compte (emailVerified: false) ──────────────────────────
+    const initials = nom
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
-    // 6. Création de l'utilisateur
-    const user = new User({
+    const user = await User.create({
       nom: nom.trim(),
-      email: emailNormalized,
+      email: normalizedEmail,
       password,
       role: role || "user",
-      actif: true,
-      avatar: "",
-      telephone: null,
-      competences: Array.isArray(competences) ? competences : [],
-      emailVerified: false,
+      avatar: initials,
+      telephone: telephone || null,
+      competences: competences || [],
+      emailVerified: false, // ← compte inaccessible tant que non vérifié
     });
 
+    // ── 4. Envoi de l'email de vérification ──────────────────────────────────
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // 7. Envoi email de vérification
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const emailResult = await sendVerificationEmail(
       user.email,
@@ -170,238 +167,222 @@ exports.createUser = async (req, res) => {
       baseUrl,
     );
 
-    const created = await User.findById(user._id).select("-password");
-
     if (!emailResult.success) {
-      console.warn("⚠️  Email de vérification non envoyé:", emailResult.error);
-      await createLog(
-        "USER_CREATED_EMAIL_FAILED",
-        `Compte créé par admin (email non envoyé) : ${created.email}`,
-        req.user.id,
-      );
-      return res.status(201).json({
+      // Rollback : supprimer le compte si l'email ne part pas
+      await User.deleteOne({ _id: user._id });
+      return res.status(500).json({
         message:
-          "Utilisateur créé mais l'email de vérification n'a pas pu être envoyé",
-        user: created,
+          "Impossible d'envoyer l'email de vérification. Le compte n'a pas été créé. Vérifiez l'adresse email.",
         emailSendError: true,
-        requiresEmailVerification: true,
       });
     }
 
     await createLog(
-      "USER_CREATED",
-      `Compte créé par admin : ${created.email} (${created.role}) — email de vérification envoyé`,
+      "ADMIN_CREATE_USER",
+      `Compte créé par admin pour : ${user.email} (en attente de vérification)`,
       req.user.id,
     );
 
     res.status(201).json({
       message:
-        "Utilisateur créé. Un email de vérification a été envoyé à l'adresse email fournie.",
-      user: created,
+        "Compte créé avec succès. Un email de vérification a été envoyé à l'utilisateur. Le compte sera actif après vérification.",
+      user: {
+        id: user._id,
+        nom: user.nom,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        actif: user.actif,
+        emailVerified: false,
+      },
       requiresEmailVerification: true,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  } catch (error) {
+    console.error("Erreur createUser:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// ── PUT /api/users/:id ────────────────────────────────────────────────────────
-exports.updateUser = async (req, res) => {
+// ── PUT /api/users/:id (admin modifie un compte) ──────────────────────────────
+// ✅ Mise à jour complète avec gestion du changement d'email (re-vérification si email change)
+const updateUser = async (req, res) => {
   try {
-    const { nom, email, telephone, actif, password, competences } = req.body;
-    const update = {};
+    const { nom, email, password, role, telephone, competences, actif } =
+      req.body;
 
-    if (nom !== undefined) update.nom = nom;
-    if (telephone !== undefined) update.telephone = telephone;
-    if (actif !== undefined) update.actif = actif;
-    if (competences !== undefined && Array.isArray(competences))
-      update.competences = competences;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
 
-    // ✅ Vérification email si modifié
-    if (email !== undefined) {
+    let emailChanged = false;
+
+    // ── Mise à jour email ─────────────────────────────────────────────────────
+    if (email && email.toLowerCase().trim() !== user.email) {
       const normalizedEmail = email.toLowerCase().trim();
 
-      // Format basique
-      if (!/\S+@\S+\.\S+/.test(normalizedEmail)) {
-        return res.status(400).json({ message: "Format d'email invalide" });
-      }
-
-      // Vérification domaine DNS
-      const domainValid = await isEmailDomainValid(normalizedEmail);
-      if (!domainValid) {
-        return res.status(400).json({
-          message: "Ce domaine email n'existe pas ou n'accepte pas d'emails.",
-          emailDomainInvalid: true,
-        });
-      }
-
-      // Email déjà utilisé par un autre compte
+      // Unicité
       const existing = await User.findOne({
         email: normalizedEmail,
-        _id: { $ne: req.params.id },
+        _id: { $ne: user._id },
       });
       if (existing) {
         return res.status(400).json({
-          message: "Cet email est déjà utilisé par un autre compte.",
+          message: "Cet email est déjà utilisé par un autre compte",
           emailAlreadyExists: true,
         });
       }
 
-      update.email = normalizedEmail;
-    }
+      // Vérification DNS du nouveau domaine
+      let domainValid = true;
+      try {
+        domainValid = await isEmailDomainValid(normalizedEmail);
+      } catch {
+        console.warn("[updateUser] DNS check failed, fail open");
+      }
 
-    if (password && password.trim().length > 0) {
-      if (password.trim().length < 6) {
+      if (!domainValid) {
         return res.status(400).json({
-          message: "Le mot de passe doit contenir au moins 6 caractères",
+          message:
+            "Le domaine du nouvel email n'existe pas ou n'accepte pas d'emails.",
+          emailDomainInvalid: true,
         });
       }
-      const salt = await bcrypt.genSalt(10);
-      update.password = await bcrypt.hash(password.trim(), salt);
+
+      user.email = normalizedEmail;
+      user.emailVerified = false; // ← doit re-vérifier le nouvel email
+      emailChanged = true;
     }
 
-    const user = await User.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    }).select("-password");
+    // ── Autres champs ─────────────────────────────────────────────────────────
+    if (nom !== undefined) user.nom = nom.trim();
+    if (role !== undefined) user.role = role;
+    if (telephone !== undefined) user.telephone = telephone || null;
+    if (competences !== undefined) user.competences = competences;
+    if (actif !== undefined) user.actif = actif;
 
-    if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
+    // ── Nouveau mot de passe ──────────────────────────────────────────────────
+    if (password && password.trim().length >= 6) {
+      user.password = password; // le hook pre-save hashera automatiquement
+    }
+
+    await user.save();
+
+    // ── Si email changé : envoyer email de vérification au nouveau email ──────
+    if (emailChanged) {
+      const verificationToken = user.generateEmailVerificationToken();
+      await user.save();
+
+      const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      await sendVerificationEmail(
+        user.email,
+        user.nom,
+        verificationToken,
+        baseUrl,
+      );
+    }
 
     await createLog(
-      "USER_UPDATED",
-      `Profil modifié : ${user.email}${password ? " (mot de passe changé)" : ""}`,
+      "ADMIN_UPDATE_USER",
+      `Compte modifié par admin : ${user.email}${emailChanged ? " (nouvel email — re-vérification requise)" : ""}`,
       req.user.id,
     );
 
-    const sendNotification = require("../utils/sendNotification");
-    const adminUser = await User.findById(req.user.id).select("-password");
-    const changedFields = [];
-    if (update.nom) changedFields.push("Nom");
-    if (update.email) changedFields.push("Email");
-    if (update.telephone) changedFields.push("Téléphone");
-    if (update.actif !== undefined) changedFields.push("Statut");
-    if (update.competences) changedFields.push("Compétences");
-    if (update.password) changedFields.push("Mot de passe");
-
-    const fieldList =
-      changedFields.length > 0
-        ? " Éléments modifiés : " + changedFields.join(", ") + "."
-        : "";
-
-    await sendNotification({
-      userId: user._id,
-      message: `Votre profil a été modifié par l'administrateur ${adminUser?.nom || "Administrateur"}.${fieldList}`,
-      type: "profile_updated",
-      meta: { adminName: adminUser?.nom || "Administrateur", changedFields },
+    res.json({
+      message: emailChanged
+        ? "Compte mis à jour. Un email de vérification a été envoyé au nouveau email."
+        : "Compte mis à jour avec succès",
+      user: {
+        id: user._id,
+        nom: user.nom,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        actif: user.actif,
+        emailVerified: user.emailVerified,
+        telephone: user.telephone,
+        competences: user.competences,
+      },
+      emailChanged,
     });
-
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  } catch (error) {
+    console.error("Erreur updateUser:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// ── PUT /api/users/:id/role ───────────────────────────────────────────────────
-exports.updateRole = async (req, res) => {
+// ── PUT /api/users/:id/role ────────────────────────────────────────────────────
+const updateRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const VALID_ROLES = ["user", "technician", "manager", "admin"];
-    if (!VALID_ROLES.includes(role))
+    const validRoles = ["user", "technician", "manager", "admin"];
+    if (!validRoles.includes(role)) {
       return res.status(400).json({ message: "Rôle invalide" });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { role },
-      { new: true },
-    ).select("-password");
+      { new: true, select: "-password" },
+    );
     if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+
     await createLog(
-      "ROLE_CHANGED",
-      `Rôle de ${user.email} → ${role}`,
+      "UPDATE_ROLE",
+      `Rôle de ${user.email} changé en ${role}`,
       req.user.id,
     );
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+
+    res.json({ message: "Rôle mis à jour", user });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// ── DELETE /api/users/:id (désactivation douce) ───────────────────────────────
-exports.deleteUser = async (req, res) => {
+// ── DELETE /api/users/:id ─────────────────────────────────────────────────────
+const deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { actif: false },
-      { new: true },
-    ).select("-password");
-    if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
-    await createLog(
-      "USER_DEACTIVATED",
-      `Compte désactivé : ${user.email}`,
-      req.user.id,
-    );
-    res.json({ message: "Utilisateur désactivé", user });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-};
-
-// ── PUT /api/users/profile ────────────────────────────────────────────────────
-exports.updateProfile = async (req, res) => {
-  try {
-    const { nom, email, telephone } = req.body;
-    if (!nom && !email && !telephone)
-      return res.status(400).json({ message: "Aucune donnée à mettre à jour" });
-
-    const update = {};
-    if (nom !== undefined && nom !== null) update.nom = nom.trim();
-    if (telephone !== undefined) update.telephone = telephone;
-
-    // ✅ Vérification email si modifié
-    if (email !== undefined && email !== null) {
-      const normalizedEmail = email.toLowerCase().trim();
-
-      // Format basique
-      if (!/\S+@\S+\.\S+/.test(normalizedEmail)) {
-        return res.status(400).json({ message: "Format d'email invalide" });
-      }
-
-      // ✅ Vérification domaine DNS (MX → A → AAAA → fail open)
-      const domainValid = await isEmailDomainValid(normalizedEmail);
-      if (!domainValid) {
-        return res.status(400).json({
-          message: "Ce domaine email n'existe pas ou n'accepte pas d'emails.",
-          emailDomainInvalid: true,
-        });
-      }
-
-      // ✅ Email déjà utilisé par un autre compte
-      const existing = await User.findOne({
-        email: normalizedEmail,
-        _id: { $ne: req.user.id },
-      });
-      if (existing) {
-        return res.status(400).json({
-          message: "Cet email est déjà utilisé par un autre compte.",
-          emailAlreadyExists: true,
-        });
-      }
-
-      update.email = normalizedEmail;
+    if (req.params.id === req.user.id) {
+      return res
+        .status(400)
+        .json({ message: "Vous ne pouvez pas supprimer votre propre compte" });
     }
 
-    const user = await User.findByIdAndUpdate(req.user.id, update, {
-      new: true,
-    }).select("-password");
-
+    const user = await User.findByIdAndDelete(req.params.id);
     if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
 
     await createLog(
-      "PROFILE_UPDATED",
-      `Profil mis à jour : ${user.email}`,
+      "DELETE_USER",
+      `Compte supprimé : ${user.email}`,
       req.user.id,
+    );
+
+    res.json({ message: "Utilisateur supprimé avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// ── PUT /api/users/profile (utilisateur connecté modifie son profil) ──────────
+const updateProfile = async (req, res) => {
+  try {
+    const { nom, telephone, competences } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user)
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+
+    if (nom !== undefined) user.nom = nom.trim();
+    if (telephone !== undefined) user.telephone = telephone || null;
+    if (competences !== undefined) user.competences = competences;
+
+    await user.save();
+
+    await createLog(
+      "UPDATE_PROFILE",
+      `Profil mis à jour : ${user.email}`,
+      user._id,
     );
 
     res.json({
@@ -414,40 +395,64 @@ exports.updateProfile = async (req, res) => {
         avatar: user.avatar,
         competences: user.competences,
         telephone: user.telephone,
+        emailVerified: user.emailVerified,
       },
     });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
 // ── PUT /api/users/password ───────────────────────────────────────────────────
-exports.changePassword = async (req, res) => {
+const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword)
+
+    if (!currentPassword || !newPassword) {
       return res
         .status(400)
         .json({ message: "Les deux mots de passe sont requis" });
-    if (newPassword.length < 6)
-      return res.status(400).json({
-        message: "Le nouveau mot de passe doit faire au moins 6 caractères",
-      });
+    }
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({
+          message: "Le nouveau mot de passe doit faire au moins 6 caractères",
+        });
+    }
+
     const user = await User.findById(req.user.id);
     if (!user)
-      return res.status(404).json({ message: "Utilisateur introuvable" });
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Mot de passe actuel incorrect" });
-    user.password = newPassword;
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Mot de passe actuel incorrect" });
+    }
+
+    user.password = newPassword; // hashé par le hook pre-save
     await user.save();
+
     await createLog(
-      "PASSWORD_CHANGED",
-      `Mot de passe modifié : ${user.email}`,
-      req.user.id,
+      "CHANGE_PASSWORD",
+      `Mot de passe changé : ${user.email}`,
+      user._id,
     );
-    res.json({ message: "Mot de passe modifié avec succès" });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
+
+    res.json({ message: "Mot de passe mis à jour avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
+};
+
+module.exports = {
+  getAllUsers,
+  getTechnicians,
+  getUserById,
+  createUser,
+  updateUser,
+  updateRole,
+  deleteUser,
+  updateProfile,
+  changePassword,
 };

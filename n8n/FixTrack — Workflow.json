@@ -11,10 +11,7 @@
       "name": "Webhook — Ticket Critique",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        0,
-        -80
-      ],
+      "position": [0, -80],
       "webhookId": "fixtrack-critical-ticket"
     },
     {
@@ -23,18 +20,14 @@
         "toEmail": "={{ $json.email }}",
         "subject": "=🚨 Ticket critique — {{ $('Webhook — Ticket Critique').item.json.body.titre }}",
         "emailFormat": "html",
-        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;\">\n  <div style=\"background:#dc2626;padding:24px;text-align:center;\">\n    <h2 style=\"color:#fff;margin:0;font-size:20px;\">🚨 Ticket Critique</h2>\n    <p style=\"color:rgba(255,255,255,0.75);margin:6px 0 0;font-size:13px;\">FixTrack — Action immédiate requise</p>\n  </div>\n  <div style=\"background:#fff;padding:28px;border:1px solid #e5e7eb;\">\n    <p style=\"color:#374151;font-size:14px;margin-top:0;\">Un ticket de priorité critique vient d'être ouvert :</p>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;\">\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;width:140px;\">📋 Titre</td>\n        <td style=\"padding:10px 0;color:#111827;font-weight:700;\">{{ $('Webhook — Ticket Critique').item.json.body.titre }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">📍 Localisation</td>\n        <td style=\"padding:10px 8px;color:#111827;\">{{ $('Webhook — Ticket Critique').item.json.body.localisation }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">👤 Signalé par</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Ticket Critique').item.json.body.auteurNom }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">🔴 Priorité</td>\n        <td style=\"padding:10px 8px;color:#dc2626;font-weight:700;\">CRITIQUE</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin-top:24px;\">\n      <a href=\"http://localhost:3000/tickets/{{ $('Webhook — Ticket Critique').item.json.body.ticketId }}\" style=\"display:inline-block;padding:12px 28px;background:#dc2626;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;\">\n        🔍 Voir le ticket\n      </a>\n    </div>\n  </div>\n  <p style=\"text-align:center;font-size:11px;color:#9ca3af;padding:16px;\">\n    Cet email a été envoyé automatiquement par FixTrack · Ne pas répondre\n  </p>\n</div>",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;\">\n  <div style=\"background:#dc2626;padding:24px;text-align:center;\">\n    <h2 style=\"color:#fff;margin:0;font-size:20px;\">🚨 Ticket Critique</h2>\n    <p style=\"color:rgba(255,255,255,0.75);margin:6px 0 0;font-size:13px;\">FixTrack — Action immédiate requise</p>\n  </div>\n  <div style=\"background:#fff;padding:28px;border:1px solid #e5e7eb;\">\n    <p style=\"color:#374151;font-size:14px;margin-top:0;\">Un ticket de priorité critique vient d'être ouvert :</p>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;\">\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;width:140px;\">📋 Titre</td>\n        <td style=\"padding:10px 0;color:#111827;font-weight:700;\">{{ $('Webhook — Ticket Critique').item.json.body.titre }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">📍 Localisation</td>\n        <td style=\"padding:10px 8px;color:#111827;\">{{ $('Webhook — Ticket Critique').item.json.body.localisation }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">👤 Signalé par</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Ticket Critique').item.json.body.auteurNom }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">🔴 Priorité</td>\n        <td style=\"padding:10px 8px;color:#dc2626;font-weight:700;\">CRITIQUE</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin-top:24px;\">\n      <a href=\"{{ $('Webhook — Ticket Critique').item.json.body.ticketUrl }}\" style=\"display:inline-block;padding:12px 28px;background:#dc2626;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;\">🔍 Voir le ticket</a>\n    </div>\n  </div>\n  <p style=\"text-align:center;font-size:11px;color:#9ca3af;padding:16px;\">Cet email a été envoyé automatiquement par FixTrack · Ne pas répondre</p>\n</div>",
         "options": {}
       },
       "id": "7abb82c4-5ee2-46a8-a4ea-922abb9ec3b5",
       "name": "Email — Ticket Critique (Mailtrap)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [
-        448,
-        -80
-      ],
-      "webhookId": "9575b769-483f-4011-b148-0feb2e358bf3",
+      "position": [448, -80],
       "credentials": {
         "smtp": {
           "id": "U5F32OTmbN1JgVNB",
@@ -52,10 +45,7 @@
       "name": "Webhook — Ticket Assigné",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        464,
-        128
-      ],
+      "position": [464, 128],
       "webhookId": "fixtrack-ticket-assigned"
     },
     {
@@ -64,18 +54,14 @@
         "toEmail": "={{ $json.body.technicienEmail }}",
         "subject": "=🔧 Nouveau ticket assigné — {{ $json.body.titre }}",
         "emailFormat": "html",
-        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">🔧 Nouveau ticket assigné</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">FixTrack — Un ticket vous a été confié</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.technicienNom }}</strong>,</p>\n    <p style=\"color:#374151\">Un nouveau ticket vous a été assigné. Voici les détails :</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#eff6ff\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">🎫 Titre</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.titre }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">🆔 Ticket ID</td>\n        <td style=\"padding:10px 14px;color:#6b7280;font-family:monospace\">{{ $json.body.ticketId }}</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"http://localhost:3000/technician/tickets/{{ $json.body.ticketId }}\"\n         style=\"background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">\n        📋 Voir mon ticket\n      </a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">\n    FixTrack — Gestion des maintenances\n  </div>\n</div>",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">🔧 Nouveau ticket assigné</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">FixTrack — Un ticket vous a été confié</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.technicienNom }}</strong>,</p>\n    <p style=\"color:#374151\">Un nouveau ticket vous a été assigné. Voici les détails :</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#eff6ff\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">🎫 Titre</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.titre }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">📍 Localisation</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.localisation }}</td>\n      </tr>\n      <tr style=\"background:#eff6ff\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">🏷️ Catégorie</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.categorie }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">🆔 Ticket ID</td>\n        <td style=\"padding:10px 14px;color:#6b7280;font-family:monospace\">{{ $json.body.ticketId }}</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"{{ $json.body.ticketUrl }}\" style=\"background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">📋 Voir mon ticket</a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">FixTrack — Gestion des maintenances</div>\n</div>",
         "options": {}
       },
       "id": "659880c8-9fdc-452a-a858-5774f3bf30b2",
       "name": "Email — Ticket Assigné (Mailtrap)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [
-        752,
-        128
-      ],
-      "webhookId": "3af440cd-a9f6-4557-89ab-a6b027721d16",
+      "position": [752, 128],
       "credentials": {
         "smtp": {
           "id": "U5F32OTmbN1JgVNB",
@@ -93,10 +79,7 @@
       "name": "Webhook — Bienvenue Utilisateur",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        848,
-        288
-      ],
+      "position": [848, 288],
       "webhookId": "fixtrack-welcome-user"
     },
     {
@@ -105,18 +88,14 @@
         "toEmail": "={{ $json.body.email }}",
         "subject": "=👋 Bienvenue sur FixTrack — vos identifiants de connexion",
         "emailFormat": "html",
-        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">👋 Bienvenue sur FixTrack !</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">Votre compte est prêt</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.nom }}</strong>,</p>\n    <p style=\"color:#374151\">Votre compte FixTrack a été créé avec succès. Voici vos informations :</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#f5f3ff\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">📧 Email</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.email }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">👤 Rôle</td>\n        <td style=\"padding:10px 14px;color:#7c3aed;font-weight:700;text-transform:capitalize\">{{ $json.body.role }}</td>\n      </tr>\n    </table>\n    <div style=\"background:#faf5ff;border-left:4px solid #7c3aed;padding:14px;border-radius:4px;margin:20px 0\">\n      <p style=\"margin:0;color:#374151;font-size:13px\">🔐 Connectez-vous avec votre email et le mot de passe fourni par l'administrateur.</p>\n    </div>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"http://localhost:3000/login\"\n         style=\"background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">\n        🚀 Se connecter\n      </a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">\n    FixTrack — Gestion des maintenances\n  </div>\n</div>",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">👋 Bienvenue sur FixTrack !</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">Votre compte est prêt</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.nom }}</strong>,</p>\n    <p style=\"color:#374151\">Votre compte FixTrack a été créé avec succès. Voici vos informations :</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#f5f3ff\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">📧 Email</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.email }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">👤 Rôle</td>\n        <td style=\"padding:10px 14px;color:#7c3aed;font-weight:700;text-transform:capitalize\">{{ $json.body.role }}</td>\n      </tr>\n    </table>\n    <div style=\"background:#faf5ff;border-left:4px solid #7c3aed;padding:14px;border-radius:4px;margin:20px 0\">\n      <p style=\"margin:0;color:#374151;font-size:13px\">🔐 Connectez-vous avec votre email et le mot de passe fourni par l'administrateur.</p>\n    </div>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"http://localhost:3000/login\" style=\"background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">🚀 Se connecter</a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">FixTrack — Gestion des maintenances</div>\n</div>",
         "options": {}
       },
       "id": "dc0a17d3-77f1-49c4-8b6b-d2f16c35b2e4",
       "name": "Email — Bienvenue (Mailtrap)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [
-        1136,
-        240
-      ],
-      "webhookId": "6ac6cbc5-f110-4df2-bbe3-e934f9df5ae2",
+      "position": [1136, 240],
       "credentials": {
         "smtp": {
           "id": "U5F32OTmbN1JgVNB",
@@ -134,29 +113,23 @@
       "name": "Webhook — Ticket Résolu",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        240
-      ],
+      "position": [240, 240],
       "webhookId": "fixtrack-ticket-resolved"
     },
     {
       "parameters": {
-        "fromEmail": "fixtrack@notifications.local",
-        "toEmail": "={{ $json.body.auteurEmail }}",
+        "fromEmail": "noreply@fixtrack.local",
+        "toEmail": "={{ $json.body.userEmail }}",
         "subject": "=✅ Votre ticket \"{{ $json.body.titre }}\" a été résolu",
-        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#059669,#047857);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">✅ Ticket résolu</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">FixTrack — Bonne nouvelle !</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.auteurNom }}</strong>,</p>\n    <p style=\"color:#374151\">Votre ticket a été <strong style=\"color:#059669\">résolu</strong> par notre équipe technique.</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#f0fdf4\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">🎫 Titre</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.titre }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">✅ Statut</td>\n        <td style=\"padding:10px 14px;color:#059669;font-weight:700\">Résolu</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"http://localhost:3000/user/tickets/{{ $json.body.ticketId }}\"\n         style=\"background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">\n        🔍 Voir le ticket\n      </a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">\n    FixTrack — Gestion des maintenances\n  </div>\n</div>",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\">\n  <div style=\"background:linear-gradient(135deg,#059669,#047857);padding:30px;text-align:center;border-radius:8px 8px 0 0\">\n    <h1 style=\"color:#fff;margin:0;font-size:22px\">✅ Ticket résolu</h1>\n    <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">FixTrack — Bonne nouvelle !</p>\n  </div>\n  <div style=\"background:#fff;padding:30px;border:1px solid #e5e7eb\">\n    <p style=\"color:#374151\">Bonjour <strong>{{ $json.body.userNom }}</strong>,</p>\n    <p style=\"color:#374151\">Votre ticket a été <strong style=\"color:#059669\">résolu</strong> par notre équipe technique.</p>\n    <table style=\"width:100%;border-collapse:collapse;margin:20px 0\">\n      <tr style=\"background:#f0fdf4\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151;width:35%\">🎫 Titre</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.titre }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">👨‍🔧 Technicien</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.technicienNom }}</td>\n      </tr>\n      <tr style=\"background:#f0fdf4\">\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">🕐 Résolu le</td>\n        <td style=\"padding:10px 14px;color:#111827\">{{ $json.body.resolvedAt }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 14px;font-weight:600;color:#374151\">✅ Statut</td>\n        <td style=\"padding:10px 14px;color:#059669;font-weight:700\">Résolu</td>\n      </tr>\n    </table>\n    <div style=\"text-align:center;margin:24px 0\">\n      <a href=\"{{ $json.body.ticketUrl }}\" style=\"background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700\">🔍 Voir le ticket &amp; laisser un avis</a>\n    </div>\n  </div>\n  <div style=\"background:#f9fafb;padding:16px;text-align:center;font-size:12px;color:#6b7280;border-radius:0 0 8px 8px\">FixTrack — Gestion des maintenances</div>\n</div>",
         "options": {}
       },
       "id": "326022ec-add9-43ab-9eb5-324add71f487",
       "name": "Email — Ticket Résolu (Mailtrap)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [
-        480,
-        240
-      ],
-      "webhookId": "d871d073-4745-4f73-8bd3-b79e11942a63",
+      "position": [480, 240],
       "credentials": {
         "smtp": {
           "id": "U5F32OTmbN1JgVNB",
@@ -174,29 +147,23 @@
       "name": "Webhook — Demande de Compte",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        720,
-        480
-      ],
+      "position": [720, 480],
       "webhookId": "fixtrack-account-request"
     },
     {
       "parameters": {
-        "fromEmail": "fixtrack@notifications.local",
+        "fromEmail": "noreply@fixtrack.local",
         "toEmail": "={{ $json.email }}",
         "subject": "=Demande de compte FixTrack — {{ $('Webhook — Demande de Compte').item.json.body.nom }}",
-        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;\">\n  <div style=\"background:#1e40af;padding:24px;text-align:center;\">\n    <h2 style=\"color:#fff;margin:0;font-size:20px;\">🆕 Nouvelle demande de compte</h2>\n    <p style=\"color:rgba(255,255,255,0.75);margin:6px 0 0;font-size:13px;\">FixTrack — Système de gestion des maintenances</p>\n  </div>\n  <div style=\"background:#fff;padding:28px;border:1px solid #e5e7eb;\">\n    <p style=\"color:#374151;font-size:14px;margin-top:0;\">Un utilisateur demande l'accès à FixTrack :</p>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;\">\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;width:140px;\">👤 Nom</td>\n        <td style=\"padding:10px 0;color:#111827;font-weight:700;\">{{ $('Webhook — Demande de Compte').item.json.body.nom }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">✉️ Email</td>\n        <td style=\"padding:10px 8px;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.email }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">📞 Téléphone</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.telephone || \"—\" }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">🎭 Rôle souhaité</td>\n        <td style=\"padding:10px 8px;color:#111827;font-weight:700;text-transform:capitalize;\">{{ $('Webhook — Demande de Compte').item.json.body.role }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">🕐 Envoyé le</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.submittedAt }}</td>\n      </tr>\n    </table>\n    <div style=\"margin-top:20px;padding:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;\">\n      <p style=\"margin:0;color:#92400e;font-size:13px;font-weight:700;\">💬 Message :</p>\n      <p style=\"margin:8px 0 0;color:#78350f;font-size:13px;\">{{ $('Webhook — Demande de Compte').item.json.body.message || \"Aucun message fourni.\" }}</p>\n    </div>\n    <div style=\"text-align:center;margin-top:24px;\">\n      <a href=\"http://localhost:3000/admin/users\" style=\"display:inline-block;padding:12px 28px;background:#1e40af;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;\">\n        ⚙️ Gérer les utilisateurs\n      </a>\n    </div>\n  </div>\n  <p style=\"text-align:center;font-size:11px;color:#9ca3af;padding:16px;\">\n    Cet email a été envoyé automatiquement par FixTrack · Ne pas répondre\n  </p>\n</div>",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;\">\n  <div style=\"background:#1e40af;padding:24px;text-align:center;\">\n    <h2 style=\"color:#fff;margin:0;font-size:20px;\">🆕 Nouvelle demande de compte</h2>\n    <p style=\"color:rgba(255,255,255,0.75);margin:6px 0 0;font-size:13px;\">FixTrack — Système de gestion des maintenances</p>\n  </div>\n  <div style=\"background:#fff;padding:28px;border:1px solid #e5e7eb;\">\n    <p style=\"color:#374151;font-size:14px;margin-top:0;\">Un utilisateur demande l'accès à FixTrack :</p>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;\">\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;width:140px;\">👤 Nom</td>\n        <td style=\"padding:10px 0;color:#111827;font-weight:700;\">{{ $('Webhook — Demande de Compte').item.json.body.nom }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">✉️ Email</td>\n        <td style=\"padding:10px 8px;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.email }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">📞 Téléphone</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.telephone || \"—\" }}</td>\n      </tr>\n      <tr style=\"background:#f9fafb;\">\n        <td style=\"padding:10px 8px;color:#6b7280;\">🎭 Rôle souhaité</td>\n        <td style=\"padding:10px 8px;color:#111827;font-weight:700;text-transform:capitalize;\">{{ $('Webhook — Demande de Compte').item.json.body.role }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;color:#6b7280;\">🕐 Envoyé le</td>\n        <td style=\"padding:10px 0;color:#111827;\">{{ $('Webhook — Demande de Compte').item.json.body.submittedAt }}</td>\n      </tr>\n    </table>\n    <div style=\"margin-top:20px;padding:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;\">\n      <p style=\"margin:0;color:#92400e;font-size:13px;font-weight:700;\">💬 Message :</p>\n      <p style=\"margin:8px 0 0;color:#78350f;font-size:13px;\">{{ $('Webhook — Demande de Compte').item.json.body.message || \"Aucun message fourni.\" }}</p>\n    </div>\n    <div style=\"text-align:center;margin-top:24px;\">\n      <a href=\"http://localhost:3000/admin/users\" style=\"display:inline-block;padding:12px 28px;background:#1e40af;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;\">⚙️ Gérer les utilisateurs</a>\n    </div>\n  </div>\n  <p style=\"text-align:center;font-size:11px;color:#9ca3af;padding:16px;\">Cet email a été envoyé automatiquement par FixTrack · Ne pas répondre</p>\n</div>",
         "options": {}
       },
       "id": "53b359bb-12a1-4ca8-b490-07a739739ca7",
       "name": "Email — Demande Compte (Mailtrap)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [
-        1120,
-        528
-      ],
-      "webhookId": "85e7e5ab-9603-4518-ba6f-930fe89aeb4d",
+      "position": [1120, 528],
       "credentials": {
         "smtp": {
           "id": "U5F32OTmbN1JgVNB",
@@ -207,17 +174,12 @@
     {
       "parameters": {
         "collection": "users",
-        "options": {
-          "limit": 1
-        },
+        "options": { "limit": 1 },
         "query": "={\"role\": \"admin\" }"
       },
       "type": "n8n-nodes-base.mongoDb",
       "typeVersion": 1.2,
-      "position": [
-        928,
-        512
-      ],
+      "position": [928, 512],
       "id": "c43efd2e-defa-4964-900c-43428fcecdd0",
       "name": "Find documents1",
       "credentials": {
@@ -230,17 +192,12 @@
     {
       "parameters": {
         "collection": "users",
-        "options": {
-          "limit": 10
-        },
+        "options": { "limit": 10 },
         "query": "={ \"role\": \"manager\" }"
       },
       "type": "n8n-nodes-base.mongoDb",
       "typeVersion": 1.2,
-      "position": [
-        224,
-        -80
-      ],
+      "position": [224, -80],
       "id": "87278be8-cd30-45db-9412-efaecfe5be20",
       "name": "Find documents",
       "credentials": {
@@ -254,86 +211,26 @@
   "pinData": {},
   "connections": {
     "Webhook — Ticket Critique": {
-      "main": [
-        [
-          {
-            "node": "Find documents",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Find documents", "type": "main", "index": 0 }]]
     },
     "Webhook — Ticket Assigné": {
-      "main": [
-        [
-          {
-            "node": "Email — Ticket Assigné (Mailtrap)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Email — Ticket Assigné (Mailtrap)", "type": "main", "index": 0 }]]
     },
     "Webhook — Bienvenue Utilisateur": {
-      "main": [
-        [
-          {
-            "node": "Email — Bienvenue (Mailtrap)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Email — Bienvenue (Mailtrap)", "type": "main", "index": 0 }]]
     },
     "Webhook — Ticket Résolu": {
-      "main": [
-        [
-          {
-            "node": "Email — Ticket Résolu (Mailtrap)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Email — Ticket Résolu (Mailtrap)", "type": "main", "index": 0 }]]
     },
     "Webhook — Demande de Compte": {
-      "main": [
-        [
-          {
-            "node": "Find documents1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Find documents1", "type": "main", "index": 0 }]]
     },
-    "Email — Ticket Critique (Mailtrap)": {
-      "main": [
-        []
-      ]
-    },
+    "Email — Ticket Critique (Mailtrap)": { "main": [[]] },
     "Find documents1": {
-      "main": [
-        [
-          {
-            "node": "Email — Demande Compte (Mailtrap)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Email — Demande Compte (Mailtrap)", "type": "main", "index": 0 }]]
     },
     "Find documents": {
-      "main": [
-        [
-          {
-            "node": "Email — Ticket Critique (Mailtrap)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Email — Ticket Critique (Mailtrap)", "type": "main", "index": 0 }]]
     }
   },
   "active": true,
