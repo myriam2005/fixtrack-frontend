@@ -204,7 +204,12 @@ function TicketRow({ ticket, tech, isLast, onAssign, onGoValidate, index }) {
           </div>
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: "6px", mt: "6px", flexWrap: "wrap" }}>
             <Badge status={ticket.priorite} /><StatusBadge statut={ticket.statut} />
-            <span style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</span>
+            <span style={{ fontSize: 11, color: "#94A3B8" }}>{<div style={{ lineHeight: 1 }}>
+                <div>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>
+                  {new Date(ticket.createdAt).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" })}
+                </div>
+              </div>}</span>
           </Box>
         </Box>
 
@@ -214,7 +219,12 @@ function TicketRow({ ticket, tech, isLast, onAssign, onGoValidate, index }) {
         <Box sx={{ width: 100, flexShrink: 0, display: { xs: "none", md: "block" } }}><Badge status={ticket.priorite} /></Box>
         <Box sx={{ width: 110, flexShrink: 0, display: { xs: "none", md: "block" } }}><StatusBadge statut={ticket.statut} /></Box>
         <Box sx={{ width: 90, flexShrink: 0, display: { xs: "none", md: "block" } }}>
-          <span className={styles.date}>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</span>
+          <span className={styles.date}>{<div style={{ lineHeight: 1 }}>
+              <div>{new Date(ticket.createdAt).toLocaleDateString("fr-FR")}</div>
+              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>
+                {new Date(ticket.createdAt).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" })}
+              </div>
+            </div>}</span>
         </Box>
 
         <Box sx={{ width: { xs: "auto", md: 150 }, flexShrink: 0 }}>

@@ -112,32 +112,26 @@ function getFilteredLogsByRange(logs, range) {
 
   let filtered = logDates;
   if (range === "1w") {
-    // Cette semaine (depuis lundi)
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() - cutoff.getDay() + (cutoff.getDay() === 0 ? -6 : 1));
     cutoff.setHours(0, 0, 0, 0);
     filtered = logDates.filter(({ date }) => date >= cutoff);
   } else if (range === "30j") {
-    // 30 derniers jours
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() - 30);
     filtered = logDates.filter(({ date }) => date >= cutoff);
   } else if (range === "3m") {
-    // 3 derniers mois
     const cutoff = new Date(now);
     cutoff.setMonth(cutoff.getMonth() - 3);
     filtered = logDates.filter(({ date }) => date >= cutoff);
   } else if (range === "6m") {
-    // 6 derniers mois
     const cutoff = new Date(now);
     cutoff.setMonth(cutoff.getMonth() - 6);
     filtered = logDates.filter(({ date }) => date >= cutoff);
   } else if (range === "1y") {
-    // Cette année
     const cutoff = new Date(now.getFullYear(), 0, 1);
     filtered = logDates.filter(({ date }) => date >= cutoff);
   }
-  // "all" retourne tous les logs
 
   return filtered.map(({ log }) => log);
 }
@@ -165,7 +159,6 @@ function downloadLogsCSV(logs, allLogs, range = "all") {
   const link   = document.createElement("a");
   link.href     = url;
 
-  // Génère un nom de fichier avecle label du filtre
   const rangeLabels = { "30j": "30j", "3m": "3m", "6m": "6m", "1y": "2026", "all": "complet" };
   const rangeLabel = rangeLabels[range] || "journal";
   link.download = `journal_activite_${rangeLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -184,10 +177,9 @@ export default function AdminDashboard() {
   const [logs,        setLogs]        = useState([]);
   const [rawLogs,     setRawLogs]     = useState([]);
   const [downloading, setDownloading] = useState(false);
-  const [downloadFilter, setDownloadFilter] = useState("all"); // Filtre de téléchargement
+  const [downloadFilter, setDownloadFilter] = useState("all");
 
   useEffect(() => {
-    // ✅ Récupère le token depuis le localStorage (même logique que le fetch des logs)
     const token = (() => {
       try { return JSON.parse(localStorage.getItem("currentUser") || "{}")?.token || ""; }
       catch { return ""; }
@@ -196,8 +188,6 @@ export default function AdminDashboard() {
     const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
     const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-    // ✅ FIX : fetch direct avec token pour garantir que tous les rôles sont retournés
-    //    (userService.getAll() peut utiliser un token périmé ou mal transmis)
     Promise.all([
       ticketService.getAll(),
       fetch(`${API}/users`, { headers }).then(r => {
@@ -208,7 +198,6 @@ export default function AdminDashboard() {
       .then(([t, u]) => {
         setTickets((t || []).map(x => ({ ...x, id: x._id || x.id })));
 
-        // ✅ Normalise ET filtre : on exclut les comptes désactivés (actif === false)
         const raw = Array.isArray(u) ? u : u.users || u.data || [];
         const active = raw
           .map(normalizeUser)
@@ -217,7 +206,6 @@ export default function AdminDashboard() {
       })
       .catch(err => { console.error(err); });
 
-    // Logs
     fetch(`${API}/logs?limit=500`, { headers })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
@@ -249,8 +237,6 @@ export default function AdminDashboard() {
   };
 
   const totalUsers  = users.length;
-
-  // ✅ FIX : filtre uniquement les techniciens parmi tous les utilisateurs (tous rôles chargés)
   const technicians = users.filter(u => u.role === "technician");
 
   const techWorkload = useMemo(() => technicians.map(tech => {
@@ -271,21 +257,14 @@ export default function AdminDashboard() {
 
   const sparkTickets  = useMemo(() => [...buildSpark(tickets, () => true), totalTickets], [tickets, totalTickets]);
   const sparkCritical = useMemo(() => [...buildSpark(tickets, t => t.priorite === "critical"), criticalTickets], [tickets, criticalTickets]);
-  const sparkUsers    = useMemo(() => [totalUsers, totalUsers, totalUsers, totalUsers, totalUsers, totalUsers], [totalUsers]);
-  const sparkResolved = useMemo(() => [...buildSpark(tickets, t => t.statut === "resolved" || t.statut === "closed"), pctResolution], [tickets, pctResolution]);
+  const sparkUsers = useMemo(() => buildSpark(users, () => true), [users]);
+  const sparkResolved = useMemo(() => buildSpark(tickets, t => t.statut === "resolved" || t.statut === "closed"), [tickets]);
 
   const donutSegments = [
     { value: openTickets,     color: "#3B82F6" },
     { value: inProgressCount, color: "#F59E0B" },
     { value: resolvedTickets, color: "#22C55E" },
   ].filter(s => s.value > 0);
-
-  const prevMonthTickets  = monthly[monthly.length - 2]?.created  || 0;
-  const currMonthTickets  = monthly[monthly.length - 1]?.created  || 0;
-  const trendTickets      = prevMonthTickets > 0 ? Math.round(((currMonthTickets - prevMonthTickets) / prevMonthTickets) * 100) : 0;
-  const prevMonthResolved = monthly[monthly.length - 2]?.resolved || 0;
-  const currMonthResolved = monthly[monthly.length - 1]?.resolved || 0;
-  const trendResolved     = prevMonthResolved > 0 ? Math.round(((currMonthResolved - prevMonthResolved) / prevMonthResolved) * 100) : 0;
 
   const firstName = (authUser?.nom || authUser?.name || "Admin").split(" ")[0];
 
@@ -322,12 +301,11 @@ export default function AdminDashboard() {
       />
 
       {/* ── KPI Cards ── */}
-      {/* ── KPI Cards ── */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", mb: "18px" }}>
-        <KpiCardSpark icon={DashboardIcon.ticket}        label="Total tickets"     count={totalTickets}        color="#2563EB" bgColor="#EFF6FF" description="Tous statuts confondus"        sparkData={sparkTickets}  trend={trendTickets}  />
-        <KpiCardSpark icon={DashboardIcon.alertTriangle} label="Tickets critiques" count={criticalTickets}     color="#EF4444" bgColor="#FEF2F2" description="Nécessitent attention"          sparkData={sparkCritical} trend={criticalTickets > 0 ? -5 : 0} />
-        <KpiCardSpark icon={DashboardIcon.users}         label="Utilisateurs"      count={totalUsers}          color="#8B5CF6" bgColor="#F5F3FF" description="Comptes enregistrés"           sparkData={sparkUsers}    trend={0}             />
-        <KpiCardSpark icon={DashboardIcon.check}         label="Taux résolution"   count={`${pctResolution}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedTickets} clôturés`} sparkData={sparkResolved} trend={trendResolved} />
+        <KpiCardSpark icon={DashboardIcon.ticket}        label="Total tickets"     count={totalTickets}        color="#2563EB" bgColor="#EFF6FF" description="Tous statuts confondus"        sparkData={sparkTickets}  />
+        <KpiCardSpark icon={DashboardIcon.alertTriangle} label="Tickets critiques" count={criticalTickets}     color="#EF4444" bgColor="#FEF2F2" description="Nécessitent attention"          sparkData={sparkCritical} />
+        <KpiCardSpark icon={DashboardIcon.users}         label="Utilisateurs"      count={totalUsers}          color="#8B5CF6" bgColor="#F5F3FF" description="Comptes enregistrés"           sparkData={sparkUsers}    />
+        <KpiCardSpark icon={DashboardIcon.check}         label="Taux résolution"   count={`${pctResolution}%`} color="#22C55E" bgColor="#F0FDF4" description={`${resolvedTickets} clôturés`} sparkData={sparkResolved} />
       </Box>
 
       {/* ── Tickets urgents (PRIORITAIRE) ── */}
@@ -379,7 +357,6 @@ export default function AdminDashboard() {
           ))}
         </Box>
         <Box sx={{ borderTop: "1px solid #F3F4F6", padding: "12px 20px" }}>
-          {/* Options de filtre */}
           <Box sx={{ display: "flex", alignItems: "center", gap: "8px", mb: "10px" }}>
             <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "#6B7280" }}>Période :</Typography>
             {[
@@ -413,7 +390,6 @@ export default function AdminDashboard() {
             ))}
           </Box>
 
-          {/* Bouton télécharger */}
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Box
               onClick={handleDownload}
