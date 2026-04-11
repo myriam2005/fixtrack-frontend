@@ -638,26 +638,6 @@ export default function LoginPage({ onLoginSuccess }) {
                 </div>
               </div>
 
-              {/* Bouton Demander un compte */}
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-                <button
-                  className="ft-req-btn"
-                  onClick={() => setShowRequestModal(true)}
-                  style={{
-                    width: "100%", padding: "10px 16px",
-                    background: "rgba(255,255,255,0.1)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 10, cursor: "pointer",
-                    color: "#fff", fontFamily: "inherit",
-                    fontSize: 12.5, fontWeight: 600,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    transition: "all .18s ease",
-                  }}
-                >
-                  <span>Pas de compte ? Faire une demande</span>
-                  <span style={{ fontSize: 12, opacity: 0.6 }}>→</span>
-                </button>
-              </div>
             </div>
 
             {/* RIGHT — Formulaire */}
