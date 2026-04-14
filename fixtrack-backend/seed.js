@@ -26,6 +26,7 @@ const seed = async () => {
       avatar: "OJ",
       telephone: "+216 22 111 222",
       emailVerified: true,
+      createdAt: new Date("2026-01-01"),
     },
     {
       nom: "ola",
@@ -35,6 +36,7 @@ const seed = async () => {
       avatar: "OK",
       competences: ["Électrique", "HVAC"],
       emailVerified: true,
+      createdAt: new Date("2026-03-01"),
     },
     {
       nom: "emen",
@@ -44,6 +46,7 @@ const seed = async () => {
       avatar: "EH",
       competences: ["Informatique", "Mécanique"],
       emailVerified: true,
+      createdAt: new Date("2026-03-02"),
     },
     {
       nom: "chokri",
@@ -52,6 +55,7 @@ const seed = async () => {
       role: "manager",
       avatar: "MC",
       emailVerified: true,
+      createdAt: new Date("2026-04-01"),
     },
     {
       nom: "Admin FST",
@@ -60,6 +64,7 @@ const seed = async () => {
       role: "admin",
       avatar: "AF",
       emailVerified: true,
+      createdAt: new Date("2026-04-01"),
     },
   ]);
 

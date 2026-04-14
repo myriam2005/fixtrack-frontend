@@ -164,8 +164,7 @@ export default function DetailTicket({ ticketId: propId, onClose: propClose } = 
 
   const formatDate = (d) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-  };
+  return new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });  };
 
   return (
     <div style={S.overlay} onClick={handleOverlayClick}>
@@ -234,10 +233,8 @@ export default function DetailTicket({ ticketId: propId, onClose: propClose } = 
           {/* ── Colonne gauche ── */}
           <div style={S.colLeft}>
             <div style={S.badgeRow}>
-              <PillBadge label={p.label} dot={p.dot} color={p.color} bg={p.bg} />
               <PillBadge label={s.label} dot={s.dot} color={s.color} bg={s.bg} />
-              <span style={S.dateText}>{formatDate(ticket.createdAt || ticket.dateCreation)}</span>
-            </div>
+                <span style={S.dateText}>{formatDate(ticket.createdAt || ticket.dateCreation)}</span></div>
 
             <h3 style={S.ticketTitle}>{ticket.titre}</h3>
 
