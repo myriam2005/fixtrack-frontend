@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    GestionUsers — Users.css
    Projet : FixTrack  |  Préfixe : .ft-
-   Design 100 % cohérent avec AllTickets.jsx + TicketsModal.jsx
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@800&display=swap');
@@ -163,16 +162,10 @@
   box-shadow: 0 2px 12px rgba(0,0,0,.04);
   width: 100%;
 }
-.ft-toolbar__divider {
-  width: 1px;
-  height: 22px;
-  background: #E5E7EB;
-  flex-shrink: 0;
-}
 .ft-toolbar__search {
   position: relative;
   flex: 1 1 200px;
-  min-width: 180px;
+  min-width: 160px;
   max-width: 320px;
 }
 .ft-toolbar__search-icon {
@@ -185,25 +178,8 @@
   pointer-events: none;
 }
 
-/* ── Role pills ─────────────────────────────────────────────── */
-.ft-pills { display: flex; gap: 5px; flex-wrap: wrap; }
-.ft-pill {
-  padding: 5px 12px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.15s;
-}
-.ft-pill:hover {
-  border-color: #93C5FD !important;
-  background: #EFF6FF !important;
-  color: #2563EB !important;
-}
-
 /* ── Status filter pills ────────────────────────────────────── */
-.ft-status-filters { margin-left: auto; display: flex; gap: 5px; }
+.ft-status-filters { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; }
 .ft-status-btn {
   display: inline-flex;
   align-items: center;
@@ -222,7 +198,6 @@
   border-radius: 50%;
   display: inline-block;
 }
-.ft-status-btn__dot--pulse { animation: ft-pulse 2s ease-in-out infinite; }
 .ft-status-btn__count {
   min-width: 18px;
   height: 18px;
@@ -269,87 +244,15 @@
   box-shadow: 0 2px 12px rgba(0,0,0,.05);
   width: 100%;
 }
-.ft-table-card__head {
-  padding: 16px 24px 0;
-  border-bottom: 1px solid #F3F4F6;
-}
-.ft-table-card__head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.ft-table-card__title {
-  font-weight: 700;
-  font-size: 15px;
-  color: #111827;
-  font-family: 'Inter', sans-serif;
-  margin: 0 0 2px;
-}
-.ft-table-card__sub {
-  font-size: 12px;
-  color: #9CA3AF;
-  font-family: 'Inter', sans-serif;
-}
-
-/* ── Filter tabs ────────────────────────────────────────────── */
-.ft-tabs {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.ft-tabs::-webkit-scrollbar { display: none; }
-.ft-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 13px;
-  cursor: pointer;
-  flex-shrink: 0;
-  border-radius: 8px 8px 0 0;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-family: 'Inter', sans-serif;
-  transition: background 0.15s, border-color 0.15s;
-}
-.ft-tab:hover:not(.ft-tab--active) { background: #F9FAFB; }
-.ft-tab--active {
-  border-bottom-color: #2563EB;
-  background: #F0F7FF;
-}
-.ft-tab__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #6B7280;
-  font-family: 'Inter', sans-serif;
-}
-.ft-tab--active .ft-tab__label { font-weight: 700; color: #2563EB; }
-.ft-tab__count {
-  background: #E5E7EB;
-  color: #6B7280;
-  border-radius: 20px;
-  padding: 0 6px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 18px;
-  min-width: 18px;
-  text-align: center;
-  font-family: 'Inter', sans-serif;
-}
-.ft-tab--active .ft-tab__count { background: #2563EB; color: #FFFFFF; }
 
 /* ── Table scroll wrapper ───────────────────────────────────── */
-.ft-table-scroll { overflow-x: auto; width: 100%; }
+.ft-table-scroll { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
 
 /* ── Table ──────────────────────────────────────────────────── */
 .ft-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  min-width: 560px;
 }
 .ft-table thead th {
   padding: 11px 16px;
@@ -366,17 +269,8 @@
   cursor: pointer;
   user-select: none;
   transition: color 0.15s;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .ft-table thead th:hover { color: #2563EB; }
-
-/* Largeurs colonnes */
-.ft-table colgroup col:nth-child(1) { width: 27%; }
-.ft-table colgroup col:nth-child(2) { width: 27%; }
-.ft-table colgroup col:nth-child(3) { width: 16%; }
-.ft-table colgroup col:nth-child(4) { width: 16%; }
-.ft-table colgroup col:nth-child(5) { width: 14%; }
 
 .ft-row {
   border-top: 1px solid #F3F4F6;
@@ -388,9 +282,6 @@
 .ft-td {
   padding: 13px 16px;
   vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ── User cell ──────────────────────────────────────────────── */
@@ -425,18 +316,26 @@
   text-overflow: ellipsis;
   display: block;
 }
-.ft-date { font-size: 12px; color: #9CA3AF; font-family: 'Inter', sans-serif; }
-.ft-empty-cell { color: #D1D5DB; font-size: 13px; }
+.ft-date { font-size: 12px; color: #9CA3AF; font-family: 'Inter', sans-serif; white-space: nowrap; }
 
-/* ── Action buttons ─────────────────────────────────────────── */
-.ft-actions { display: flex; gap: 6px; align-items: center; }
+/* ════════════════════════════════════════════════════════════
+   ACTION BUTTONS  — zone actions en ligne
+   ════════════════════════════════════════════════════════════ */
+.ft-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Base commune aux boutons texte */
 .ft-btn-edit,
 .ft-btn-deactivate,
 .ft-btn-activate {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
+  padding: 6px 11px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -445,13 +344,46 @@
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
   flex-shrink: 0;
+  line-height: 1;
 }
+
 .ft-btn-edit       { border: 1.5px solid #E5E7EB; color: #374151; background: #FFFFFF; }
 .ft-btn-edit:hover { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; }
+
 .ft-btn-deactivate       { border: 1.5px solid #FECACA; color: #DC2626; background: #FEF2F2; }
 .ft-btn-deactivate:hover { border-color: #FCA5A5; color: #B91C1C; background: #FEE2E2; }
+
 .ft-btn-activate       { border: 1.5px solid #BBF7D0; color: #16A34A; background: #F0FDF4; }
 .ft-btn-activate:hover { border-color: #86EFAC; color: #15803D; background: #DCFCE7; }
+
+/* ── Bouton poubelle (icône seule, même hauteur que les autres) ─ */
+.ft-btn-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Même hauteur que les boutons texte : padding vertical 6px + line-height 1 + font-size 12px ≈ 30px */
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid #FECACA;
+  background: #FEF2F2;
+  color: #DC2626;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.ft-btn-delete:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+  color: #B91C1C;
+  transform: scale(1.08);
+}
+.ft-btn-delete:active {
+  transform: scale(0.96);
+}
+
+/* ── label texte optionnel (caché sur très petits écrans) ─── */
+.ft-btn-label { display: inline; }
 
 /* ── Table footer ───────────────────────────────────────────── */
 .ft-table-footer {
@@ -461,6 +393,8 @@
   justify-content: space-between;
   align-items: center;
   background: #FAFAFA;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .ft-footer-count { font-size: 12px; color: #9CA3AF; font-family: 'Inter', sans-serif; }
 .ft-clear-btn {
@@ -559,7 +493,6 @@
   animation: ft-scaleIn 0.2s cubic-bezier(.34,1.45,.64,1);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
-  /* Permettre le scroll si le contenu dépasse la fenêtre */
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -586,7 +519,7 @@
   font-family: 'Inter', sans-serif;
 }
 .ft-modal__subtitle { font-size: 12px; color: #9CA3AF; margin: 0; font-family: 'Inter', sans-serif; }
-.ft-modal__body     {
+.ft-modal__body {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
@@ -821,7 +754,6 @@
 
 /* ════════════════════════════════════════════════════════════
    COMPÉTENCES MULTI-SELECT
-   Affiché uniquement pour les techniciens
    ════════════════════════════════════════════════════════════ */
 .ft-comp-selector {
   background: #F9FAFB;
@@ -837,13 +769,7 @@
   border-color: #93C5FD;
   background: #FAFCFF;
 }
-
-/* Chips des compétences sélectionnées */
-.ft-comp-selected {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.ft-comp-selected { display: flex; flex-wrap: wrap; gap: 6px; }
 .ft-comp-chip {
   display: inline-flex;
   align-items: center;
@@ -873,17 +799,8 @@
   padding: 0;
   flex-shrink: 0;
 }
-.ft-comp-chip__remove:hover {
-  background: #93C5FD;
-  color: #1E40AF;
-}
-
-/* Pills des catégories disponibles */
-.ft-comp-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
+.ft-comp-chip__remove:hover { background: #93C5FD; color: #1E40AF; }
+.ft-comp-pills { display: flex; flex-wrap: wrap; gap: 5px; }
 .ft-comp-pill {
   display: inline-flex;
   align-items: center;
@@ -900,41 +817,13 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.ft-comp-pill:hover {
-  border-color: #93C5FD;
-  background: #EFF6FF;
-  color: #2563EB;
-}
-.ft-comp-pill--active {
-  background: #EFF6FF;
-  border-color: #93C5FD;
-  color: #2563EB;
-}
-.ft-comp-pill--other {
-  border-style: dashed;
-  border-color: #CBD5E1;
-  color: #94A3B8;
-}
+.ft-comp-pill:hover { border-color: #93C5FD; background: #EFF6FF; color: #2563EB; }
+.ft-comp-pill--active { background: #EFF6FF; border-color: #93C5FD; color: #2563EB; }
+.ft-comp-pill--other { border-style: dashed; border-color: #CBD5E1; color: #94A3B8; }
 .ft-comp-pill--other:hover,
-.ft-comp-pill--other.ft-comp-pill--active {
-  border-color: #D97706;
-  background: #FFFBEB;
-  color: #D97706;
-  border-style: solid;
-}
-
-/* Champ de saisie personnalisée */
-.ft-comp-custom {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  animation: ft-fadeUp 0.15s ease both;
-}
-.ft-comp-custom__input {
-  flex: 1;
-  padding: 7px 11px;
-  font-size: 13px;
-}
+.ft-comp-pill--other.ft-comp-pill--active { border-color: #D97706; background: #FFFBEB; color: #D97706; border-style: solid; }
+.ft-comp-custom { display: flex; gap: 8px; align-items: center; animation: ft-fadeUp 0.15s ease both; }
+.ft-comp-custom__input { flex: 1; padding: 7px 11px; font-size: 13px; }
 .ft-comp-custom__add {
   padding: 7px 14px;
   border-radius: 8px;
@@ -950,12 +839,7 @@
   flex-shrink: 0;
 }
 .ft-comp-custom__add:hover   { background: #1D4ED8; }
-.ft-comp-custom__add:disabled {
-  background: #BFDBFE;
-  cursor: not-allowed;
-}
-
-/* Message vide */
+.ft-comp-custom__add:disabled { background: #BFDBFE; cursor: not-allowed; }
 .ft-comp-empty {
   font-size: 12px;
   color: #CBD5E1;
@@ -968,18 +852,86 @@
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE
    ════════════════════════════════════════════════════════════ */
-@media (max-width: 1024px) {
+
+/* ── ≤ 1280px : 2 colonnes tiles ────────────────────────────── */
+@media (max-width: 1280px) {
   .ft-tiles { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 768px) {
+
+/* ── ≤ 1024px ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
   .ft-header__title { font-size: 26px; }
-  .ft-table th:nth-child(4),
-  .ft-table td:nth-child(4) { display: none; }
-  .ft-toolbar { flex-direction: column; align-items: stretch; }
-  .ft-toolbar__search { max-width: 100%; }
-  .ft-status-filters { margin-left: 0; }
+  /* Cacher la colonne date */
+  .ft-col-date { display: none; }
+  /* Labels masqués sur les boutons texte pour gagner de la place */
+  .ft-btn-label { display: none; }
+  /* Les boutons texte deviennent icône seule */
+  .ft-btn-edit,
+  .ft-btn-deactivate,
+  .ft-btn-activate {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+  }
 }
+
+/* ── ≤ 768px ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ft-page { padding-bottom: 60px; }
+  .ft-header { margin-bottom: 20px; }
+  .ft-header__title { font-size: 22px; }
+
+  /* Tiles 2 colonnes */
+  .ft-tiles { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ft-tile  { padding: 13px 14px; }
+  .ft-tile__value { font-size: 22px; }
+
+  /* Toolbar vertical */
+  .ft-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 8px; }
+  .ft-toolbar__search { max-width: 100%; }
+  .ft-status-filters { margin-left: 0; justify-content: flex-start; }
+
+  /* Cacher aussi la colonne email */
+  .ft-col-email { display: none; }
+
+  /* Toast plus compact */
+  .ft-toast { right: 12px; bottom: 16px; left: 12px; max-width: 100%; font-size: 12.5px; }
+}
+
+/* ── ≤ 600px ─────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Le bouton "Ajouter un compte" perd son texte */
+  .ft-btn-add__text { display: none; }
+  .ft-btn-add { padding: 9px 12px; }
+
+  /* Tiles 2x2 compactes */
+  .ft-tile__sub { display: none; }
+  .ft-tile__label { font-size: 11px; }
+
+  /* Formulaire modal 1 colonne */
+  .ft-form__grid { grid-template-columns: 1fr; }
+
+  /* Boutons modal pleine largeur */
+  .ft-form__actions { flex-direction: column; }
+  .ft-btn-cancel,
+  .ft-btn-submit,
+  .ft-btn-danger,
+  .ft-btn-success { flex: unset; width: 100%; }
+}
+
+/* ── ≤ 480px ─────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .ft-tiles { grid-template-columns: 1fr 1fr; }
-  .ft-table { table-layout: auto; }
+  .ft-tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ft-tile  { padding: 11px 12px; }
+  .ft-tile__value { font-size: 20px; }
+
+  /* Avatar plus petit */
+  .ft-td { padding: 10px 10px; }
+
+  /* Table footer empilé */
+  .ft-table-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+  .ft-modal__body { padding: 16px; }
+  .ft-modal__header { padding: 16px 16px 12px; }
 }

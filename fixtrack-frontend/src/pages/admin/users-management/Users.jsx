@@ -4,6 +4,7 @@
 // FIX 2 : Modification du mot de passe depuis l'admin (PUT /api/users/:id avec { password })
 // FIX 3 : Tile "Admins & Managers" filtre correctement les deux rôles
 // FIX 4 : Suppression des pills de filtrage par rôle dans la toolbar
+// FIX 5 : Bouton supprimer compte avec modal de confirmation
 
 import { useState, useEffect } from "react";
 import "./Users.css";
@@ -33,6 +34,7 @@ const ICONS = {
   tag:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
   users2: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   wrench: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+  trash:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
   plus2:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
 };
 
@@ -340,6 +342,41 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
   );
 }
 
+function DeleteDialog({ user, onConfirm, onClose }) {
+  return (
+    <Modal open={!!user} onClose={onClose}
+      title="Supprimer le compte"
+      subtitle="Cette action est irréversible."
+      width={420}>
+      {user && (
+        <div>
+          <div className="ft-confirm-box" style={{
+            background: "#FEF2F2",
+            border: "1.5px solid #FECACA",
+          }}>
+            <Ico k="warn" size={20} color="#EF4444" />
+            <div>
+              <p className="ft-confirm-box__title" style={{ color: "#7F1D1D" }}>
+                Suppression définitive
+              </p>
+              <p className="ft-confirm-box__text" style={{ color: "#B91C1C" }}>
+                Le compte de <strong>{user.nom}</strong> sera supprimé définitivement et ne pourra pas être récupéré.
+              </p>
+            </div>
+          </div>
+          <div className="ft-form__actions">
+            <button className="ft-btn-cancel" onClick={onClose}>Annuler</button>
+            <button className="ft-btn-danger" onClick={onConfirm}>
+              <Ico k="trash" size={15} />
+              Supprimer définitivement
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function getAuthHeader() {
   try {
     const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
@@ -358,13 +395,13 @@ export default function Users() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState("");
   const [search, setSearch]           = useState("");
-  // ✅ FIX : "admin_manager" est une valeur sentinelle pour filtrer admin+manager ensemble
   const [roleFilter, setRoleFilter]   = useState("all");
   const [statFilter, setStatFilter]   = useState("all");
   const [sort]                        = useState({ col:"createdAt", dir:"desc" });
   const [addOpen, setAddOpen]         = useState(false);
   const [editUser, setEditUser]       = useState(null);
   const [confirmUser, setConfirmUser] = useState(null);
+  const [deleteUser, setDeleteUser]   = useState(null);
   const [toast, setToast]             = useState(null);
 
   useEffect(() => {
@@ -403,19 +440,17 @@ export default function Users() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const total     = users.length;
+  const total       = users.length;
   const users_count = users.filter(u => u.role === "user").length;
-  const techs     = users.filter(u => u.role === "technician").length;
-  // ✅ FIX : compte correct — admin ET manager
-  const admins    = users.filter(u => u.role === "admin" || u.role === "manager").length;
+  const techs       = users.filter(u => u.role === "technician").length;
+  const admins      = users.filter(u => u.role === "admin" || u.role === "manager").length;
 
   const filtered = users
     .filter(u => {
       const q = search.toLowerCase();
       const matchSearch = !q || u.nom.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-      // ✅ FIX : "admin_manager" filtre les deux rôles admin + manager
       const matchRole =
-        roleFilter === "all"          ? true :
+        roleFilter === "all"           ? true :
         roleFilter === "admin_manager" ? (u.role === "admin" || u.role === "manager") :
         u.role === roleFilter;
       const matchStatus = statFilter === "all" || (statFilter === "actif" ? u.actif !== false : u.actif === false);
@@ -496,7 +531,17 @@ export default function Users() {
     }
   };
 
-  // ✅ FIX : helper pour savoir si la tile "Admins & Managers" est active
+  const handleDelete = async () => {
+    try {
+      await userService.delete(deleteUser._id);
+      setUsers(prev => prev.filter(u => u._id !== deleteUser._id));
+      notify(`${deleteUser.nom} supprimé définitivement.`, "warn");
+      setDeleteUser(null);
+    } catch {
+      notify("Erreur lors de la suppression.", "warn");
+    }
+  };
+
   const isAdminTileActive = roleFilter === "admin_manager";
 
   return (
@@ -519,7 +564,7 @@ export default function Users() {
         </div>
         <button className="ft-btn-add" onClick={() => setAddOpen(true)}>
           <Ico k="plus" size={15} />
-          Ajouter un compte
+          <span className="ft-btn-add__text">Ajouter un compte</span>
         </button>
       </div>
 
@@ -549,7 +594,6 @@ export default function Users() {
           active={roleFilter === "technician"}
           onClick={() => setRoleFilter(r => r === "technician" ? "all" : "technician")}
         />
-        {/* ✅ FIX : utilise "admin_manager" comme sentinelle pour filtrer les deux rôles */}
         <StatTile
           label="Admins & Managers" value={admins} icon="lock" color="#7C3AED"
           sub="Accès privilégiés"
@@ -558,7 +602,7 @@ export default function Users() {
         />
       </div>
 
-      {/* ── Toolbar : recherche + statut uniquement (pills de rôle supprimées) ── */}
+      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="ft-toolbar">
         <div className="ft-toolbar__search">
           <span className="ft-toolbar__search-icon"><Ico k="search" size={15} /></span>
@@ -570,7 +614,6 @@ export default function Users() {
             style={{ paddingLeft:34, maxWidth:320 }}
           />
         </div>
-        {/* ✅ FIX : divider et pills de rôle supprimés */}
         <div className="ft-status-filters">
           {[
             { val:"all",     label:"Tous",     dot:null,      border:"#BFDBFE", bg:"#EFF6FF", color:"#1D4ED8" },
@@ -601,7 +644,11 @@ export default function Users() {
           <table className="ft-table">
             <thead>
               <tr>
-                <th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Créé le</th><th>Actions</th>
+                <th>Utilisateur</th>
+                <th className="ft-col-email">Email</th>
+                <th>Rôle</th>
+                <th className="ft-col-date">Créé le</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -639,20 +686,29 @@ export default function Users() {
                         </div>
                       </div>
                     </td>
-                    <td className="ft-td"><span className="ft-email">{u.email}</span></td>
+                    <td className="ft-td ft-col-email"><span className="ft-email">{u.email}</span></td>
                     <td className="ft-td"><RoleChip role={u.role} /></td>
-                    <td className="ft-td"><span className="ft-date">{fmtDate(u.createdAt || u.dateCreation)}</span></td>
+                    <td className="ft-td ft-col-date"><span className="ft-date">{fmtDate(u.createdAt || u.dateCreation)}</span></td>
                     <td className="ft-td">
                       <div className="ft-actions">
-                        <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })}>
-                          <Ico k="edit" size={12} /> Modifier
+                        <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })} title="Modifier">
+                          <Ico k="edit" size={13} />
+                          <span className="ft-btn-label">Modifier</span>
                         </button>
                         <button
                           className={u.actif !== false ? "ft-btn-deactivate" : "ft-btn-activate"}
                           onClick={() => setConfirmUser(u)}
+                          title={u.actif !== false ? "Désactiver" : "Réactiver"}
                         >
-                          <Ico k={u.actif !== false ? "block" : "check"} size={12} />
-                          {u.actif !== false ? "Désactiver" : "Réactiver"}
+                          <Ico k={u.actif !== false ? "block" : "check"} size={13} />
+                          <span className="ft-btn-label">{u.actif !== false ? "Désactiver" : "Réactiver"}</span>
+                        </button>
+                        <button
+                          className="ft-btn-delete"
+                          onClick={() => setDeleteUser(u)}
+                          title="Supprimer définitivement"
+                        >
+                          <Ico k="trash" size={13} />
                         </button>
                       </div>
                     </td>
@@ -678,7 +734,7 @@ export default function Users() {
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────── */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un comptes" subtitle="Créer un nouveau compte sur FixTrack." width={520}>
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un compte" subtitle="Créer un nouveau compte sur FixTrack." width={520}>
         <UserForm isEdit={false} onSubmit={handleAdd} onCancel={() => setAddOpen(false)} categories={categories} />
       </Modal>
 
@@ -695,6 +751,8 @@ export default function Users() {
       </Modal>
 
       <ConfirmDialog user={confirmUser} onConfirm={handleToggleStatus} onClose={() => setConfirmUser(null)} />
+
+      <DeleteDialog user={deleteUser} onConfirm={handleDelete} onClose={() => setDeleteUser(null)} />
     </div>
   );
 }
