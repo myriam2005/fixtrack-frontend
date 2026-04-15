@@ -1,5 +1,6 @@
 // routes/userRoutes.js
-// IMPORTANT : /profile et /password AVANT /:id pour éviter le conflit de routes
+// IMPORTANT : /profile et /password AVANT /:id pour éviter les conflits de routes
+
 const express = require("express");
 const router = express.Router();
 const { check } = require("express-validator");
@@ -13,15 +14,16 @@ const {
   updateUser,
   updateRole,
   deleteUser,
+  deletePendingUser,
   updateProfile,
   changePassword,
 } = require("../controllers/userController");
 
-// ── Routes du profil connecté (auth seulement, pas de rôle requis) ───────────
-router.put("/profile", auth, updateProfile); // ← DOIT être AVANT /:id
-router.put("/password", auth, changePassword); // ← DOIT être AVANT /:id
+// ── Profil connecté (auth seulement) ─────────────────────────────────────────
+router.put("/profile", auth, updateProfile); // DOIT être AVANT /:id
+router.put("/password", auth, changePassword); // DOIT être AVANT /:id
 
-// ── Techniciens (manager/admin — liste pour assignation tickets) ──────────────
+// ── Techniciens ───────────────────────────────────────────────────────────────
 router.get(
   "/technicians",
   auth,
@@ -32,8 +34,7 @@ router.get(
 // ── CRUD admin ────────────────────────────────────────────────────────────────
 router.get("/", auth, roleCheck(["admin", "manager"]), getAllUsers);
 
-// POST / → createUser (admin crée un compte)
-// ✅ Vérifie domaine email + envoie email de vérification → compte inaccessible tant que non vérifié
+// POST / → crée un PendingUser (pas un User)
 router.post(
   "/",
   auth,
@@ -51,12 +52,10 @@ router.post(
 );
 
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
-
-// PUT /:id → updateUser (admin modifie un compte)
-// ✅ Si email change : vérification DNS + re-vérification par email
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);
-
 router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);
+
+// DELETE /:id → supprime User OU PendingUser (détection automatique)
 router.delete("/:id", auth, roleCheck(["admin"]), deleteUser);
 
 module.exports = router;

@@ -1,17 +1,10 @@
 // src/pages/admin/users-management/Users.jsx
-// ✅ VERSION BACKEND — même design, données réelles via API
-// FIX 1 : Compétences multi-select dynamiques (chargées depuis /api/config/categories) + option "Autre"
-// FIX 2 : Modification du mot de passe depuis l'admin (PUT /api/users/:id avec { password })
-// FIX 3 : Tile "Admins & Managers" filtre correctement les deux rôles
-// FIX 4 : Suppression des pills de filtrage par rôle dans la toolbar
-// FIX 5 : Bouton supprimer compte avec modal de confirmation
-
 import { useState, useEffect } from "react";
 import "./Users.css";
 import { userService } from "../../../services/api";
 
 export const ROLE_META = {
-  user:       { label:"Utilisateur",        color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
+  user:       { label:"Utilisateur",    color:"#059669", bg:"#ECFDF5", border:"#A7F3D0", avatar:"#059669" },
   technician: { label:"Technicien",     color:"#D97706", bg:"#FFFBEB", border:"#FDE68A", avatar:"#D97706" },
   manager:    { label:"Manager",        color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE", avatar:"#7C3AED" },
   admin:      { label:"Administrateur", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE", avatar:"#1D4ED8" },
@@ -36,6 +29,7 @@ const ICONS = {
   wrench: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
   trash:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
   plus2:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  clock:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
 };
 
 const Ico = ({ k, size = 16, color }) => (
@@ -61,7 +55,15 @@ function RoleChip({ role }) {
   );
 }
 
-function StatusBadge({ actif }) {
+// ── StatusBadge : gère aussi l'état "En attente" pour les PendingUsers ────────
+function StatusBadge({ actif, isPending }) {
+  if (isPending) {
+    return (
+      <span style={{ fontSize:"0.72rem", fontWeight:600, color:"#F59E0B", letterSpacing:"0.01em" }}>
+        ⏳ En attente
+      </span>
+    );
+  }
   return (
     <span style={{ fontSize:"0.72rem", fontWeight:600, color: actif ? "#16A34A" : "#9CA3AF", letterSpacing:"0.01em" }}>
       {actif ? "Actif" : "Inactif"}
@@ -117,17 +119,13 @@ function Field({ label, icon, error, children }) {
   );
 }
 
-// ── Multi-select compétences ─────────────────────────────────────────────────
 function CompetencesSelector({ selected, onChange, categories }) {
   const [customInput, setCustomInput] = useState("");
   const [showCustom, setShowCustom]   = useState(false);
 
   const toggle = (nom) => {
-    if (selected.includes(nom)) {
-      onChange(selected.filter(c => c !== nom));
-    } else {
-      onChange([...selected, nom]);
-    }
+    if (selected.includes(nom)) onChange(selected.filter(c => c !== nom));
+    else onChange([...selected, nom]);
   };
 
   const addCustom = () => {
@@ -158,9 +156,7 @@ function CompetencesSelector({ selected, onChange, categories }) {
         {categories.map(cat => {
           const isSelected = selected.includes(cat.nom);
           return (
-            <button
-              key={cat._id || cat.nom}
-              type="button"
+            <button key={cat._id || cat.nom} type="button"
               className={`ft-comp-pill${isSelected ? " ft-comp-pill--active" : ""}`}
               onClick={() => toggle(cat.nom)}
             >
@@ -169,45 +165,33 @@ function CompetencesSelector({ selected, onChange, categories }) {
             </button>
           );
         })}
-        <button
-          type="button"
+        <button type="button"
           className={`ft-comp-pill ft-comp-pill--other${showCustom ? " ft-comp-pill--active" : ""}`}
           onClick={() => setShowCustom(v => !v)}
         >
-          <Ico k="plus2" size={10} />
-          Autre
+          <Ico k="plus2" size={10} />Autre
         </button>
       </div>
       {showCustom && (
         <div className="ft-comp-custom">
-          <input
-            className="ft-input ft-comp-custom__input"
-            value={customInput}
+          <input className="ft-input ft-comp-custom__input" value={customInput}
             onChange={e => setCustomInput(e.target.value)}
             placeholder="Ex: Ascenseur, Menuiserie…"
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
             autoFocus
           />
-          <button
-            type="button"
-            className="ft-comp-custom__add"
-            onClick={addCustom}
-            disabled={!customInput.trim()}
-          >
+          <button type="button" className="ft-comp-custom__add" onClick={addCustom} disabled={!customInput.trim()}>
             Ajouter
           </button>
         </div>
       )}
-      {selected.length === 0 && (
-        <p className="ft-comp-empty">Aucune compétence sélectionnée</p>
-      )}
+      {selected.length === 0 && <p className="ft-comp-empty">Aucune compétence sélectionnée</p>}
     </div>
   );
 }
 
 const BLANK_FORM = { nom:"", email:"", password:"", role:"user", competences:[] };
 
-// ── UserForm ─────────────────────────────────────────────────────────────────
 function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
   const [form, setForm]       = useState(initial || BLANK_FORM);
   const [errors, setErrors]   = useState({});
@@ -228,11 +212,7 @@ function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
     const err = validate();
     if (Object.keys(err).length) { setErrors(err); return; }
     setLoading(true);
-    try {
-      await onSubmit(form);
-    } finally {
-      setLoading(false);
-    }
+    try { await onSubmit(form); } finally { setLoading(false); }
   };
 
   const cls = hasErr => `ft-input${hasErr ? " ft-input--error" : ""}`;
@@ -262,21 +242,14 @@ function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
           </Field>
         </div>
         <Field label={isEdit ? "Nouveau mot de passe" : "Mot de passe"} icon="lock" error={errors.password}>
-          <input
-            type="password"
-            className={cls(errors.password)}
-            value={form.password}
+          <input type="password" className={cls(errors.password)} value={form.password}
             onChange={setField("password")}
             placeholder={isEdit ? "Laisser vide = inchangé" : "6+ caractères"}
           />
         </Field>
         <Field label="Rôle" icon="tag">
-          <select
-            className="ft-input"
-            style={{ cursor:"pointer" }}
-            value={form.role}
-            onChange={e => setForm(prev => ({ ...prev, role: e.target.value, competences: e.target.value !== "technician" ? [] : prev.competences }))}
-          >
+          <select className="ft-input" style={{ cursor:"pointer" }} value={form.role}
+            onChange={e => setForm(prev => ({ ...prev, role: e.target.value, competences: e.target.value !== "technician" ? [] : prev.competences }))}>
             {Object.entries(ROLE_META).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
@@ -287,8 +260,7 @@ function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
       {isTechnician && (
         <div className="ft-form__field ft-form__full" style={{ marginTop:4 }}>
           <label className="ft-form__label">
-            <Ico k="wrench" size={12} color="#94A3B8" />
-            Compétences techniques
+            <Ico k="wrench" size={12} color="#94A3B8" />Compétences techniques
           </label>
           <CompetencesSelector
             selected={form.competences || []}
@@ -309,6 +281,7 @@ function UserForm({ initial, isEdit, onSubmit, onCancel, categories = [] }) {
   );
 }
 
+// ── ConfirmDialog : désactiver / réactiver (jamais pour PendingUser) ──────────
 function ConfirmDialog({ user, onConfirm, onClose }) {
   const deactivate = user?.actif !== false;
   return (
@@ -345,22 +318,21 @@ function ConfirmDialog({ user, onConfirm, onClose }) {
 function DeleteDialog({ user, onConfirm, onClose }) {
   return (
     <Modal open={!!user} onClose={onClose}
-      title="Supprimer le compte"
-      subtitle="Cette action est irréversible."
-      width={420}>
+      title={user?.isPending ? "Annuler le compte en attente" : "Supprimer le compte"}
+      subtitle="Cette action est irréversible." width={420}>
       {user && (
         <div>
-          <div className="ft-confirm-box" style={{
-            background: "#FEF2F2",
-            border: "1.5px solid #FECACA",
-          }}>
+          <div className="ft-confirm-box" style={{ background:"#FEF2F2", border:"1.5px solid #FECACA" }}>
             <Ico k="warn" size={20} color="#EF4444" />
             <div>
-              <p className="ft-confirm-box__title" style={{ color: "#7F1D1D" }}>
-                Suppression définitive
+              <p className="ft-confirm-box__title" style={{ color:"#7F1D1D" }}>
+                {user.isPending ? "Invitation annulée" : "Suppression définitive"}
               </p>
-              <p className="ft-confirm-box__text" style={{ color: "#B91C1C" }}>
-                Le compte de <strong>{user.nom}</strong> sera supprimé définitivement et ne pourra pas être récupéré.
+              <p className="ft-confirm-box__text" style={{ color:"#B91C1C" }}>
+                {user.isPending
+                  ? `L'invitation envoyée à ${user.nom} sera annulée. L'email de vérification ne fonctionnera plus.`
+                  : `Le compte de ${user.nom} sera supprimé définitivement et ne pourra pas être récupéré.`
+                }
               </p>
             </div>
           </div>
@@ -368,7 +340,7 @@ function DeleteDialog({ user, onConfirm, onClose }) {
             <button className="ft-btn-cancel" onClick={onClose}>Annuler</button>
             <button className="ft-btn-danger" onClick={onConfirm}>
               <Ico k="trash" size={15} />
-              Supprimer définitivement
+              {user.isPending ? "Annuler l'invitation" : "Supprimer définitivement"}
             </button>
           </div>
         </div>
@@ -381,14 +353,11 @@ function getAuthHeader() {
   try {
     const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
     return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// ══════════════════════════════════════════════════════════════════════════════
 export default function Users() {
   const [users, setUsers]             = useState([]);
   const [categories, setCategories]   = useState([]);
@@ -428,9 +397,7 @@ export default function Users() {
           const data = await res.json();
           setCategories(data || []);
         }
-      } catch (err) {
-        console.error("Erreur chargement catégories:", err);
-      }
+      } catch (err) { console.error("Erreur chargement catégories:", err); }
     };
     fetchCategories();
   }, []);
@@ -441,9 +408,9 @@ export default function Users() {
   };
 
   const total       = users.length;
-  const users_count = users.filter(u => u.role === "user").length;
-  const techs       = users.filter(u => u.role === "technician").length;
-  const admins      = users.filter(u => u.role === "admin" || u.role === "manager").length;
+  const users_count = users.filter(u => u.role === "user" && !u.isPending).length;
+  const techs       = users.filter(u => u.role === "technician" && !u.isPending).length;
+  const admins      = users.filter(u => (u.role === "admin" || u.role === "manager") && !u.isPending).length;
 
   const filtered = users
     .filter(u => {
@@ -453,7 +420,7 @@ export default function Users() {
         roleFilter === "all"           ? true :
         roleFilter === "admin_manager" ? (u.role === "admin" || u.role === "manager") :
         u.role === roleFilter;
-      const matchStatus = statFilter === "all" || (statFilter === "actif" ? u.actif !== false : u.actif === false);
+      const matchStatus = statFilter === "all" || (statFilter === "actif" ? u.actif !== false && !u.isPending : u.actif === false || u.isPending);
       return matchSearch && matchRole && matchStatus;
     })
     .sort((a, b) => {
@@ -474,9 +441,21 @@ export default function Users() {
       });
       const data = await res.json();
       if (res.ok) {
-        setUsers(prev => [data, ...prev]);
+        // Le backend retourne un PendingUser — on l'ajoute avec isPending:true
+        const pendingEntry = {
+          _id:           data.user?.id || data.user?._id,
+          nom:           data.user?.nom,
+          email:         data.user?.email,
+          role:          data.user?.role,
+          avatar:        data.user?.avatar,
+          actif:         false,
+          emailVerified: false,
+          isPending:     true,
+          createdAt:     new Date().toISOString(),
+        };
+        setUsers(prev => [pendingEntry, ...prev]);
         setAddOpen(false);
-        notify(`${data.nom} créé avec succès.`);
+        notify(`Invitation envoyée à ${data.user?.nom}. En attente de vérification email.`);
       } else {
         notify(data.message || "Erreur lors de la création.", "warn");
       }
@@ -514,28 +493,49 @@ export default function Users() {
     notify(`Profil de ${form.nom} mis à jour.`);
   };
 
+  // ✅ FIX : désactiver = PUT actif:false | réactiver = PUT actif:true
+  // Jamais de DELETE ici — le compte reste en base
   const handleToggleStatus = async () => {
     try {
-      if (confirmUser.actif !== false) {
-        await userService.delete(confirmUser._id);
-        setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: false } : u));
-        notify(`${confirmUser.nom} est maintenant inactif.`, "warn");
-      } else {
-        await userService.update(confirmUser._id, { actif: true });
-        setUsers(prev => prev.map(u => u._id === confirmUser._id ? { ...u, actif: true } : u));
-        notify(`${confirmUser.nom} est maintenant actif.`);
+      const newActif = confirmUser.actif === false;
+      const res = await fetch(`${API_BASE}/users/${confirmUser._id}`, {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body:    JSON.stringify({ actif: newActif }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        notify(data.message || "Erreur lors du changement de statut.", "warn");
+        setConfirmUser(null);
+        return;
       }
+      setUsers(prev => prev.map(u =>
+        u._id === confirmUser._id ? { ...u, actif: newActif } : u
+      ));
+      notify(
+        newActif
+          ? `${confirmUser.nom} est maintenant actif.`
+          : `${confirmUser.nom} est maintenant inactif.`,
+        newActif ? "ok" : "warn"
+      );
       setConfirmUser(null);
     } catch {
       notify("Erreur lors du changement de statut.", "warn");
+      setConfirmUser(null);
     }
   };
 
+  // ✅ DELETE : supprime définitivement (User ou PendingUser)
   const handleDelete = async () => {
     try {
       await userService.delete(deleteUser._id);
       setUsers(prev => prev.filter(u => u._id !== deleteUser._id));
-      notify(`${deleteUser.nom} supprimé définitivement.`, "warn");
+      notify(
+        deleteUser.isPending
+          ? `Invitation de ${deleteUser.nom} annulée.`
+          : `${deleteUser.nom} supprimé définitivement.`,
+        "warn"
+      );
       setDeleteUser(null);
     } catch {
       notify("Erreur lors de la suppression.", "warn");
@@ -574,43 +574,31 @@ export default function Users() {
         </div>
       )}
 
-      {/* ── Stat tiles ──────────────────────────────────────────────────── */}
       <div className="ft-tiles">
-        <StatTile
-          label="Tous les comptes" value={total} icon="users2" color="#1D4ED8"
+        <StatTile label="Tous les comptes" value={total} icon="users2" color="#1D4ED8"
           sub={`${total} comptes créés`}
           active={roleFilter === "all" && statFilter === "all"}
           onClick={() => { setRoleFilter("all"); setStatFilter("all"); }}
         />
-        <StatTile
-          label="Utilisateurs" value={users_count} icon="user" color="#059669"
-          sub="Personnel de terrain"
-          active={roleFilter === "user"}
+        <StatTile label="Utilisateurs" value={users_count} icon="user" color="#059669"
+          sub="Personnel de terrain" active={roleFilter === "user"}
           onClick={() => setRoleFilter(r => r === "user" ? "all" : "user")}
         />
-        <StatTile
-          label="Techniciens" value={techs} icon="tag" color="#D97706"
-          sub="Équipe maintenance"
-          active={roleFilter === "technician"}
+        <StatTile label="Techniciens" value={techs} icon="tag" color="#D97706"
+          sub="Équipe maintenance" active={roleFilter === "technician"}
           onClick={() => setRoleFilter(r => r === "technician" ? "all" : "technician")}
         />
-        <StatTile
-          label="Admins & Managers" value={admins} icon="lock" color="#7C3AED"
-          sub="Accès privilégiés"
-          active={isAdminTileActive}
+        <StatTile label="Admins & Managers" value={admins} icon="lock" color="#7C3AED"
+          sub="Accès privilégiés" active={isAdminTileActive}
           onClick={() => setRoleFilter(r => r === "admin_manager" ? "all" : "admin_manager")}
         />
       </div>
 
-      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="ft-toolbar">
         <div className="ft-toolbar__search">
           <span className="ft-toolbar__search-icon"><Ico k="search" size={15} /></span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="ft-input"
-            placeholder="Rechercher nom ou email…"
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            className="ft-input" placeholder="Rechercher nom ou email…"
             style={{ paddingLeft:34, maxWidth:320 }}
           />
         </div>
@@ -631,14 +619,16 @@ export default function Users() {
               <span className="ft-status-btn__count" style={{ background:statFilter === val ? border : "#F1F5F9", color:statFilter === val ? color : "#94A3B8" }}>
                 {val === "all"
                   ? users.length
-                  : users.filter(u => val === "actif" ? u.actif !== false : u.actif === false).length}
+                  : val === "actif"
+                    ? users.filter(u => u.actif !== false && !u.isPending).length
+                    : users.filter(u => u.actif === false || u.isPending).length
+                }
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Table ───────────────────────────────────────────────────────── */}
       <div className="ft-table-card">
         <div className="ft-table-scroll">
           <table className="ft-table">
@@ -682,7 +672,8 @@ export default function Users() {
                         <Avatar name={u.nom} role={u.role} />
                         <div className="ft-user-info">
                           <p className="ft-user-name">{u.nom}</p>
-                          <StatusBadge actif={u.actif !== false} />
+                          {/* ✅ StatusBadge affiche "En attente" pour les PendingUsers */}
+                          <StatusBadge actif={u.actif !== false} isPending={u.isPending} />
                         </div>
                       </div>
                     </td>
@@ -691,23 +682,29 @@ export default function Users() {
                     <td className="ft-td ft-col-date"><span className="ft-date">{fmtDate(u.createdAt || u.dateCreation)}</span></td>
                     <td className="ft-td">
                       <div className="ft-actions">
-                        <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })} title="Modifier">
-                          <Ico k="edit" size={13} />
-                          <span className="ft-btn-label">Modifier</span>
-                        </button>
-                        <button
-                          className={u.actif !== false ? "ft-btn-deactivate" : "ft-btn-activate"}
-                          onClick={() => setConfirmUser(u)}
-                          title={u.actif !== false ? "Désactiver" : "Réactiver"}
-                        >
-                          <Ico k={u.actif !== false ? "block" : "check"} size={13} />
-                          <span className="ft-btn-label">{u.actif !== false ? "Désactiver" : "Réactiver"}</span>
-                        </button>
-                        <button
-                          className="ft-btn-delete"
-                          onClick={() => setDeleteUser(u)}
-                          title="Supprimer définitivement"
-                        >
+                        {/* ✅ Modifier : désactivé pour les PendingUsers */}
+                        {!u.isPending && (
+                          <button className="ft-btn-edit" onClick={() => setEditUser({ ...u })} title="Modifier">
+                            <Ico k="edit" size={13} />
+                            <span className="ft-btn-label">Modifier</span>
+                          </button>
+                        )}
+
+                        {/* ✅ Désactiver/Réactiver : UNIQUEMENT pour les vrais Users (pas PendingUsers) */}
+                        {!u.isPending && (
+                          <button
+                            className={u.actif !== false ? "ft-btn-deactivate" : "ft-btn-activate"}
+                            onClick={() => setConfirmUser(u)}
+                            title={u.actif !== false ? "Désactiver" : "Réactiver"}
+                          >
+                            <Ico k={u.actif !== false ? "block" : "check"} size={13} />
+                            <span className="ft-btn-label">{u.actif !== false ? "Désactiver" : "Réactiver"}</span>
+                          </button>
+                        )}
+
+                        {/* ✅ Supprimer : disponible pour tous (PendingUser = annuler invitation) */}
+                        <button className="ft-btn-delete" onClick={() => setDeleteUser(u)}
+                          title={u.isPending ? "Annuler l'invitation" : "Supprimer définitivement"}>
                           <Ico k="trash" size={13} />
                         </button>
                       </div>
@@ -733,15 +730,13 @@ export default function Users() {
         </div>
       </div>
 
-      {/* ── Modals ──────────────────────────────────────────────────────── */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un compte" subtitle="Créer un nouveau compte sur FixTrack." width={520}>
         <UserForm isEdit={false} onSubmit={handleAdd} onCancel={() => setAddOpen(false)} categories={categories} />
       </Modal>
 
       <Modal open={!!editUser} onClose={() => setEditUser(null)} title="Modifier le profil" subtitle={editUser ? `Modification de ${editUser.nom}` : ""} width={520}>
         {editUser && (
-          <UserForm
-            isEdit
+          <UserForm isEdit
             initial={{ nom:editUser.nom, email:editUser.email, password:"", role:editUser.role, competences:editUser.competences || [] }}
             onSubmit={handleEdit}
             onCancel={() => setEditUser(null)}
@@ -750,6 +745,7 @@ export default function Users() {
         )}
       </Modal>
 
+      {/* ✅ ConfirmDialog n'est jamais ouvert pour un PendingUser (bouton masqué) */}
       <ConfirmDialog user={confirmUser} onConfirm={handleToggleStatus} onClose={() => setConfirmUser(null)} />
 
       <DeleteDialog user={deleteUser} onConfirm={handleDelete} onClose={() => setDeleteUser(null)} />
