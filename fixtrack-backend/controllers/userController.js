@@ -1,5 +1,5 @@
 // controllers/userController.js
-// ✅ REFACTORISÉ : createUser crée un PendingUser (pas un vrai User).
+//  createUser crée un PendingUser (pas un vrai User).
 //    Le User réel est créé UNIQUEMENT à la validation email (voir authController.verifyEmail).
 
 const { validationResult } = require("express-validator");
@@ -122,7 +122,6 @@ const getUserById = async (req, res) => {
 };
 
 // ── POST /api/users (admin crée un compte) ────────────────────────────────────
-// ✅ NOUVEAU COMPORTEMENT :
 //    1. Vérifie domaine DNS
 //    2. Crée un PendingUser (PAS un User)
 //    3. Envoie l'email de vérification

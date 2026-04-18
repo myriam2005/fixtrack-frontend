@@ -34,14 +34,6 @@ router.get(
   getTicketById,
 );
 
-// ── Suggestion technicien (avant /:id/assign pour éviter conflit) ─────────────
-router.get(
-  "/:id/suggest-technician",
-  auth,
-  roleCheck(["manager", "admin"]),
-  suggestTechnician,
-);
-
 // ── Création ──────────────────────────────────────────────────────────────────
 router.post("/", auth, roleCheck(["user", "manager", "admin"]), createTicket);
 

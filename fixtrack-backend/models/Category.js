@@ -1,5 +1,5 @@
 // models/Category.js
-// ⚠️  nombreTickets est calculé à la volée (Ticket.countDocuments)
+// nombreTickets est calculé à la volée (Ticket.countDocuments)
 //     et ne doit PAS être stocké en base — il serait vite désynchronisé.
 const mongoose = require("mongoose");
 

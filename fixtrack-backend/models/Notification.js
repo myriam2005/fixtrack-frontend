@@ -19,8 +19,8 @@ const notificationSchema = new mongoose.Schema(
         "ticket_critical",
         "ticket_deleted",
         "status_changed",
-        "ticket_refused", // ✅ NOUVEAU — technicien a refusé le ticket
-        "profile_updated", // ✅ NOUVEAU — admin a modifié le profil
+        "ticket_refused", // technicien a refusé le ticket
+        "profile_updated", //  admin a modifié le profil
       ],
       default: "status_changed",
     },

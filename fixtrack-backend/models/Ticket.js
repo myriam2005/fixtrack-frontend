@@ -71,7 +71,7 @@ const ticketSchema = new Schema(
 
     notes: [noteSchema],
 
-    // ✅ CORRIGÉ — champs alignés avec le controller (rating/comment)
+    //  champs alignés avec le controller (rating/comment)
     feedback: {
       rating: { type: Number, min: 1, max: 5, default: null },
       comment: { type: String, default: "" },

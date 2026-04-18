@@ -1,5 +1,5 @@
 // controllers/authController.js
-// ✅ REFACTORISÉ :
+// REFACTORISÉ :
 //    - register      → crée un PendingUser (pas un User)
 //    - verifyEmail   → migre PendingUser → User PUIS supprime le PendingUser
 //    - login         → inchangé (cherche dans User seulement)
@@ -109,7 +109,7 @@ const register = async (req, res) => {
 };
 
 // ── POST /api/auth/verify-email ───────────────────────────────────────────────
-// ✅ NOUVEAU : cherche dans PendingUser, crée le vrai User, supprime le PendingUser.
+//  cherche dans PendingUser, crée le vrai User, supprime le PendingUser.
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;

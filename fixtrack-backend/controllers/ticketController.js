@@ -232,12 +232,10 @@ exports.updateStatus = async (req, res) => {
     if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
     const allowed = VALID_TRANSITIONS[ticket.statut] || [];
     if (!allowed.includes(statut))
-      return res
-        .status(400)
-        .json({
-          message: `Transition invalide: ${ticket.statut} → ${statut}`,
-          allowed,
-        });
+      return res.status(400).json({
+        message: `Transition invalide: ${ticket.statut} → ${statut}`,
+        allowed,
+      });
     const oldStatut = ticket.statut;
     ticket.statut = statut;
     await ticket.save();
@@ -408,60 +406,6 @@ exports.assignTicket = async (req, res) => {
   }
 };
 
-// ── GET /api/tickets/:id/suggest-technician ───────────────────────────────────
-exports.suggestTechnician = async (req, res) => {
-  try {
-    const ticket = await Ticket.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ message: "Ticket introuvable" });
-    const techs = await User.find({ role: "technician", actif: true });
-    const allTickets = await Ticket.find({
-      statut: { $in: ["assigned", "in_progress"] },
-    });
-    const scored = await Promise.all(
-      techs.map(async (tech) => {
-        let score = 0;
-        const tid = tech._id.toString();
-        if (
-          tech.competences?.some(
-            (c) =>
-              ticket.categorie?.toLowerCase().includes(c.toLowerCase()) ||
-              c.toLowerCase().includes(ticket.categorie?.toLowerCase()),
-          )
-        )
-          score += 40;
-        const active = allTickets.filter(
-          (t) => t.technicienId?.toString() === tid,
-        ).length;
-        score -= active * 10;
-        if (ticket.refusedBy?.toString() === tid) score -= 50;
-        const past = await Ticket.countDocuments({
-          technicienId: tech._id,
-          localisation: {
-            $regex: new RegExp(ticket.localisation?.split(" ")[0] || "", "i"),
-          },
-          statut: { $in: ["resolved", "closed"] },
-        });
-        if (past > 0) score += 20;
-        return {
-          technicien: {
-            _id: tech._id,
-            nom: tech.nom,
-            email: tech.email,
-            competences: tech.competences,
-          },
-          score,
-          activeTickets: active,
-          pastResolved: past,
-        };
-      }),
-    );
-    scored.sort((a, b) => b.score - a.score);
-    res.json({ suggested: scored[0] || null, all: scored });
-  } catch (err) {
-    res.status(500).json({ message: "Erreur serveur", error: err.message });
-  }
-};
-
 // ── POST /api/tickets/:id/notes ───────────────────────────────────────────────
 exports.addNote = async (req, res) => {
   try {
@@ -621,8 +565,8 @@ exports.validateTicket = async (req, res) => {
 };
 
 // ── PATCH /api/tickets/:id/feedback ──────────────────────────────────────────
-// ✅ Seul l'auteur du ticket peut soumettre un feedback (ticket résolu uniquement)
-// ✅ Un seul feedback par ticket — pas de note dupliquée dans l'historique
+// Seul l'auteur du ticket peut soumettre un feedback (ticket résolu uniquement)
+//  Un seul feedback par ticket — pas de note dupliquée dans l'historique
 exports.saveFeedback = async (req, res) => {
   try {
     const { rating, comment } = req.body;
@@ -643,15 +587,13 @@ exports.saveFeedback = async (req, res) => {
         .json({ message: "Seul l'auteur du ticket peut laisser un feedback" });
 
     if (ticket.statut !== "resolved")
-      return res
-        .status(400)
-        .json({
-          message: "Le feedback n'est possible que sur un ticket résolu",
-        });
+      return res.status(400).json({
+        message: "Le feedback n'est possible que sur un ticket résolu",
+      });
 
     const isFirstFeedback = !ticket.feedback?.rating;
 
-    // ✅ Enregistre/écrase le feedback
+    //  Enregistre/écrase le feedback
     ticket.feedback = {
       rating: Number(rating),
       comment: comment?.trim() || "",
@@ -659,7 +601,7 @@ exports.saveFeedback = async (req, res) => {
       auteurId: req.user.id,
     };
 
-    // ✅ Pousse une note dans l'historique UNIQUEMENT lors du premier feedback
+    // Pousse une note dans l'historique UNIQUEMENT lors du premier feedback
     if (isFirstFeedback) {
       const labels = [
         "",
