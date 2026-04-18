@@ -121,7 +121,7 @@ function AccountRequestModal({ onClose }) {
   const [loading, setLoading]             = useState(false);
   const [success, setSuccess]             = useState(false);
   const [apiErr, setApiErr]               = useState("");
-  // ✅ NEW : validation domaine email en temps réel
+  //  : validation domaine email en temps réel
   const [emailChecking, setEmailChecking] = useState(false);
   const [emailDomainErr, setEmailDomainErr] = useState("");
 
@@ -132,7 +132,7 @@ function AccountRequestModal({ onClose }) {
     setApiErr("");
   };
 
-  // ✅ NEW : vérifie le domaine à la perte de focus sur le champ email
+  // vérifie le domaine à la perte de focus sur le champ email
   const checkEmailDomain = async (email) => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return;
     setEmailChecking(true);
@@ -159,7 +159,7 @@ function AccountRequestModal({ onClose }) {
     if (!form.nom.trim())   e.nom   = "Le nom est requis";
     if (!form.email.trim()) e.email = "L'email est requis";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Format invalide";
-    // ✅ Bloque le submit si le domaine est invalide
+    // Bloque le submit si le domaine est invalide
     if (emailDomainErr) e.email = emailDomainErr;
     return e;
   };
@@ -600,10 +600,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 Plateforme intelligente de gestion des maintenances industrielles — tickets, techniciens & reporting.
               </div>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 20, fontSize: 11, color: "rgba(255,255,255,0.8)", marginTop: 6, marginBottom: 24 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", animation: "ftPulse 2.2s ease-in-out infinite" }} />
-                Système actif · <strong style={{ fontFamily: "monospace", marginLeft: 3 }}>{ts}</strong>
-              </div>
+              
 
               <div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: "1.6px", textTransform: "uppercase", marginBottom: 8 }}>
