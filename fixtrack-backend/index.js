@@ -23,12 +23,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/*const globalLimiter = rateLimit({
+const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   message: { message: "Trop de requêtes, réessayez plus tard." },
 });
-app.use(globalLimiter);*/
+app.use(globalLimiter);
 
 const accountRequestRoutes = require("./routes/accountRequest");
 app.use("/api/account-request", accountRequestRoutes);
