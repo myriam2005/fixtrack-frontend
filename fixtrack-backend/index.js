@@ -23,12 +23,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const globalLimiter = rateLimit({
+/*const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   message: { message: "Trop de requêtes, réessayez plus tard." },
 });
-app.use(globalLimiter);
+app.use(globalLimiter);*/
 
 const accountRequestRoutes = require("./routes/accountRequest");
 app.use("/api/account-request", accountRequestRoutes);
@@ -41,7 +41,7 @@ app.use("/api/export", require("./routes/exportRoutes"));
 app.use("/api/logs", require("./routes/logsRoutes"));
 
 const configRoutes = require("./routes/configRoutes");
-app.use("/api/config", configRoutes); // ← supprimé le doublon
+app.use("/api/config", configRoutes);
 
 app.get("/", (req, res) =>
   res.json({ message: "🚀 FixTrack API is running!", status: "OK" }),

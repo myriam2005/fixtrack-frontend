@@ -858,11 +858,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 Plateforme intelligente de gestion des maintenances industrielles — tickets, techniciens & reporting.
               </div>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 20, fontSize: 11, color: "rgba(255,255,255,0.8)", marginTop: 6, marginBottom: 24 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", animation: "ftPulse 2.2s ease-in-out infinite" }} />
-                Système actif · <strong style={{ fontFamily: "monospace", marginLeft: 3 }}>{ts}</strong>
-              </div>
-
+            
               <div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: "1.6px", textTransform: "uppercase", marginBottom: 8 }}>
                   Comptes démo — clic pour remplir
@@ -887,26 +883,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 </div>
               </div>
 
-              {/* Bouton Demander un compte */}
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-                <button
-                  className="ft-req-btn"
-                  onClick={() => setShowRequestModal(true)}
-                  style={{
-                    width: "100%", padding: "10px 16px",
-                    background: "rgba(255,255,255,0.1)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 10, cursor: "pointer",
-                    color: "#fff", fontFamily: "inherit",
-                    fontSize: 12.5, fontWeight: 600,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    transition: "all .18s ease",
-                  }}
-                >
-                  <span>Pas de compte ? Faire une demande</span>
-                  <span style={{ fontSize: 12, opacity: 0.6 }}>→</span>
-                </button>
-              </div>
+              
             </div>
 
             {/* RIGHT — Formulaire */}
