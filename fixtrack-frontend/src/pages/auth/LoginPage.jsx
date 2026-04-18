@@ -111,16 +111,275 @@ function AppLogo() {
   );
 }
 
+// ── Modal Mot de passe oublié ─────────────────────────────────────────────────
+
+function ForgotPasswordModal({ onClose }) {
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const inputStyle = (hasErr) => ({
+    width: "100%", height: 42, padding: "0 14px 0 38px",
+    background: hasErr ? "#fff5f5" : "#f9fafb",
+    border: `1.5px solid ${hasErr ? "#fca5a5" : "#e5e7eb"}`,
+    borderRadius: 8, fontSize: 13.5, color: "#111827",
+    outline: "none", fontFamily: "inherit",
+    boxSizing: "border-box",
+    transition: "border-color .15s, box-shadow .15s",
+  });
+
+  const handleSubmit = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setError("Entrez une adresse email valide");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      // Toujours afficher le succès (sécurité : ne pas révéler si l'email existe)
+      setSuccess(true);
+    } catch {
+      setError("Impossible de contacter le serveur. Réessayez.");
+    }
+    setLoading(false);
+  };
+
+  const CSS = `
+    @keyframes modalFade { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes ftSpin    { to { transform:rotate(360deg); } }
+    .fp-input:focus  { border-color:#f59e0b !important; box-shadow:0 0 0 3px rgba(245,158,11,0.12) !important; background:#fffbeb !important; }
+    .fp-close:hover  { background:rgba(255,255,255,0.25) !important; }
+    .fp-submit:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 20px rgba(245,158,11,0.4) !important; }
+  `;
+
+  return (
+    <>
+      <style>{CSS}</style>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
+          backdropFilter: "blur(6px)", zIndex: 1100,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "20px 16px",
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: "100%", maxWidth: 420, background: "#fff",
+            borderRadius: 16,
+            boxShadow: "0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.06)",
+            overflow: "hidden",
+            animation: "modalFade .3s cubic-bezier(.22,1,.36,1) both",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            padding: "26px 30px 22px", position: "relative",
+          }}>
+            <button className="fp-close" onClick={onClose} style={{
+              position: "absolute", top: 14, right: 14,
+              width: 30, height: 30, borderRadius: 8,
+              border: "none", background: "rgba(255,255,255,0.15)",
+              color: "#fff", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background .15s",
+            }}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+              </svg>
+            </button>
+
+            <div style={{
+              width: 42, height: 42, borderRadius: 10,
+              background: "rgba(255,255,255,0.18)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: 12,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px", marginBottom: 3 }}>
+              Mot de passe oublié
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12.5 }}>
+              Un lien de réinitialisation vous sera envoyé
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: "26px 30px 30px" }}>
+            {success ? (
+              <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+                <div style={{
+                  width: 54, height: 54, borderRadius: "50%",
+                  background: "#fef3c7", border: "2px solid #fcd34d",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 18px",
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-10 5L2 7"/>
+                  </svg>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#111827", marginBottom: 8 }}>
+                  Email envoyé !
+                </div>
+                <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.75, marginBottom: 22 }}>
+                  Si un compte existe pour{" "}
+                  <strong style={{ color: "#111827" }}>{email}</strong>,
+                  vous recevrez un lien valable <strong>1 heure</strong>.
+                  <br />
+                  Pensez à vérifier vos spams.
+                </div>
+                <button
+                  onClick={onClose}
+                  style={{
+                    padding: "10px 28px",
+                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                    border: "none", borderRadius: 8,
+                    color: "#fff", fontFamily: "inherit",
+                    fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                  }}
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : (
+              <>
+                {error && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 9,
+                    padding: "10px 13px", marginBottom: 18,
+                    background: "#fef2f2", border: "1px solid #fecaca",
+                    borderRadius: 8, fontSize: 12.5, color: "#dc2626",
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                    Adresse email <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="m22 7-10 5L2 7"/>
+                      </svg>
+                    </span>
+                    <input
+                      className="fp-input"
+                      type="email"
+                      placeholder="prenom@entreprise.com"
+                      value={email}
+                      onChange={e => { setEmail(e.target.value); setError(""); }}
+                      onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                      style={inputStyle(!!error)}
+                    />
+                  </div>
+                </div>
+
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: 9,
+                  padding: "10px 13px", marginBottom: 22,
+                  background: "#fffbeb", border: "1px solid #fde68a",
+                  borderRadius: 8, fontSize: 12, color: "#92400e", lineHeight: 1.6,
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span>
+                    Le lien expirera dans <strong>1 heure</strong>. Si vous ne recevez pas l'email, vérifiez vos spams ou contactez l'administrateur.
+                  </span>
+                </div>
+
+                <button
+                  className="fp-submit"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  style={{
+                    width: "100%", height: 44,
+                    background: loading
+                      ? "#fcd34d"
+                      : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                    border: "none", borderRadius: 9,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    color: "#fff", fontFamily: "inherit",
+                    fontSize: 13.5, fontWeight: 700,
+                    boxShadow: loading ? "none" : "0 4px 14px rgba(245,158,11,0.35)",
+                    transition: "transform .15s, box-shadow .15s",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <div style={{
+                        width: 16, height: 16,
+                        border: "2px solid rgba(255,255,255,.3)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        animation: "ftSpin .65s linear infinite",
+                      }} />
+                      <span>Envoi en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      </svg>
+                      <span>Envoyer le lien</span>
+                    </>
+                  )}
+                </button>
+
+                <p style={{ fontSize: 11.5, color: "#9ca3af", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
+                  Vous vous souvenez de votre mot de passe ?{" "}
+                  <span onClick={onClose} style={{ color: "#2563eb", cursor: "pointer", fontWeight: 600 }}>
+                    Retour à la connexion
+                  </span>
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Modal Demande de Compte ───────────────────────────────────────────────────
+
 function AccountRequestModal({ onClose }) {
   const [form, setForm] = useState({
     nom: "", email: "", telephone: "", role: "user", message: "",
   });
-  const [errors, setErrors]                 = useState({});
-  const [loading, setLoading]               = useState(false);
-  const [success, setSuccess]               = useState(false);
-  const [apiErr, setApiErr]                 = useState("");
-  const [emailChecking, setEmailChecking]   = useState(false);
+  const [errors, setErrors]               = useState({});
+  const [loading, setLoading]             = useState(false);
+  const [success, setSuccess]             = useState(false);
+  const [apiErr, setApiErr]               = useState("");
+  const [emailChecking, setEmailChecking] = useState(false);
   const [emailDomainErr, setEmailDomainErr] = useState("");
 
   const set = (field) => (e) => {
@@ -130,37 +389,22 @@ function AccountRequestModal({ onClose }) {
     setApiErr("");
   };
 
-  // ✅ Vérification domaine robuste — fail open si backend down ou erreur réseau
   const checkEmailDomain = async (email) => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return;
-
     setEmailChecking(true);
     setEmailDomainErr("");
-
     try {
       const res = await fetch(`${API_BASE}/auth/check-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      // ✅ Si le backend répond mal (500, 404...) → on laisse passer
-      if (!res.ok) {
-        console.warn("[check-email] Backend KO, on laisse passer");
-        return;
-      }
-
       const data = await res.json();
-
-      // ✅ Seulement bloquer si reason === "domain" (domaine vraiment inexistant)
-      // dns_unavailable = erreur réseau côté serveur → on laisse passer
-      if (!data.valid && data.reason === "domain") {
+      if (!data.valid) {
         setEmailDomainErr("Ce domaine email n'existe pas ou n'accepte pas d'emails.");
       }
-
     } catch {
-      // ✅ Erreur réseau (backend down, CORS...) → on laisse passer silencieusement
-      console.warn("[check-email] Erreur réseau, fail open");
+      // silencieux si backend down
     } finally {
       setEmailChecking(false);
     }
@@ -340,7 +584,7 @@ function AccountRequestModal({ onClose }) {
                   )}
                 </div>
 
-                {/* Email avec vérification domaine onBlur */}
+                {/* Email */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                     Adresse email <span style={{ color: "#ef4444" }}>*</span>
@@ -497,7 +741,8 @@ export default function LoginPage({ onLoginSuccess }) {
   const [success,  setSuccess]  = useState(false);
   const [succUser, setSuccUser] = useState(null);
   const [time,     setTime]     = useState(new Date());
-  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showRequestModal,  setShowRequestModal]  = useState(false);
+  const [showForgotModal,   setShowForgotModal]   = useState(false); // ← NOUVEAU
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -566,8 +811,12 @@ export default function LoginPage({ onLoginSuccess }) {
     <>
       <style>{CSS}</style>
 
+      {/* ── Modals ── */}
       {showRequestModal && (
         <AccountRequestModal onClose={() => setShowRequestModal(false)} />
+      )}
+      {showForgotModal && (
+        <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />
       )}
 
       <div style={{
@@ -638,6 +887,26 @@ export default function LoginPage({ onLoginSuccess }) {
                 </div>
               </div>
 
+              {/* Bouton Demander un compte */}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+                <button
+                  className="ft-req-btn"
+                  onClick={() => setShowRequestModal(true)}
+                  style={{
+                    width: "100%", padding: "10px 16px",
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 10, cursor: "pointer",
+                    color: "#fff", fontFamily: "inherit",
+                    fontSize: 12.5, fontWeight: 600,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    transition: "all .18s ease",
+                  }}
+                >
+                  <span>Pas de compte ? Faire une demande</span>
+                  <span style={{ fontSize: 12, opacity: 0.6 }}>→</span>
+                </button>
+              </div>
             </div>
 
             {/* RIGHT — Formulaire */}
@@ -692,7 +961,14 @@ export default function LoginPage({ onLoginSuccess }) {
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Mot de passe</label>
-                      <button type="button" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#2563eb", fontFamily: "inherit", padding: 0 }}>Mot de passe oublié ?</button>
+                      {/* ── LIEN "Mot de passe oublié ?" — branché sur la modal ── */}
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotModal(true)}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#2563eb", fontFamily: "inherit", padding: 0 }}
+                      >
+                        Mot de passe oublié ?
+                      </button>
                     </div>
                     <div style={{ position: "relative" }}>
                       <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>

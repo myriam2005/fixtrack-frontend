@@ -26,6 +26,8 @@ const seed = async () => {
       avatar: "OJ",
       telephone: "+216 22 111 222",
       emailVerified: true,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
       createdAt: new Date("2026-01-01"),
     },
     {
@@ -36,6 +38,8 @@ const seed = async () => {
       avatar: "OK",
       competences: ["Électrique", "HVAC"],
       emailVerified: true,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
       createdAt: new Date("2026-03-01"),
     },
     {
@@ -46,6 +50,8 @@ const seed = async () => {
       avatar: "EH",
       competences: ["Informatique", "Mécanique"],
       emailVerified: true,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
       createdAt: new Date("2026-03-02"),
     },
     {
@@ -55,6 +61,8 @@ const seed = async () => {
       role: "manager",
       avatar: "MC",
       emailVerified: true,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
       createdAt: new Date("2026-04-01"),
     },
     {
@@ -64,6 +72,8 @@ const seed = async () => {
       role: "admin",
       avatar: "AF",
       emailVerified: true,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
       createdAt: new Date("2026-04-01"),
     },
   ]);

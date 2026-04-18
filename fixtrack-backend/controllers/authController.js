@@ -1,22 +1,20 @@
 // controllers/authController.js
-// REFACTORISÉ :
-//    - register      → crée un PendingUser (pas un User)
-//    - verifyEmail   → migre PendingUser → User PUIS supprime le PendingUser
-//    - login         → inchangé (cherche dans User seulement)
-
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const PendingUser = require("../models/PendingUser");
 const createLog = require("../utils/createLog");
-const { sendVerificationEmail } = require("../utils/emailService");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} = require("../utils/emailService");
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
-// Auto-inscription : crée un PendingUser, envoie email, RIEN dans User tant que non validé.
 const register = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -27,7 +25,6 @@ const register = async (req, res) => {
     const { nom, email, password, role, telephone, competences } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    // ── Unicité dans User ET PendingUser ──────────────────────────────────────
     const [existingUser, existingPending] = await Promise.all([
       User.findOne({ email: normalizedEmail }),
       PendingUser.findOne({ email: normalizedEmail }),
@@ -109,7 +106,6 @@ const register = async (req, res) => {
 };
 
 // ── POST /api/auth/verify-email ───────────────────────────────────────────────
-//  cherche dans PendingUser, crée le vrai User, supprime le PendingUser.
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
@@ -117,25 +113,18 @@ const verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "Token de vérification requis" });
     }
 
-    // Cherche le PendingUser dont le token hashé correspond
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const pending = await PendingUser.findOne({
       emailVerificationToken: hashedToken,
     });
 
     if (!pending) {
-      // Peut-être déjà validé ? Vérifie dans User
-      const alreadyVerified = await User.findOne({
-        email: { $exists: true },
-        emailVerified: true,
-      });
       return res.status(400).json({
         message: "Token invalide ou déjà utilisé.",
         tokenInvalid: true,
       });
     }
 
-    // Vérifie expiration
     if (!pending.isTokenValid(token)) {
       return res.status(400).json({
         message: "Le lien de vérification a expiré. Demandez un nouveau lien.",
@@ -143,10 +132,8 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // ── Vérification de dernière chance : l'email n'a pas été pris entre-temps
     const conflict = await User.findOne({ email: pending.email });
     if (conflict) {
-      // Nettoyage du PendingUser orphelin
       await PendingUser.deleteOne({ _id: pending._id });
       return res.status(400).json({
         message: "Un compte avec cet email existe déjà.",
@@ -154,25 +141,21 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // ── Migration PendingUser → User ──────────────────────────────────────────
-    // Le mot de passe est DÉJÀ hashé dans PendingUser (pre-save hook).
-    // On bypasse le hook de hachage de User en utilisant insertOne direct.
     const newUserData = {
       nom: pending.nom,
       email: pending.email,
-      password: pending.password, // déjà hashé
+      password: pending.password,
       role: pending.role,
       avatar: pending.avatar,
       telephone: pending.telephone,
       competences: pending.competences,
       actif: true,
-      emailVerified: true, // ← compte immédiatement utilisable
+      emailVerified: true,
       emailVerificationToken: null,
       emailVerificationTokenExpires: null,
       emailVerificationSentAt: null,
     };
 
-    // Utilise insertOne pour ne pas déclencher le pre-save qui re-hasherait le mdp
     const result = await User.collection.insertOne({
       ...newUserData,
       createdAt: new Date(),
@@ -181,7 +164,6 @@ const verifyEmail = async (req, res) => {
 
     const newUserId = result.insertedId;
 
-    // Supprime le PendingUser maintenant que le User existe
     await PendingUser.deleteOne({ _id: pending._id });
 
     await createLog(
@@ -214,7 +196,6 @@ const resendVerificationEmail = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Vérifie si déjà un vrai compte
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser && existingUser.emailVerified) {
       return res.status(400).json({
@@ -223,7 +204,6 @@ const resendVerificationEmail = async (req, res) => {
       });
     }
 
-    // Cherche dans PendingUser
     const pending = await PendingUser.findOne({ email: normalizedEmail });
     if (!pending) {
       return res.status(404).json({
@@ -231,7 +211,6 @@ const resendVerificationEmail = async (req, res) => {
       });
     }
 
-    // Rate limiting : 5 min entre deux envois
     if (pending.emailVerificationSentAt) {
       const elapsed = Date.now() - pending.emailVerificationSentAt.getTime();
       if (elapsed < 5 * 60 * 1000) {
@@ -265,7 +244,6 @@ const resendVerificationEmail = async (req, res) => {
 };
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
-// Inchangé — cherche uniquement dans User (les PendingUsers ne peuvent pas se connecter)
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -277,7 +255,6 @@ const login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) {
-      // Vérifie si l'email est en attente de vérification pour donner un message clair
       const pending = await PendingUser.findOne({
         email: email.toLowerCase().trim(),
       });
@@ -363,10 +340,108 @@ const getMe = async (req, res) => {
   }
 };
 
+// ── POST /api/auth/forgot-password ───────────────────────────────────────────
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    // On cherche l'utilisateur silencieusement (anti-énumération)
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (user && user.actif) {
+      // Générer un token brut sécurisé
+      const rawToken = crypto.randomBytes(32).toString("hex");
+
+      // Stocker uniquement le hash en base
+      user.resetPasswordToken = crypto
+        .createHash("sha256")
+        .update(rawToken)
+        .digest("hex");
+      user.resetPasswordExpiry = Date.now() + 60 * 60 * 1000; // 1 heure
+      await user.save();
+
+      const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
+
+      await sendPasswordResetEmail(user.email, user.nom, resetLink);
+
+      await createLog(
+        "FORGOT_PASSWORD",
+        `Demande de reset password pour : ${user.email}`,
+        user._id,
+      );
+
+      console.log(`🔑 Reset password demandé pour : ${user.email}`);
+    }
+
+    // Réponse identique que l'utilisateur existe ou non (sécurité)
+    return res.json({
+      success: true,
+      message:
+        "Si ce compte existe, un email de réinitialisation a été envoyé.",
+    });
+  } catch (error) {
+    console.error("Erreur forgotPassword:", error);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+};
+
+// ── POST /api/auth/reset-password ────────────────────────────────────────────
+const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password || password.length < 6) {
+      return res.status(400).json({ message: "Données invalides." });
+    }
+
+    // Hasher le token reçu pour comparer avec celui en base
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: { $gt: Date.now() }, // pas expiré
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Lien invalide ou expiré. Veuillez refaire une demande.",
+        tokenInvalid: true,
+      });
+    }
+
+    // Hasher et sauvegarder le nouveau mot de passe
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiry = undefined;
+    await user.save();
+
+    await createLog(
+      "RESET_PASSWORD",
+      `Mot de passe réinitialisé pour : ${user.email}`,
+      user._id,
+    );
+
+    console.log(`✅ Mot de passe réinitialisé pour : ${user.email}`);
+
+    return res.json({
+      success: true,
+      message: "Mot de passe mis à jour avec succès.",
+    });
+  } catch (error) {
+    console.error("Erreur resetPassword:", error);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 };
