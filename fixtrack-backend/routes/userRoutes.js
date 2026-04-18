@@ -33,7 +33,7 @@ router.get(
 router.get("/", auth, roleCheck(["admin", "manager"]), getAllUsers);
 
 // POST / → createUser (admin crée un compte)
-// ✅ Vérifie domaine email + envoie email de vérification → compte inaccessible tant que non vérifié
+// Vérifie domaine email + envoie email de vérification → compte inaccessible tant que non vérifié
 router.post(
   "/",
   auth,
@@ -53,7 +53,7 @@ router.post(
 router.get("/:id", auth, roleCheck(["admin", "manager"]), getUserById);
 
 // PUT /:id → updateUser (admin modifie un compte)
-// ✅ Si email change : vérification DNS + re-vérification par email
+// Si email change : vérification DNS + re-vérification par email
 router.put("/:id", auth, roleCheck(["admin"]), updateUser);
 
 router.put("/:id/role", auth, roleCheck(["admin"]), updateRole);

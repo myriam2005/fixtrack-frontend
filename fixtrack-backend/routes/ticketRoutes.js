@@ -1,4 +1,3 @@
-
 // routes/ticketRoutes.js
 const express = require("express");
 const router = express.Router();
@@ -33,14 +32,6 @@ router.get(
   auth,
   roleCheck(["user", "technician", "manager", "admin"]),
   getTicketById,
-);
-
-// ── Suggestion technicien (avant /:id/assign pour éviter conflit) ─────────────
-router.get(
-  "/:id/suggest-technician",
-  auth,
-  roleCheck(["manager", "admin"]),
-  suggestTechnician,
 );
 
 // ── Création ──────────────────────────────────────────────────────────────────

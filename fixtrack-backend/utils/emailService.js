@@ -1,6 +1,6 @@
 // utils/emailService.js
 /**
- * Service d'envoi d'emails
+ * Service d'envoi d'emails jst deux type de mails le reste se fait via n8n!!!!!!!!!!!!!!!!!!!!
  * Utilise Nodemailer pour envoyer des emails
  * Configuration via variables d'environnement:
  * - EMAIL_HOST: serveur SMTP

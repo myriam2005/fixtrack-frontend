@@ -1,4 +1,3 @@
-
 // controllers/authController.js
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
@@ -216,7 +215,7 @@ const resendVerificationEmail = async (req, res) => {
 };
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
-// ✅ Bloque la connexion si emailVerified === false (comptes admin-créés inclus)
+//  Bloque la connexion si emailVerified === false (comptes admin-créés inclus)
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -233,7 +232,7 @@ const login = async (req, res) => {
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // ✅ Vérification email obligatoire — s'applique aux comptes auto-inscrits ET admin-créés
+    //  Vérification email obligatoire — s'applique aux comptes auto-inscrits ET admin-créés
     if (!user.emailVerified) {
       return res.status(403).json({
         message:

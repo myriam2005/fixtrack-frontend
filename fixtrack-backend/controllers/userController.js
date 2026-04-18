@@ -97,7 +97,7 @@ const getUserById = async (req, res) => {
 };
 
 // ── POST /api/users (admin crée un compte) ────────────────────────────────────
-// ✅ Vérifie le domaine email, crée le compte non vérifié, envoie un email de vérification.
+// Vérifie le domaine email, crée le compte non vérifié, envoie un email de vérification.
 // Le compte ne peut PAS être utilisé avant que l'utilisateur clique sur le lien.
 const createUser = async (req, res) => {
   try {
@@ -204,7 +204,7 @@ const createUser = async (req, res) => {
 };
 
 // ── PUT /api/users/:id (admin modifie un compte) ──────────────────────────────
-// ✅ Mise à jour complète avec gestion du changement d'email (re-vérification si email change)
+//  Mise à jour complète avec gestion du changement d'email (re-vérification si email change)
 const updateUser = async (req, res) => {
   try {
     const { nom, email, password, role, telephone, competences, actif } =
@@ -414,11 +414,9 @@ const changePassword = async (req, res) => {
         .json({ message: "Les deux mots de passe sont requis" });
     }
     if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({
-          message: "Le nouveau mot de passe doit faire au moins 6 caractères",
-        });
+      return res.status(400).json({
+        message: "Le nouveau mot de passe doit faire au moins 6 caractères",
+      });
     }
 
     const user = await User.findById(req.user.id);

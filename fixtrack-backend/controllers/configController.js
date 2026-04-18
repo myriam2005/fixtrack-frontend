@@ -44,7 +44,7 @@ exports.createCategory = async (req, res) => {
 };
 
 // ── PUT /api/config/categories/:id ───────────────────────────────────────────
-// ✅ Cascade : renomme aussi tous les tickets qui portaient l'ancien nom
+//  Cascade : renomme aussi tous les tickets qui portaient l'ancien nom
 exports.updateCategory = async (req, res) => {
   try {
     const { nom } = req.body;
@@ -74,7 +74,7 @@ exports.updateCategory = async (req, res) => {
       { new: true },
     );
 
-    // ✅ Cascade : met à jour tous les tickets qui avaient l'ancien nom
+    // Cascade : met à jour tous les tickets qui avaient l'ancien nom
     let ticketsUpdated = 0;
     if (oldNom !== newNom) {
       const result = await Ticket.updateMany(
@@ -98,7 +98,7 @@ exports.updateCategory = async (req, res) => {
 };
 
 // ── DELETE /api/config/categories/:id ────────────────────────────────────────
-// ✅ Cascade : les tickets associés passent à "Non classé"
+//  Cascade : les tickets associés passent à "Non classé"
 exports.deleteCategory = async (req, res) => {
   try {
     const cat = await Category.findById(req.params.id);
@@ -106,7 +106,7 @@ exports.deleteCategory = async (req, res) => {
 
     const nomSupprime = cat.nom;
 
-    // ✅ Cascade : réassigne les tickets vers "Non classé"
+    //  Cascade : réassigne les tickets vers "Non classé"
     const result = await Ticket.updateMany(
       { categorie: nomSupprime },
       { $set: { categorie: UNCATEGORIZED } },
