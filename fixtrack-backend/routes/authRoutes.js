@@ -1,4 +1,4 @@
-// routes/auth.js
+// routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
 const { check } = require("express-validator");
@@ -9,6 +9,8 @@ const {
   getMe,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/authController");
 const auth = require("../middleware/auth");
 
@@ -51,10 +53,26 @@ router.post(
   resendVerificationEmail,
 );
 
+// ── POST /api/auth/forgot-password ───────────────────────────────────────────
+// Génère un token de reset et envoie le lien par email
+router.post(
+  "/forgot-password",
+  [check("email").isEmail().withMessage("Email invalide").normalizeEmail()],
+  forgotPassword,
+);
+
+// ── POST /api/auth/reset-password ────────────────────────────────────────────
+// Vérifie le token et met à jour le mot de passe
+router.post(
+  "/reset-password",
+  [
+    check("token").notEmpty().withMessage("Token requis"),
+    check("password").isLength({ min: 6 }).withMessage("Minimum 6 caractères"),
+  ],
+  resetPassword,
+);
+
 // ── POST /api/auth/check-email ────────────────────────────────────────────────
-// Vérifie que le domaine email existe réellement (utilisé par le frontend avant soumission)
-// Logique : domaines connus → valide direct | DNS MX → valide | DNS A/AAAA → valide | rien → invalide
-// En cas d'erreur réseau globale → fail open (on laisse passer)
 router.post("/check-email", async (req, res) => {
   const { email } = req.body;
 
@@ -100,21 +118,18 @@ router.post("/check-email", async (req, res) => {
       return res.json({ valid: true, reason: null });
     }
 
-    // MX
     try {
       const mxRecords = await dns.resolveMx(domain);
       if (mxRecords && mxRecords.length > 0)
         return res.json({ valid: true, reason: null });
     } catch {}
 
-    // A
     try {
       const aRecords = await dns.resolve4(domain);
       if (aRecords && aRecords.length > 0)
         return res.json({ valid: true, reason: null });
     } catch {}
 
-    // AAAA
     try {
       const aaaaRecords = await dns.resolve6(domain);
       if (aaaaRecords && aaaaRecords.length > 0)
